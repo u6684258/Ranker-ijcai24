@@ -6,6 +6,7 @@ def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', type=int, default=0)
     parser.add_argument('-d', '--domain', default="goose-pretraining")
+    parser.add_argument('--domain-name', type=str, default=None)
     parser.add_argument('-t', '--task', default='h', choices=["h", "a"], help="predict value or action")
 
     # model params
@@ -45,7 +46,8 @@ def create_parser():
 
     parser.add_argument('--no-tqdm', dest='tqdm', action='store_false')
     parser.add_argument('--fast-train', action='store_true', help="ignore some additional computation of stats")
-
+    parser.add_argument('--ranker', default=False)
+    parser.add_argument('--test-file', default='test_small')
     return parser
 
 def check_config(args):

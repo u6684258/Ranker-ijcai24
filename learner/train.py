@@ -6,6 +6,8 @@ import torch_geometric
 import random
 import numpy as np
 import configuration
+import test
+import representation
 
 from models import *
 from tqdm.auto import tqdm, trange
@@ -13,7 +15,7 @@ from loss import LOSS
 from util.stats import *
 from util.save_load import *
 from util import train, evaluate
-from dataset.dataset import get_loaders_from_args
+from dataset.dataset import get_loaders_from_args, get_paired_dataloaders_from_args
 
 
 def main():
@@ -21,14 +23,19 @@ def main():
     args = parser.parse_args()
     configuration.check_config(args)
     print_arguments(args)
-
+    if args.ranker:
+        assert args.model == "RGNNRANK", "Are you using ranker model?"
     # cuda
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
     # init model
-    train_loader, val_loader = get_loaders_from_args(args)
+    if args.ranker:
+        train_loader, val_loader = get_paired_dataloaders_from_args(args)
+    else:
+        train_loader, val_loader = get_loaders_from_args(args)
     args.n_edge_labels = representation.N_EDGE_TYPES[args.rep]
     args.in_feat = train_loader.dataset[0].x.shape[1]
+    args.out_feat = 10
     model_params = arg_to_params(args)
     model = GNNS[args.model](params=model_params).to(device)
 
@@ -82,13 +89,13 @@ def main():
                 f"val_loss {val_loss:.2f}, " \
                 f"time {time.time() - t:.1f}"
         else:  # computes all metrics
+            # f"train_f1 {train_stats['f1']:.1f}, " \
+            # f"val_f1 {val_stats['f1']:.1f}, " \
+            # f"train_int {train_stats['interval']}, " \
+            # f"val_int {val_stats['interval']}, " \
+            # f"train_adm {train_stats['admis']:.1f}, " \
+            # f"val_adm {val_stats['admis']:.1f}, " \
           desc = f"epoch {e}, " \
-                f"train_f1 {train_stats['f1']:.1f}, " \
-                f"val_f1 {val_stats['f1']:.1f}, " \
-                f"train_int {train_stats['interval']}, " \
-                f"val_int {val_stats['interval']}, " \
-                f"train_adm {train_stats['admis']:.1f}, " \
-                f"val_adm {val_stats['admis']:.1f}, " \
                 f"train_loss {train_loss:.2f}, " \
                 f"val_loss {val_loss:.2f}, " \
                 f"time {time.time() - t:.1f}"
@@ -113,6 +120,8 @@ def main():
       save_model_from_dict(best_dict, args)
     else:
       save_model(model, args)
+
+    test.domain_test(args.domain_name, args.test_file, args.save_file)
 
     return
 

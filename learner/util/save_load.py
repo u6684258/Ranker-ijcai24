@@ -4,6 +4,7 @@ import datetime
 import representation
 from models import *
 
+content_root = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 
 def arg_to_params(args, in_feat=4, out_feat=1):
     model_name = args.model
@@ -20,7 +21,7 @@ def arg_to_params(args, in_feat=4, out_feat=1):
     model_params = {
       'model_name': model_name,
       'in_feat': in_feat,
-      'out_feat': out_feat,
+      'out_feat': args.out_feat,
       'nlayers': nlayers,
       'share_layers': share_layers,
       'n_edge_labels': n_edge_labels,
@@ -54,7 +55,7 @@ def save_model_from_dict(model_dict, args):
     if not hasattr(args, "save_file") or args.save_file is None:
       return
     print("Saving model...")
-    save_dir = 'trained_models'
+    save_dir = f'{content_root}/trained_models'
     os.makedirs(f"{save_dir}/", exist_ok=True)
     model_file_name = args.save_file.replace(".dt", "")
     path = f'{save_dir}/{model_file_name}.dt'

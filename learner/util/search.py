@@ -6,6 +6,8 @@ import re
 
 from representation.config import CONFIG
 
+fd_path = os.path.join(os.path.dirname(os.path.dirname(
+  os.path.dirname(os.path.realpath(__file__)))), "downward")
 
 REPEATS = 1
 VAL_REPEATS = 5
@@ -81,6 +83,7 @@ def fd_cmd(rep, domain_name, df, pf, m, search, seed, timeout=TIMEOUT):
     f.write(df+'\n')
     f.write(pf+'\n')
     f.close()
-  cmd = f'./../downward/fast-downward.py --search-time-limit {timeout} --sas-file {sas_file} --plan-file {plan_file} {df} {pf} --search "{search}([goose(graph={config})])"'
+  cmd = f'{fd_path}/fast-downward.py --search-time-limit {timeout} --sas-file {sas_file} --plan-file {plan_file} {df} {pf} --search "{search}([goose(graph={config})])"'
   cmd = f"export GOOSE={os.getcwd()} && {cmd}"
+  print(cmd)
   return cmd, sas_file
