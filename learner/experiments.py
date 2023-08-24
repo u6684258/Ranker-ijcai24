@@ -17,4 +17,6 @@ for domain in args.domains:
 
     f = open(f"{log_root}/exp_{domain}_{datetime.now().isoformat()}.logs", "w")
 
+    print(f"Experiment log: {f}")
+
     subprocess.call(cmd.split(" "), stdout=f)

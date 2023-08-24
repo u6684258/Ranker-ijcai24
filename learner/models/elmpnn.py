@@ -83,12 +83,22 @@ class ELMPNNRankerPredictor(BasePredictor):
   def create_model(self, params):
     self.model = ELMPNN(params)
     self.ranker = torch.nn.Linear(params["out_feat"], 1, bias=False)
-    self.ranker_act = torch.nn.Tanh()
+    self.ranker_act = torch.nn.Identity()
 
   def forward(self, data):
     left = self.model.forward(data.x, data.edge_index, data.batch)
     right = self.model.forward(data.pair_x, data.pair_edge_index, data.batch)
-    return self.ranker_act(self.ranker(torch.sub(left, right))).squeeze(1)
+    result = self.ranker_act(self.ranker(torch.sub(left, right))).squeeze(1)
+    # print(left)
+    # print(right)
+    # print(data.)
+    with torch.no_grad():
+      if torch.sum(left - right) < 1e-3:
+        print(f"Warning: Encodings are very close to each other: {left}, {right}")
+
+      if torch.sum(result) < 1e-3:
+        print(f"Warning: Classification is close to 0: {result}")
+    return result
 
   def h(self, state: FrozenSet[Proposition]) -> float:
     x, edge_index = self.rep.get_state_enc(state)
@@ -109,16 +119,20 @@ class ELMPNNRankerPredictor(BasePredictor):
     loader = DataLoader(dataset=data_list, batch_size=min(len(data_list), 32))
     data = next(iter(loader)).to(self.device)
     hs = self.model.forward(data.x, data.edge_index, data.batch)
-    print(f"model: {hs}")
+    # print(f"model: {hs}")
     hs = self.ranker(hs)
     hs = hs.detach().cpu().numpy().reshape([-1,])  # annoying error with jit
-    print(f"here: {hs}")
+    # print(f"here: {hs}")
     hs = self.shift_heu(hs).tolist()
-    print(hs)
+    # print(hs)
     return hs
 
   def shift_heu(self, h, scale=1e2, shift=10):
-    return np.round(np.exp(h+shift)*scale).astype("int32")
+    shift_result = h+shift
+    assert shift_result > 0, f"shift {shift} is not large enough to make {h} a positive heuristic values"
+    result = np.round(np.exp(shift_result)*scale).astype("int32")
+    assert result > 0, f"Invalid heuristic value: {result}"
+    return result
 
   def predict_action(self, state: FrozenSet[Proposition]):
     raise NotImplementedError

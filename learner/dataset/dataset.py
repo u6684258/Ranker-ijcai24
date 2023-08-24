@@ -1,3 +1,4 @@
+import itertools
 import os
 import sys
 from typing import List, Tuple
@@ -66,7 +67,8 @@ def get_paired_dataloaders_from_args(args):
         new_datalist = preprocess_data(model_name, data_list=datalist, c_hi=cutoff, n_hi=max_nodes,
                                        small_train=small_train)
         new_datalist = add_features(new_datalist, args)
-        new_dataset += [(i, j) for i, j in zip(new_datalist, new_datalist[1:])]
+        new_dataset += itertools.combinations(new_datalist, 2)
+        # new_dataset += [(i, j) for i, j in zip(new_datalist, new_datalist[1:])]
         get_stats(dataset=new_datalist, desc="Whole dataset")
 
     new_dataset = convert_pair_to_data(new_dataset)
@@ -92,7 +94,8 @@ def convert_pair_to_data(dataset: List[Tuple[Data, Data]]) -> List[Data]:
     for data_l, data_r in dataset:
         new_data_l = Data(x=data_l.x,
                           edge_index=data_l.edge_index,
-                          y=1 if data_l.y > data_r.y else -1,
+                          # y=1 if data_l.y > data_r.y else -1,
+                          y=data_l.y - data_r.y,
                           domain=data_l.domain,
                           problem=data_l.problem,
                           pair_x=data_r.x,
@@ -109,6 +112,7 @@ def convert_pair_to_data(dataset: List[Tuple[Data, Data]]) -> List[Data]:
                           pair_edge_index=data_l.edge_index,
                           )
 
-        new_dataset.extend([new_data_l, new_data_r])
+        # new_dataset.extend([new_data_l, new_data_r])
+        new_dataset.extend([new_data_l])
 
     return new_dataset
