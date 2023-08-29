@@ -156,13 +156,13 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         with torch.no_grad():
             assert torch.sum(data.p_idx) - data.p_idx[0] * data.p_idx.shape[0] == 0
             # print(data.problem)
-        encodes = self.ranker(self.model.forward(data.x, data.edge_index, data.batch))
+        encodes = self.model.forward(data.x, data.edge_index, data.batch)
 
         indices = torch.combinations(torch.arange(encodes.shape[0]), 2)
         combined_encodes = encodes[indices].permute([1, 0, 2])
         diff = combined_encodes[0, :] - combined_encodes[1, :]
         # print(polarity)
-        result = self.ranker_act(diff).squeeze(1)
+        result = self.ranker_act(self.ranker(diff)).squeeze(1)
         with torch.no_grad():
             ys = data.y[indices].permute(1, 0)
             polarity_mask = ((ys[0, :] - ys[1, :]) > 0).long()
@@ -170,11 +170,11 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
             # polarity_mask = ((ys[0, :] - ys[1, :]) == 0).long()
             # polarity = polarity + polarity_mask
             polarity = polarity.float()
-            # if torch.sum(torch.abs(diff)) < 1e-3:
-            #     print(f"Warning: Encodings are very close to each other!: {torch.sum(torch.abs(diff)).detach().numpy()}")
+            if torch.sum(torch.abs(diff)) < 1e-3:
+                print(f"Warning: Encodings are very close to each other!: {torch.sum(torch.abs(diff)).detach().numpy()}")
 
-            # if torch.sum(torch.abs(result)) < 1e-3:
-            #     print(f"Warning: Classification is close to 0: {result}")
+            if torch.sum(torch.abs(result)) < 1e-3:
+                print(f"Warning: Classification is close to 0: {result}")
         return result, polarity
 
     def h(self, state: FrozenSet[Proposition]) -> float:
@@ -208,7 +208,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         shift_result = h + shift
         assert shift_result > 0, f"shift {shift} is not large enough to make {h} a positive heuristic values"
         result = np.round(np.exp(shift_result) * scale).astype("int32")
-        assert result > 0, f"Invalid heuristic value: {result}"
+        assert result > 0, f"Invalid heuristic value: {result}; Origin: {h}"
         return result
 
     def predict_action(self, state: FrozenSet[Proposition]):
