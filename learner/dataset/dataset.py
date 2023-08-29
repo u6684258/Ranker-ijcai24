@@ -1,10 +1,14 @@
 import itertools
 import os
 import sys
+import random
 from typing import List, Tuple
 
+import numpy as np
 import torch
+from torch.utils.data import Dataset
 from torch_geometric.data import Data
+from tqdm import tqdm
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -116,3 +120,132 @@ def convert_pair_to_data(dataset: List[Tuple[Data, Data]]) -> List[Data]:
         new_dataset.extend([new_data_l])
 
     return new_dataset
+
+
+def get_by_problem_dataloaders_from_args(args):
+    model_name = args.model
+    batch_size = args.batch_size
+    domain = args.domain
+    rep = args.rep
+    max_nodes = args.max_nodes
+    cutoff = args.cutoff
+    small_train = args.small_train
+    strategy = args.strategy
+    num_workers = 0
+    pin_memory = True
+
+    dataset: List[List[Data]] = get_graph_data(domain=domain, representation=rep, paired=True)
+    new_dataset = []
+    index_list = []
+    trainset = []
+    valset = []
+    valid_count = 0
+    for i, datalist in enumerate(dataset):
+        new_datalist = preprocess_data(model_name, data_list=datalist, c_hi=cutoff, n_hi=max_nodes,
+                                       small_train=small_train)
+        if len(new_datalist) < 2:
+            continue
+        new_datalist = add_features(new_datalist, args, idx=valid_count)
+        new_dataset += new_datalist
+        index_list += [valid_count] * len(datalist)
+        get_stats(dataset=new_datalist, desc="Whole dataset")
+        trains, vals = train_test_split(new_datalist, test_size=0.15, random_state=4550)
+        trainset += trains
+        valset += vals
+        valid_count += 1
+    train_per_class_sample_indices = ByProblemDataset(trainset,
+                                                      valid_count).per_class_sample_indices()
+    train_batch_sampler = BatchSampler(train_per_class_sample_indices,
+                                       batch_size=batch_size)
+
+    train_loader = DataLoader(
+        trainset,
+        # batch_size=args.batch_size,
+        # shuffle=(train_sampler is None),
+        num_workers=num_workers,
+        pin_memory=True,
+        # sampler=train_sampler,
+        batch_sampler=train_batch_sampler
+    )
+
+    val_per_class_sample_indices = ByProblemDataset(valset,
+                                                    valid_count).per_class_sample_indices()
+    val_batch_sampler = BatchSampler(val_per_class_sample_indices,
+                                     batch_size=batch_size)
+
+    val_loader = DataLoader(
+        valset,
+        # batch_size=args.batch_size,
+        # shuffle=(train_sampler is None),
+        num_workers=num_workers,
+        pin_memory=True,
+        # sampler=train_sampler,
+        batch_sampler=val_batch_sampler
+    )
+    get_stats(dataset=trainset, desc="Train set")
+    get_stats(dataset=valset, desc="Val set")
+    print("train size:", len(trainset))
+    print("validation size:", len(valset))
+    #
+    # train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True, pin_memory=pin_memory,
+    #                           num_workers=num_workers)
+    # val_loader = DataLoader(valset, batch_size=batch_size, shuffle=False, pin_memory=pin_memory,
+    #                         num_workers=num_workers)
+
+    return train_loader, val_loader
+
+
+class ByProblemDataset(Dataset):
+    def __init__(self, data: List[Data], num_classes):
+        super().__init__()
+        self.data = data
+        self.data_len = len(data)
+
+        indices = [[] for _ in range(num_classes)]
+
+        for i, point in tqdm(enumerate(data), total=len(data), miniters=1,
+                             desc='Building class indices dataset..'):
+            indices[point.p_idx].append(i)
+
+        self.indices = indices
+
+    def per_class_sample_indices(self):
+        return self.indices
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    def __len__(self):
+        return self.data_len
+
+
+class BatchSampler:
+    def __init__(self, per_class_sample_indices, batch_size):
+        # classes is a list of lists where each sublist refers to a class and contains
+        # the sample ids that belond to this class
+        self.per_class_sample_indices = per_class_sample_indices
+        # self.n_batches = sum([len(x) for x in per_class_sample_indices]) // batch_size
+        self.n_batches = len(per_class_sample_indices)
+        self.min_class_size = min([len(x) for x in per_class_sample_indices])
+        assert self.min_class_size > 0, "some problems with no samples"
+        self.batch_size = batch_size
+        self.class_range = list(range(len(self.per_class_sample_indices)))
+        random.shuffle(self.class_range)
+
+    def __iter__(self):
+        for j in range(self.n_batches):
+            if j < len(self.class_range):
+                batch_class = self.class_range[j]
+            else:
+                batch_class = random.choice(self.class_range)
+            # if self.batch_size <= len(self.per_class_sample_indices[batch_class]):
+            #     batch = np.random.choice(self.per_class_sample_indices[batch_class], self.batch_size, replace=False)
+            # else:
+            batch = self.per_class_sample_indices[batch_class]
+            yield batch
+
+    def __len__(self):
+        return self.n_batches * self.batch_size
+
+    def n_batches(self):
+        return self.n_batches

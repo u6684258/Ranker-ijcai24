@@ -11,11 +11,11 @@ def create_parser():
 
     # model params
     parser.add_argument('-m', '--model', type=str)
-    parser.add_argument('-L', '--nlayers', type=int, default=16)
+    parser.add_argument('-L', '--nlayers', type=int, default=4)
     parser.add_argument('-H', '--nhid', type=int, default=64)
 
     parser.add_argument('--share-layers', action='store_true')
-    parser.add_argument('--aggr', type=str, default="mean")
+    parser.add_argument('--aggr', type=str, default="max")
     parser.add_argument('--pool', type=str, default="sum")
     parser.add_argument('--drop', type=float, default=0.0, help="probability of an element to be zeroed")
     parser.add_argument('--vn', help='virtual node', action='store_true')
@@ -46,7 +46,8 @@ def create_parser():
 
     parser.add_argument('--no-tqdm', dest='tqdm', action='store_false')
     parser.add_argument('--fast-train', action='store_true', help="ignore some additional computation of stats")
-    parser.add_argument('--ranker', default=False)
+    parser.add_argument('--ranker', action='store_true')
+    parser.add_argument('--batched-ranker', action='store_true')
     parser.add_argument('--test-file', default='test_small')
     return parser
 
