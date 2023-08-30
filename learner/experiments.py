@@ -13,7 +13,7 @@ Path(log_root).mkdir(parents=True, exist_ok=True)
 
 print(f"Selected domains: {args.domains}")
 for domain in args.domains:
-    cmd = f'python3 {exp_root}/train.py -m RGNNBATRANK -r ldg-el -d goose-{domain}-only --domain-name {domain} --save' \
+    cmd = f'python3 {exp_root}/train.py -m RGNNBATRANK -r sdg-el -d goose-{domain}-only --domain-name {domain} --save' \
           f'-file test-{domain} --batched-ranker --fast-train'
 
     f = open(f"{log_root}/exp_{domain}_{datetime.now().isoformat()}.logs", "w")

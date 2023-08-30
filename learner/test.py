@@ -64,9 +64,20 @@ def domain_test(domain, test_file, model_file):
             # timeout
             state = SearchState.timed_out
             print("FD timeout!")
-        else:
+        elif "search exit code: 0" in out_text:
             state = SearchState.success
             print('success')
+            plan_length = out_text.split("KB] Plan length: ")[1].split("step(s).")[0]
+            print(f"plan length: {plan_length}")
+            expansions = out_text.split("KB] Expanded ")[1].split("state(s).")[0]
+            print(f"expansions: {expansions}")
+            heuristic_calls = out_text.split("KB] Evaluated ")[1].split("state(s).")[0]
+            print(f"heuristic calls: {heuristic_calls}")
+            time_length = out_text.split("KB] Search time: ")[1].split("s")[0]
+            print(f"time length: {time_length}")
+        else:
+            state = SearchState.failed
+            print('something wrong!')
         # matrix = SearchMetrics(
         #     nodes_expanded=expansions,
         #     plan_length=plan_length,
@@ -79,4 +90,4 @@ def domain_test(domain, test_file, model_file):
 
 
 if __name__ == "__main__":
-    domain_test('blocks', 'test_small', 'test-blocks.dt')
+    domain_test('ferry', 'test_small', 'test-ferry.dt')

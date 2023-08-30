@@ -184,7 +184,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
             edge_index[i] = edge_index[i].to(self.device)
         h = self.model.forward(x, edge_index, None)
         # print(f"h: {h}")
-        h = self.ranker(h).item()
+        h = self.ranker(h).detach().cpu().numpy().reshape([-1, ])
         h = self.shift_heu(h)
         return h
 
@@ -204,11 +204,11 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         # print(hs)
         return hs
 
-    def shift_heu(self, h, scale=1e2, shift=10):
+    def shift_heu(self, h, scale=1e3, shift=1e4):
         shift_result = h + shift
-        assert shift_result > 0, f"shift {shift} is not large enough to make {h} a positive heuristic values"
-        result = np.round(np.exp(shift_result) * scale).astype("int32")
-        assert result > 0, f"Invalid heuristic value: {result}; Origin: {h}"
+        assert (shift_result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
+        result = np.round(shift_result * scale).astype("int32")
+        assert (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
         return result
 
     def predict_action(self, state: FrozenSet[Proposition]):
