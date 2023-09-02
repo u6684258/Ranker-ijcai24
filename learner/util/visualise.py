@@ -1,25 +1,37 @@
 import os
 import sys
 
+from sklearn.metrics import ConfusionMatrixDisplay, confusion_matrix
+
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import re
 import numpy as np
-import plotly.express as px
 import matplotlib.pyplot as plt
 import pandas as pd
-import seaborn as sns
-
 from IPython.display import display, HTML
 from representation import REPRESENTATIONS
 from dataset import GOOSE_DOMAINS
 from util.scrape_log import *
 from pathlib import Path
 
+""" Methods for constructing plots and visualising stats. """
+
+
+FIRST = r"\first"
+SECOND = r"\second"
+THIRD = r"\third"
+CELL = r"\normalcell"
+ZERO = r"\zerocell"
+
 CONFIG_TO_TEX = {
     "blind": r"\blind",
     "hff": r"\hfftable",
+    "hff-pwl": r"\hffpwl",
+    "shgn": r"\shgn",
     "lama-first": r"\lama",
+    "ddg-el dd": r"\dlg\dd",
+    "ddg-el di": r"\dlg\di",
     "fdg-el dd": r"\flg",
     "sdg-el dd": r"\slg",
     "ldg-el dd": r"\llg",
@@ -28,9 +40,20 @@ CONFIG_TO_TEX = {
     "ldg-el di": r"\llg",
 }
 
+CONFIG_TO_PURE_TEX = {
+    "ddg-el": r"$\textsf{DLG}$",
+    "fdg-el": r"$\textsf{FLG}$",
+    "sdg-el": r"$\textsf{SLG}$",
+    "ldg-el": r"$\textsf{LLG}$",
+}
+
 CONFIG_TO_LINE_STYLE = {
     "blind": "solid",
     "hff": "solid",
+    "hff-pwl": "solid",
+    "shgn": "solid",
+    "ddg-el dd": "solid",
+    "ddg-el di": "solid",
     "lama-first": "solid",
     "fdg-el dd": "dashed",
     "sdg-el dd": "dashed",
@@ -43,6 +66,10 @@ CONFIG_TO_LINE_STYLE = {
 CONFIG_TO_COLOUR = {
     "blind": "black",
     "hff": "orange",
+    "hff-pwl": "brown",
+    "shgn": "green",
+    "ddg-el dd": "green",
+    "ddg-el di": "olive",
     "lama-first": "green",
     "fdg-el dd": "red",
     "sdg-el dd": "purple",
@@ -176,14 +203,15 @@ def collect_test_stats_planner_and_graphs(configs, L, aggr, normalise):
           p=10 if train_type=="dd" else 20
 
           f = f'{log_dir}/{problem_name}_{train_type}_{rep}_{domain}_L{L}_H{H}_{aggr}_p{p}_r0.log'
-          if not os.path.exists(f):
-            continue
           tmp = scrape_search_log(f)
         else:
           # planner
           log_dir = f"logs/{config}"
-          f = f'{log_dir}/{domain}_{problem_name}_{config}.log'
-          assert os.path.exists(f)
+          if config in {"shgn", "hff-pwl"}:
+            f = f'{log_dir}/{domain}_{problem_name}.log'
+          else:
+            f = f'{log_dir}/{domain}_{problem_name}_{config}.log'
+          # assert os.path.exists(f)
           tmp = scrape_search_log(f)
 
         tmp["config"] = config
@@ -294,3 +322,20 @@ def display_solved_test_stats(train_type, L, H, aggr, p):
 def get_max_of_parameters(df):
   df = df.drop(columns=["L", "aggr"]).max()
   return df
+
+def get_confusion_matrix(y_true_train, y_pred_train, y_true_test, y_pred_test, cutoff=-1):
+  y_true_train = np.rint(y_true_train).astype(int)
+  y_pred_train = np.rint(y_pred_train).astype(int)
+  y_true_test = np.rint(y_true_test).astype(int)
+  y_pred_test = np.rint(y_pred_test).astype(int)
+  fig, ax = plt.subplots(nrows=1, ncols=2, figsize=(10, 10))
+  if cutoff == -1:
+    cutoff = max(max(y_true_train), max(y_true_test))+1
+  cm_train = confusion_matrix(y_true_train, y_pred_train, normalize="true", labels=list(range(0, cutoff)))
+  cm_test = confusion_matrix(y_true_test, y_pred_test, normalize="true", labels=list(range(0, cutoff)))
+  display_labels = [y if y%10==0 else "" for y in range(cutoff)]
+  for i, cm in enumerate([cm_train, cm_test]):
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=display_labels)
+    disp.plot(include_values=False, xticks_rotation="vertical", ax=ax[i], colorbar=False)
+    disp.im_.set_clim(0, 1)
+  return plt

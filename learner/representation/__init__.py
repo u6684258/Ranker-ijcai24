@@ -1,20 +1,16 @@
-from .sdg_el import EdgeLabelledStripsProblemDescriptionGraph
-
-from .fdg_el import EdgeLabelledFdrProblemDescriptionGraph
-
-from .ldg_el import EdgeLabelledLiftedDescriptionGraph
-
-from .gdg_el import EdgeLabelledGroundedDescriptionGraph
-
-from .node_features import add_features
-
-from .config import CONFIG, N_EDGE_TYPES
+from .base_class import CGraph, TGraph, Representation
+from .slg import StripsLearningGraph
+from .dlg import DeleteLearningGraph
+from .flg import FdrLearningGraph
+from .llg import LiftedLearningGraph
+from .glg import GroundedLearningGraph
 
 
 REPRESENTATIONS = {
-  "sdg-el": EdgeLabelledStripsProblemDescriptionGraph,
-  "fdg-el": EdgeLabelledFdrProblemDescriptionGraph,
-  "ldg-el": EdgeLabelledLiftedDescriptionGraph,
-  "gdg-el": EdgeLabelledGroundedDescriptionGraph,
+  "slg": StripsLearningGraph,
+  "dlg": DeleteLearningGraph,
+  "flg": FdrLearningGraph,
+  "llg": LiftedLearningGraph,
+  "glg": GroundedLearningGraph,
 }
 

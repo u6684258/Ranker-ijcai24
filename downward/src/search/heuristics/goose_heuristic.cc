@@ -13,10 +13,8 @@ using std::string;
 namespace goose_heuristic {
 GooseHeuristic::GooseHeuristic(const plugins::Options &opts)
     : Heuristic(opts) {
-    
   initialise_model(opts);
-  initialise_fact_strings();
-    
+  initialise_facts();
 }
 
 void GooseHeuristic::initialise_model(const plugins::Options &opts) {
@@ -42,65 +40,43 @@ void GooseHeuristic::initialise_model(const plugins::Options &opts) {
   // python will be printed to stderr, even if it is not an error.
   sys.attr("stderr") = sys.attr("stdout");
 
-  // A really disgusting hack because FeaturePlugin cannot parse string options
-  std::string config_path;
-  switch (opts.get<int>("graph"))
-  {
-  case 0: config_path = "slg"; break;
-  case 1: config_path = "flg"; break;
-  case 2: config_path = "llg"; break;
-  case 3: config_path = "glg"; break;
-  default:
-      std::cout << "Unknown enum of graph representation" << std::endl;
-      exit(-1);
-  }
+  // Read paths
+  std::string model_type = opts.get<string>("model_type");
+  std::string model_path = opts.get<string>("model_path");
+  std::string domain_file = opts.get<string>("domain_file");
+  std::string instance_file = opts.get<string>("instance_file");
 
-  // Parse paths from file at config_path
-  std::string model_path;
-  std::string domain_file;
-  std::string instance_file;
-
-  std::string line;
-  std::ifstream config_file(config_path);
-  int file_line = 0;
-  while (getline(config_file, line)) {
-    switch (file_line) {
-      case 0:
-        model_path = line;
-        break;
-      case 1:
-        domain_file = line;
-        break;
-      case 2:
-        instance_file = line;
-        break;
-      default:
-        std::cout << "config file " << config_path 
-                  << " must only have 3 lines" << std::endl;
-        exit(-1);
-    }
-    file_line++;
-  }
-  config_file.close(); 
-
-  // Throw everything into Python code
+  // Throw everything into Python code depending on model type
   std::cout << "Trying to load model from file " << model_path << " ...\n";
   py::module util_module = py::module::import("util.save_load");
-  model = util_module.attr("load_model_and_setup")(model_path, 
-                                                   domain_file, instance_file);
-  std::cout << "Loaded model!" << std::endl;
-  model.attr("dump_model_stats")();
-
-  // Not implemented for lifted graph representations
-  if (model.attr("lifted_state_input")().cast<bool>()) {
-    std::cout << "Lifted representation not supported for goose-downward\n";
+  if (model_type == "gnn") {
+    model = util_module.attr("load_gnn_model_and_setup")(
+      model_path, 
+      domain_file, 
+      instance_file
+    );
+    std::cout << "Loaded model!" << std::endl;
+    model.attr("dump_model_stats")();
+  } else if (model_type == "kernel") {
+    model = util_module.attr("load_kernel_model_and_setup")(
+      model_path, 
+      domain_file, 
+      instance_file
+    );
+    std::cout << "Loaded model!" << std::endl;
+  } else {
+    std::cout << "Model type " << model_type <<" not supported\n";
     exit(-1);
   }
+
+  lifted_goose = model.attr("lifted_state_input")().cast<bool>();
 }
 
-void GooseHeuristic::initialise_fact_strings() {
+void GooseHeuristic::initialise_grounded_facts() {
   FactsProxy facts(*task);
   for (FactProxy fact : facts) {
+    // TODO this is an artifact of FD-Hypernet/STRIPS-HGN code
+    // we can remove this conversion in both the code here and in python
     string name = fact.get_name();
 
     // Convert from FDR var-val pairs back to propositions
@@ -136,7 +112,7 @@ void GooseHeuristic::initialise_fact_strings() {
 
     // Add parentheses around string
     name = "(" + name + ")";
-    fact_to_goose_string.insert({fact.get_pair(), name});
+    fact_to_grounded_goose_input.insert({fact.get_pair(), name});
 
     #ifndef NDEBUG
       std::cout << name << " ";
@@ -148,12 +124,89 @@ void GooseHeuristic::initialise_fact_strings() {
   #endif
 }
 
+void GooseHeuristic::initialise_lifted_facts() {
+  FactsProxy facts(*task);
+  for (FactProxy fact : facts) {
+    string name = fact.get_name();
+
+    // Convert from FDR var-val pairs back to propositions
+    if (name == "<none of those>") {
+      continue;
+    } else {
+      if (name.substr(0, 5) == "Atom ") {
+        name = name.substr(5);
+      } else if (name.substr(0, 12) == "NegatedAtom ") {
+        continue;
+      } else {
+        std::cout << "Substring of downward fact does not start with 'Atom ': "
+                  << "or 'NegatedAtom '"
+                  << name << std::endl;
+        exit(-1);
+      }
+    }
+
+    // replace all occurrences of '(' and ')' by ' '
+    std::replace(name.begin(), name.end(), '(', ' ');
+    std::replace(name.begin(), name.end(), ')', ' ');
+
+    // Remove occurrences of ','
+    name.erase(std::remove(name.begin(), name.end(), ','), name.end());
+
+    // Trim string
+    if (std::isspace(name[0])) {
+      name.erase(0, 1);
+    }
+    if (std::isspace(name.back())) {
+      name.erase(name.end() - 1, name.end());
+    }
+
+    std::istringstream iss(name);
+    std::string s;
+    std::string pred = "";
+    std::vector<std::string> args;
+
+    while (std::getline(iss, s, ' ')) {
+      if (pred == "") {
+        pred = s;
+      } else {
+        args.push_back(s);
+      }
+    }
+    std::pair<std::string, std::vector<std::string>> lifted_fact(pred, args); 
+
+    fact_to_lifted_goose_input.insert({fact.get_pair(), lifted_fact});
+
+    #ifndef NDEBUG
+      std::cout << name << " ";
+    #endif
+  }
+
+  #ifndef NDEBUG
+    std::cout << std::endl;
+  #endif
+}
+
+void GooseHeuristic::initialise_facts() {
+  if (lifted_goose) {
+    initialise_lifted_facts();
+  } else {
+    initialise_grounded_facts();
+  }
+}
+
 py::list GooseHeuristic::list_to_goose_state(const State &ancestor_state) {
   State state = convert_ancestor_state(ancestor_state);
 
   py::list goose_state;
-  for (FactProxy fact : state) {
-    goose_state.append(fact_to_goose_string[fact.get_pair()]);
+  if (lifted_goose) {
+    for (FactProxy fact : state) {
+      goose_state.append(fact_to_lifted_goose_input[fact.get_pair()]);
+    }
+  }
+  else {
+    for (FactProxy fact : state) {
+      goose_state.append(fact_to_grounded_goose_input[fact.get_pair()]);
+    }
   }
   return goose_state;
 }
@@ -187,27 +240,23 @@ public:
         document_title("GOOSE heuristic");
         document_synopsis("TODO");
 
-        add_option<int>(
-            "graph",
-            "0: slg, 1: flg, 2: llg, 3: glg",
-            "-1");
-
-        // add_option does not work with <string>
-
-        // add_option<string>(
-        //     "model_path",
-        //     "path to trained model weights of file type .dt",
-        //     "default_value.dt");
-
-        // add_option<string>(
-        //     "domain_file",
-        //     "Path to the domain file.",
-        //     "default_file.pddl");
-
-        // add_option<string>(
-        //     "instance_file",
-        //     "Path to the instance file.",
-        //     "default_file.pddl");
+        // https://github.com/aibasel/downward/pull/170 for string options
+        add_option<string>(
+            "model_type",
+            "gnn or kernel",
+            "default_value");
+        add_option<string>(
+            "model_path",
+            "path to trained model or model weights",
+            "default_value");
+        add_option<string>(
+            "domain_file",
+            "Path to the domain file.",
+            "default_file");
+        add_option<string>(
+            "instance_file",
+            "Path to the instance file.",
+            "default_file");
 
         Heuristic::add_options_to_feature(*this);
 

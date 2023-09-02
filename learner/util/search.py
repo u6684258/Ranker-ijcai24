@@ -1,13 +1,10 @@
 import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-
 import re 
+from representation import REPRESENTATIONS
+from util.save_load import load_kernel_model_and_setup
 
-from representation.config import CONFIG
+""" Module containing useful methods and configurations for 24-AAAI search experiments. """
 
-fd_path = os.path.join(os.path.dirname(os.path.dirname(
-  os.path.dirname(os.path.realpath(__file__)))), "downward")
 
 REPEATS = 1
 VAL_REPEATS = 5
@@ -23,6 +20,8 @@ FAIL_LIMIT = {
   "n-puzzle": 10,
 }
 
+PROFILE_CMD_ = "valgrind --tool=callgrind --callgrind-out-file=callgrind.out --dump-instr=yes --collect-jumps=yes"
+
 
 def sorted_nicely( l ): 
   """ Sort the given iterable in the way that humans expect.""" 
@@ -30,60 +29,91 @@ def sorted_nicely( l ):
   alphanum_key = lambda key: [ convert(c) for c in re.split('([0-9]+)', key) ] 
   return sorted(l, key = alphanum_key)
 
-def search_cmd(rep, domain_name, df, pf, m, search, seed, timeout=TIMEOUT):
-  if CONFIG[rep]["lifted"]:
-    search_engine = pwl_cmd
-  else:
-    search_engine = fd_cmd
-  return search_engine(rep, domain_name, df, pf, m, search, seed, timeout)
+def search_cmd(df, pf, m, model_type, planner, search, seed, profile, timeout=TIMEOUT, aux_file=None, plan_file=None):
+  search_engine = {
+    "pwl": pwl_cmd,
+    "fd": fd_cmd,
+  }[planner]
+  cmd, aux_file = search_engine(df, pf, model_type, m, search, seed, profile, timeout, aux_file, plan_file)
+  cmd = f"export GOOSE={os.getcwd()} && {cmd}"
+  return cmd, aux_file
 
-def pwl_cmd(rep, domain_name, df, pf, m, search, seed, timeout=TIMEOUT):
-  os.makedirs("lifted", exist_ok=True)
-  os.makedirs("plans", exist_ok=True)
-  description = f"pwl_{domain_name}_{os.path.basename(pf).replace('.pddl','')}_{search}_{os.path.basename(m).replace('.dt', '')}"
-  lifted_file = f"lifted/{description}.lifted"
-  plan_file = f"plans/{description}.plan"
+def pwl_cmd(df, pf, model_type, m, search, seed, profile, timeout=TIMEOUT, aux_file=None, plan_file=None):
+  description = f"pwl_{pf.replace('.pddl','').replace('/','-')}_{search}_{os.path.basename(m).replace('.dt', '')}".replace('.', '')
+
+  if aux_file is None:
+    os.makedirs("lifted", exist_ok=True)
+    aux_file = f"lifted/{description}.lifted"
+
+  if plan_file is None:
+    os.makedirs("plans", exist_ok=True)
+    plan_file = f"plans/{description}.plan"
+
   cmd = f"./../powerlifted/powerlifted.py --gpu " \
         f"-d {df} " \
         f"-i {pf} " \
         f"-m {m} " \
-        f"-e gnn " \
+        f"-e {model_type} " \
         f"-s {search} " \
         f"--time-limit {timeout} " \
         f"--seed {seed} " \
-        f"--translator-output-file {lifted_file} " \
+        f"--translator-output-file {aux_file} " \
         f"--plan-file {plan_file}"
-  cmd = f"export GOOSE={os.getcwd()} && {cmd}"
-  return cmd, lifted_file
+  return cmd, aux_file
 
-def fd_cmd(rep, domain_name, df, pf, m, search, seed, timeout=TIMEOUT):
-  os.makedirs("lifted", exist_ok=True)
-  os.makedirs("plans", exist_ok=True)
-  
+def fd_cmd(df, pf, model_type, m, search, seed, profile, timeout=TIMEOUT, aux_file=None, plan_file=None):
   if search == "gbbfs":
     search = "batch_eager_greedy"
+  elif search == "gbfs":
+    search = "eager_greedy"
   else:
     raise NotImplementedError
-  
-  # 0: slg, 1: flg, 2: llg, 3: glg
-  if rep == "sdg-el":   
-    config = 0
-    config_file = "slg"
-  elif rep == "fdg-el": 
-    config = 1
-    config_file = "flg"
-  else: 
-    raise NotImplementedError
-  
-  description = f"fd_{domain_name}_{os.path.basename(pf).replace('.pddl','')}_{search}_{os.path.basename(m).replace('.dt', '')}"
-  sas_file = f"lifted/{description}.sas_file"
-  plan_file = f"plans/{description}.plan"
-  with open(config_file, 'w') as f:
-    f.write(m+'\n')
-    f.write(df+'\n')
-    f.write(pf+'\n')
-    f.close()
-  cmd = f'{fd_path}/fast-downward.py --search-time-limit {timeout} --sas-file {sas_file} --plan-file {plan_file} {df} {pf} --search "{search}([goose(graph={config})])"'
-  cmd = f"export GOOSE={os.getcwd()} && {cmd}"
-  print(cmd)
-  return cmd, sas_file
+
+  description = f"fd_{pf.replace('.pddl','').replace('/','-')}_{search}_{os.path.basename(m).replace('.dt', '')}".replace('.', '')
+
+  if aux_file is None:
+    os.makedirs("sas_files", exist_ok=True)
+    aux_file = f"sas_files/{description}.sas_file"
+
+  if plan_file is None:
+    os.makedirs("plans", exist_ok=True)
+    plan_file = f"plans/{description}.plan"
+
+  if model_type == "kernel-opt":
+    model = load_kernel_model_and_setup(m, df, pf)
+    model.write_model_data()
+    model.write_representation_to_file()
+    model_data = model.get_model_data_path()
+    graph_data = model.get_graph_file_path()
+
+    cmd = f"./../downward/fast-downward.py --search-time-limit {timeout} --sas-file {aux_file} --plan-file {plan_file} "+\
+          f"{df} {pf} --search '{search}([kernel(model_data=\"{model_data}\", "+\
+                                               f"graph_data=\"{graph_data}\""+\
+                                               f")])'"
+    if profile:
+      import shutil
+      shutil.copyfile(model_data, model_data+"-copy")
+      shutil.copyfile(graph_data, graph_data+"-copy")
+      print("Running the original command to get individual commands for profiling...")
+      output = os.popen(f"export GOOSE={os.getcwd()} && {cmd}").readlines()
+      translator_cmd = ""
+      search_cmd = ""
+      for line in output:
+        if "INFO     translator command line string:" in line:
+          translator_cmd = line.replace("INFO     translator command line string:", "").replace('\n', '')
+          continue
+        if "INFO     search command line string:" in line:
+          search_cmd = line.replace("INFO     search command line string:", "")
+          continue
+      shutil.move(model_data+"-copy", model_data)
+      shutil.move(graph_data+"-copy", graph_data)
+      cmd = f"{translator_cmd} && {PROFILE_CMD_} {search_cmd}"
+      print("Original command completed.")
+  else:
+    cmd = f"./../downward/fast-downward.py --search-time-limit {timeout} --sas-file {aux_file} --plan-file {plan_file} "+\
+          f"{df} {pf} --search '{search}([goose(model_path=\"{m}\", "+\
+                                              f"model_type=\"{model_type}\", "+\
+                                              f"domain_file=\"{df}\", "+\
+                                              f"instance_file=\"{pf}\""+\
+                                              f")])'"
+  return cmd, aux_file

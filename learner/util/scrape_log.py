@@ -1,17 +1,12 @@
 import os
-import sys
-sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
-import torch
-from tqdm import trange
-from dataset.dataset import get_loaders_from_args
-from loss import LOSS
-from torch_geometric.loader import DataLoader
-from util.train_eval import evaluate
-from util.stats import get_stats
-from representation.node_features import add_features
-from util.transform import preprocess_data
-from dataset.graphs import get_graph_data
 
+""" Module for reading information from logs. """
+
+
+def predict_finished_correctly(f):
+  log = open(f, 'r').read()
+  finished_correctly = "Initial heuristic value" in log
+  return finished_correctly
 
 def search_finished_correctly(f):
   log = open(f, 'r').read()
@@ -28,6 +23,9 @@ def scrape_search_log(file):
     "evaluated": -1,
   }
 
+  if not os.path.exists(file):
+     return stats
+
   for line in open(file, 'r').readlines():
 
     line = line.replace(" state(s).", "")
@@ -37,7 +35,7 @@ def scrape_search_log(file):
 
     if "Solution found." in line: 
       stats["solved"] = 1
-    elif "Goal found at:" in line or "Actual search time:" in line: 
+    elif "Goal found at:" in line or "Search time:" in line: 
       stats["time"] = float(toks[-1].replace("s", ""))
     elif "Total plan cost:" in line or "Plan cost:" in line: 
       stats["cost"] = int(toks[-1])
@@ -45,8 +43,12 @@ def scrape_search_log(file):
       stats["expanded"] = int(toks[-1])
     elif len(toks)>=2 and "Evaluated" == toks[-2]: 
       stats["evaluated"] = int(toks[-1])
-    elif "Initial heuristic value" in line:
-       stats["first_h"] = int(toks[-1])
+    elif ("New best heuristic value" in line or "Initial heuristic value" in line) and stats["first_h"]==-1:
+      try:
+        stats["first_h"] = int(toks[-1])
+      except:
+        print(file)
+        stats["first_h"] = -1
 
   return stats
 
