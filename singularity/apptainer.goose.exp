@@ -68,5 +68,7 @@ Stage: run
     set -euo pipefail
     PYTHONPATH=/learner
     cd /learner
+    REP="$1"
+    shift 1
     DOMAINS=("$@")
-    python3 experiments.py --domains "${DOMAINS[@]}"
+    python3 experiments.py --rep "$REP" --domains "${DOMAINS[@]}"
