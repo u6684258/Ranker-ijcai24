@@ -1,45 +1,48 @@
+import json
 import os
 import os.path as osp
 import subprocess
+from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import NamedTuple
 
+from tqdm import tqdm
+
 from representation import REPRESENTATIONS
+from util.metrics import SearchState, SearchMetrics
 from util.search import search_cmd
 
 exp_root = os.path.dirname(os.path.realpath(__file__))
 base_dir = os.path.join(os.path.join(exp_root, ".."), "benchmarks/goose")
-
-
-class SearchState(Enum):
-    # Plan found
-    success = "success"
-    # No plan found
-    failed = "failed"
-    # Search Timed out
-    timed_out = "timed_out"
-
-
-class SearchMetrics(NamedTuple):
-    nodes_expanded: int
-    plan_length: int
-    heuristic_calls: int
-    heuristic_val_for_initial_state: float
-    search_time: float
-    search_state: SearchState
+model_root = os.path.join(exp_root, "trained_models_gnn")
+val_log_dir = f"{exp_root}/logs/val/{datetime.now().isoformat()}"
+val_result_dir = f"{exp_root}/logs/result/{datetime.now().isoformat()}"
 
 
 def domain_test(domain, test_file, model_file):
-    rep = "sdg-el"
-    val_log_dir = f"{exp_root}/logs/val/{domain}"
-
-    os.makedirs(val_log_dir, exist_ok=True)
+    log_dir = os.path.join(val_log_dir, domain)
+    result_file = f"{val_result_dir}/{domain}.json"
+    Path(log_dir).mkdir(parents=True, exist_ok=True)
+    Path(val_result_dir).mkdir(parents=True, exist_ok=True)
     df = f"{base_dir}/{domain}/domain.pddl"
     pd = f"{base_dir}/{domain}/{test_file}"
-    for name in os.listdir(pd):
+    matrices = []
+    test_progress = tqdm(os.listdir(pd), desc=f"Testing on {test_file}")
+    for name in test_progress:
         pf = f"{pd}/{name}"
-        cmd, intermediate_file = search_cmd(rep, domain, df, pf, f"{exp_root}/trained_models/{model_file}", "gbbfs", 0)
-        val_log_file = f"{val_log_dir}/{name.replace('.pddl', '')}_{model_file}_cmd.log"
+        cmd, intermediate_file = search_cmd(
+            df=df,
+            pf=pf,
+            m=f"{model_root}/{model_file}",
+            model_type="gnn",
+            planner="fd",
+            search="gbbfs",
+            timeout=600,
+            seed=0,
+            profile=False,
+          )
+        val_log_file = f"{log_dir}/{name.replace('.pddl', '')}_{model_file}_cmd.log"
         os.system(f"{cmd} > {val_log_file}")
         try:
             os.remove(intermediate_file)
@@ -67,27 +70,34 @@ def domain_test(domain, test_file, model_file):
         elif "search exit code: 0" in out_text:
             state = SearchState.success
             print('success')
+            # print(out_text)
             plan_length = out_text.split("KB] Plan length: ")[1].split("step(s).")[0]
             print(f"plan length: {plan_length}")
             expansions = out_text.split("KB] Expanded ")[1].split("state(s).")[0]
             print(f"expansions: {expansions}")
             heuristic_calls = out_text.split("KB] Evaluated ")[1].split("state(s).")[0]
             print(f"heuristic calls: {heuristic_calls}")
-            time_length = out_text.split("KB] Search time: ")[1].split("s")[0]
+            time_length = out_text.split("] Search time: ")[1].split("s")[0]
             print(f"time length: {time_length}")
         else:
             state = SearchState.failed
             print('something wrong!')
-        # matrix = SearchMetrics(
-        #     nodes_expanded=expansions,
-        #     plan_length=plan_length,
-        #     heuristic_calls=heuristic_calls,
-        #     heuristic_val_for_initial_state=init_h,
-        #     search_time=time_length,
-        #     search_state=state,
-        # )
-        #
+        matrix = SearchMetrics(
+            nodes_expanded=expansions,
+            plan_length=plan_length,
+            heuristic_calls=heuristic_calls,
+            heuristic_val_for_initial_state=init_h,
+            search_time=time_length,
+            search_state=state,
+        )
+        matrices.append(matrix)
+
+    with open(result_file, "w") as f:
+        f.write(json.dumps([x._asdict() for x in matrices]))
+
+    return matrices
+
 
 
 if __name__ == "__main__":
-    domain_test('ferry', 'test_small', 'test-ferry.dt')
+    domain_test('ferry', 'val', 'test-ferry.dt')

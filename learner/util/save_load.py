@@ -30,7 +30,7 @@ def arg_to_params(args, in_feat=4, out_feat=1):
   model_params = {
     'model_name': model_name,
     'in_feat': in_feat,
-    'out_feat': out_feat,
+    'out_feat': args.out_feat,
     'nlayers': nlayers,
     'share_layers': share_layers,
     'n_edge_labels': n_edge_labels,

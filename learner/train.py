@@ -1,29 +1,81 @@
 import os
 import time
+from typing import List
+
 import torch
 import argparse
 import torch_geometric
 import random
 import numpy as np
-import configuration
 import test
 import representation
 
 from models import *
 from tqdm.auto import tqdm, trange
-from loss import LOSS
+from gnns.loss import LOSS
+from gnns import GNNS
+from util.metrics import SearchMetrics, SearchState
 from util.stats import *
 from util.save_load import *
 from util import train, evaluate
-from dataset.dataset import get_loaders_from_args, get_paired_dataloaders_from_args, \
+from dataset.dataset import get_loaders_from_args_gnn, \
     get_by_problem_dataloaders_from_args
 from util.train_eval import train_ranker, evaluate_ranker
 
 
+def create_parser():
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--device', type=int, default=0)
+    parser.add_argument('-d', '--domain', default="goose-di")
+    parser.add_argument('-t', '--task', default='h', choices=["h", "a"],
+                        help="predict value or action (currently only h is supported)")
+
+    # model params
+    parser.add_argument('-m', '--model', type=str, required=True, choices=GNNS)
+    parser.add_argument('-L', '--nlayers', type=int, default=7)
+    parser.add_argument('-H', '--nhid', type=int, default=64)
+    parser.add_argument('--share-layers', action='store_true')
+    parser.add_argument('--aggr', type=str, default="mean")
+    parser.add_argument('--pool', type=str, default="sum")
+    parser.add_argument('--drop', type=float, default=0.0,
+                        help="probability of an element to be zeroed")
+    parser.add_argument('--vn', action='store_true',
+                        help="use virtual nodes (doubles runtime)")
+
+    # optimisation params
+    parser.add_argument('--loss', type=str, choices=["mse", "wmse", "pemse"], default="mse")
+    parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--patience', type=int, default=10)
+    parser.add_argument('--reduction', type=float, default=0.1)
+    parser.add_argument('--batch-size', type=int, default=16)
+    parser.add_argument('--epochs', type=int, default=2000)
+
+    # data arguments
+    parser.add_argument('-r', '--rep', type=str, required=True, choices=representation.REPRESENTATIONS)
+    parser.add_argument('-n', '--max-nodes', type=int, default=-1,
+                        help="max nodes for generating graphs (-1 means no bound)")
+    parser.add_argument('-c', '--cutoff', type=int, default=-1,
+                        help="max cost to learn (-1 means no bound)")
+    parser.add_argument('--small-train', action="store_true",
+                        help="Small train set: useful for debugging.")
+
+    # save file
+    parser.add_argument('--save-file', dest="save_file", type=str, default=None)
+
+    # anti verbose
+    parser.add_argument('--no-tqdm', dest='tqdm', action='store_false')
+    parser.add_argument('--fast-train', action='store_true',
+                        help="ignore some additional computation of stats, does not change the training algorithm")
+    parser.add_argument('--test-files', type=str, default="test")
+    parser.add_argument('--batched-ranker', action='store_true')
+    parser.add_argument('--ranker', action='store_true')
+    return parser
+
+
 def main():
-    parser = configuration.create_parser()
+    parser = create_parser()
     args = parser.parse_args()
-    configuration.check_config(args)
+    # configuration.check_config(args)
     print_arguments(args)
     if args.ranker or args.batched_ranker:
         assert args.model == "RGNNRANK" or args.model == "RGNNBATRANK", "Are you using ranker model?"
@@ -31,47 +83,52 @@ def main():
     # cuda
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
-    for experiment_round in range(5):
     # init model
-        if args.ranker:
-            train_loader, val_loader = get_paired_dataloaders_from_args(args)
-        elif args.batched_ranker:
-            train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
-        else:
-            train_loader, val_loader = get_loaders_from_args(args)
-        args.n_edge_labels = representation.N_EDGE_TYPES[args.rep]
-        args.in_feat = train_loader.dataset[0].x.shape[1]
+    if args.ranker:
+        train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
+        print("Don't use this parameter!")
         args.out_feat = 64
-        model_params = arg_to_params(args)
-        model = GNNS[args.model](params=model_params).to(device)
+    elif args.batched_ranker:
+        train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
+        args.out_feat = 64
+    else:
+        train_loader, val_loader = get_loaders_from_args_gnn(args)
+        args.out_feat = 1
+    args.n_edge_labels = representation.REPRESENTATIONS[args.rep].n_edge_labels
+    args.in_feat = train_loader.dataset[0].x.shape[1]
+    model_params = arg_to_params(args)
+    model = GNNS[args.model](params=model_params).to(device)
 
-        lr = args.lr
-        reduction = args.reduction
-        patience = args.patience
-        epochs = args.epochs
-        loss_fn = args.loss
-        fast_train = args.fast_train
+    lr = args.lr
+    reduction = args.reduction
+    patience = args.patience
+    epochs = args.epochs
+    loss_fn = args.loss
+    fast_train = args.fast_train
 
-        # init optimiser
-        criterion = LOSS[loss_fn]()
-        optimiser = torch.optim.Adam(model.parameters(), lr=lr)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser,
-                                                               mode='min',
-                                                               verbose=True,
-                                                               factor=reduction,
-                                                               patience=patience)
+    # init optimiser
+    criterion = LOSS[loss_fn]()
+    optimiser = torch.optim.Adam(model.parameters(), lr=lr)
+    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser,
+                                                           mode='min',
+                                                           verbose=True,
+                                                           factor=reduction,
+                                                           patience=patience)
 
-        print(f"model size (#params): {model.get_num_parameters()}")
+    print(f"model size (#params): {model.get_num_parameters()}")
 
-        # train val pipeline
-        print("Training...")
+    # train val pipeline
+    print("Training...")
+    best_val = None
+    for fold in range(5):
+        best_dict = None
+        best_saved_model = None
+        best_metric = float('inf')
         try:
             if args.tqdm:
                 pbar = trange(epochs)
             else:
                 pbar = range(epochs)
-            best_dict = None
-            best_metric = float('inf')
             best_epoch = 0
             for e in pbar:
                 t = time.time()
@@ -126,13 +183,26 @@ def main():
 
         # save model parameters
         if best_dict is not None:
-            print(f"best_avg_loss {best_metric:.8f} at epoch {best_epoch}")
-            args.best_metric = best_metric
-            save_model_from_dict(best_dict, args)
-        else:
-            save_model(model, args)
+            if best_val is not None:
+                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file)
+                succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
+                    results)
+                if succ_rate > best_val:
+                    best_val = succ_rate
+                    print(f"best_avg_loss {best_metric:.8f} at fold {fold} epoch {best_epoch}")
+                    args.best_metric = best_metric
+                    save_gnn_model_from_dict(best_dict, args)
+            else:
+                args.best_metric = best_metric
+                save_gnn_model_from_dict(best_dict, args)
+                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file)
+                best_val = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
+                    results)
 
-        test.domain_test(args.domain_name, args.test_file, args.save_file)
+        else:
+            save_gnn_model(model, args)
+
+    test.domain_test(args.domain.split("-")[1], args.test_files, args.save_file)
 
     return
 

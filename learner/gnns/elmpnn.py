@@ -50,6 +50,8 @@ class ELMPNN(BaseGNN):
     """ overwrite typing (same semantics, different typing) for jit """
     x = self.graph_embedding(x, list_of_edge_index, batch)
     x = self.mlp(x)
+    if x.size()[1] == 1:
+        x = x.squeeze(1)
     return x
 
 
@@ -99,8 +101,8 @@ class ELMPNNRankerPredictor(BasePredictor):
                 print(f"Warning: Classification is close to 0: {result}")
         return result
 
-    def h(self, state: FrozenSet[Proposition]) -> float:
-        x, edge_index = self.rep.get_state_enc(state)
+    def h(self, state: State) -> float:
+        x, edge_index = self.rep.state_to_tensor(state)
         x = x.to(self.device)
         for i in range(len(edge_index)):
             edge_index[i] = edge_index[i].to(self.device)
@@ -110,10 +112,10 @@ class ELMPNNRankerPredictor(BasePredictor):
         h = self.shift_heu(h)
         return h
 
-    def h_batch(self, states: List[FrozenSet[Proposition]]) -> List[float]:
+    def h_batch(self, states: State) -> List[float]:
         data_list = []
         for state in states:
-            x, edge_index = self.rep.get_state_enc(state)
+            x, edge_index = self.rep.state_to_tensor(state)
             data_list.append(Data(x=x, edge_index=edge_index))
         loader = DataLoader(dataset=data_list, batch_size=min(len(data_list), 32))
         data = next(iter(loader)).to(self.device)
@@ -174,8 +176,8 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
                 print(f"Warning: Classification is close to 0: {result}")
         return result, polarity
 
-    def h(self, state: FrozenSet[Proposition]) -> float:
-        x, edge_index = self.rep.get_state_enc(state)
+    def h(self, state: State) -> float:
+        x, edge_index = self.rep.state_to_tensor(state)
         x = x.to(self.device)
         for i in range(len(edge_index)):
             edge_index[i] = edge_index[i].to(self.device)
@@ -185,10 +187,10 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         h = self.shift_heu(h)
         return h
 
-    def h_batch(self, states: List[FrozenSet[Proposition]]) -> List[float]:
+    def h_batch(self, states: State) -> List[float]:
         data_list = []
         for state in states:
-            x, edge_index = self.rep.get_state_enc(state)
+            x, edge_index = self.rep.state_to_tensor(state)
             data_list.append(Data(x=x, edge_index=edge_index))
         loader = DataLoader(dataset=data_list, batch_size=min(len(data_list), 32))
         data = next(iter(loader)).to(self.device)
@@ -208,5 +210,5 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         assert (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
         return result
 
-    def predict_action(self, state: FrozenSet[Proposition]):
+    def predict_action(self, state: State):
         raise NotImplementedError

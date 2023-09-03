@@ -80,6 +80,29 @@ def get_graph_data(
   print(f"{domain} dataset of size {len(ret)} loaded!")
   return ret
 
+
+def get_graph_data_by_prob(
+        representation: str,
+        domain: str = "all",
+) -> List[List[Data]]:
+  """ Load stored generated graphs """
+
+  print("Loading train data...")
+  print("NOTE: the data has been precomputed and saved.")
+  print("Exec 'python3 scripts_graphs/generate_graphs_gnn.py --regenerate' if representation has been updated!")
+
+  path = get_data_dir_path(representation=representation)
+  print(f"Path to data: {path}")
+
+  ret = []
+
+  for data in sorted(list(os.listdir(f"{path}/{domain}"))):
+    next_data = torch.load(f'{path}/{domain}/{data}')
+    ret.append(next_data)
+
+  print(f"{domain} dataset of {len(ret)} problems loaded!")
+  return ret
+
 def generate_graph_rep_domain(
   domain_name: str,
   domain_pddl: str,
@@ -119,9 +142,9 @@ def gen_graph_rep(
   """ Generate graph representations from saved optimal plans. """
 
 
-  tasks  = get_ipc_domain_problem_files(del_free=False)
+  # tasks  = get_ipc_domain_problem_files(del_free=False)
   # tasks += get_all_htg_instance_files(split=True)
-  tasks += get_train_goose_instance_files()
+  tasks = get_train_goose_instance_files()
   tasks += get_train_ipc2023_learning_instance_files()
 
   new_generated = 0
