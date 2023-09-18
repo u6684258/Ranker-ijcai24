@@ -21,7 +21,7 @@ val_log_dir = f"{exp_root}/logs/val/{datetime.now().isoformat()}"
 val_result_dir = f"{exp_root}/logs/result/{datetime.now().isoformat()}"
 
 
-def domain_test(domain, test_file, model_file, mode="val"):
+def domain_test(domain, test_file, model_file, mode="val", timeout=600):
     if mode == "test":
         log_dir = os.path.join(val_result_dir, domain)
     else:
@@ -34,7 +34,6 @@ def domain_test(domain, test_file, model_file, mode="val"):
     matrices = []
     test_progress = tqdm(os.listdir(pd), desc=f"Testing on {test_file}")
     for name in test_progress:
-        st = time.time()
         pf = f"{pd}/{name}"
         cmd, intermediate_file = search_cmd(
             df=df,
@@ -43,12 +42,27 @@ def domain_test(domain, test_file, model_file, mode="val"):
             model_type="gnn",
             planner="fd",
             search="gbbfs",
-            timeout=600,
             seed=0,
             profile=False,
-          )
-        val_log_file = f"{log_dir}/{name.replace('.pddl', '')}_{model_file}_cmd.log"
-        os.system(f"{cmd} > {val_log_file}")
+        )
+        val_log_file = f"{log_dir}/{name.replace('.pddl', '')}_{model_file}_out.log"
+        # val_err_file = f"{log_dir}/{name.replace('.pddl', '')}_{model_file}_err.log"
+        st = time.time()
+        timeouted = False
+        with open(val_log_file, 'w') as out_fp:
+            try:
+                subprocess.run(cmd, shell=True,
+                               cwd=exp_root,
+                               stdout=out_fp,
+                               stderr=subprocess.STDOUT,
+                               universal_newlines=True,
+                               timeout=timeout)
+            except subprocess.TimeoutExpired:
+                timeouted = True
+            except subprocess.CalledProcessError:
+                wrong = True
+        # rv.wait()
+        # os.system(f"{cmd} > {val_log_file}")
         et = time.time()
         print(f"true time: {et - st} seconds")
         try:
@@ -66,11 +80,12 @@ def domain_test(domain, test_file, model_file, mode="val"):
         # Check whether search was successful or not. If it was not, return None;
         # if it was, return plan (as list of string-formatted action names, minus
         # parens).
-        if 'Search stopped without finding a solution.' in out_text:
+        if not timeout and 'Search stopped without finding a solution.' in out_text:
             rv = None
             state = SearchState.failed
-        elif ("Time limit has been reached" in out_text
-              and "Solution found." not in out_text):
+            # ("Time limit has been reached" in out_text
+            #  and "Solution found." not in out_text)
+        elif timeouted:
             # timeout
             state = SearchState.timed_out
             # print(out_text)
@@ -82,6 +97,10 @@ def domain_test(domain, test_file, model_file, mode="val"):
             print(f"heuristic calls: {heuristic_calls}")
             time_length = 600
             print(f"time length: {time_length}")
+
+        elif wrong:
+            state = SearchState.failed
+            print('something wrong!')
 
 
         elif "search exit code: 0" in out_text:
@@ -98,7 +117,7 @@ def domain_test(domain, test_file, model_file, mode="val"):
             print(f"time length: {time_length}")
         else:
             state = SearchState.failed
-            print('something wrong!')
+            print("Some uncathed error is happening!")
         matrix = SearchMetrics(
             nodes_expanded=expansions,
             plan_length=plan_length,
@@ -113,7 +132,6 @@ def domain_test(domain, test_file, model_file, mode="val"):
         f.write(json.dumps([x._asdict() for x in matrices]))
 
     return matrices
-
 
 
 if __name__ == "__main__":
