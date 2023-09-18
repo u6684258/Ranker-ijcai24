@@ -2,6 +2,7 @@ import json
 import os
 import os.path as osp
 import subprocess
+import time
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
@@ -20,8 +21,11 @@ val_log_dir = f"{exp_root}/logs/val/{datetime.now().isoformat()}"
 val_result_dir = f"{exp_root}/logs/result/{datetime.now().isoformat()}"
 
 
-def domain_test(domain, test_file, model_file):
-    log_dir = os.path.join(val_log_dir, domain)
+def domain_test(domain, test_file, model_file, mode="val"):
+    if mode == "test":
+        log_dir = os.path.join(val_result_dir, domain)
+    else:
+        log_dir = os.path.join(val_log_dir, domain)
     result_file = f"{val_result_dir}/{domain}.json"
     Path(log_dir).mkdir(parents=True, exist_ok=True)
     Path(val_result_dir).mkdir(parents=True, exist_ok=True)
@@ -30,6 +34,7 @@ def domain_test(domain, test_file, model_file):
     matrices = []
     test_progress = tqdm(os.listdir(pd), desc=f"Testing on {test_file}")
     for name in test_progress:
+        st = time.time()
         pf = f"{pd}/{name}"
         cmd, intermediate_file = search_cmd(
             df=df,
@@ -44,6 +49,8 @@ def domain_test(domain, test_file, model_file):
           )
         val_log_file = f"{log_dir}/{name.replace('.pddl', '')}_{model_file}_cmd.log"
         os.system(f"{cmd} > {val_log_file}")
+        et = time.time()
+        print(f"true time: {et - st} seconds")
         try:
             os.remove(intermediate_file)
         except OSError:
@@ -66,7 +73,17 @@ def domain_test(domain, test_file, model_file):
               and "Solution found." not in out_text):
             # timeout
             state = SearchState.timed_out
+            # print(out_text)
             print("FD timeout!")
+            print(f"plan length: {plan_length}")
+            expansions = out_text.split("[expansions: ")[-1].split(", ")[0]
+            print(f"expansions: {expansions}")
+            heuristic_calls = out_text.split(", evaluations: ")[-1].split(", ")[0]
+            print(f"heuristic calls: {heuristic_calls}")
+            time_length = 600
+            print(f"time length: {time_length}")
+
+
         elif "search exit code: 0" in out_text:
             state = SearchState.success
             print('success')
@@ -100,4 +117,4 @@ def domain_test(domain, test_file, model_file):
 
 
 if __name__ == "__main__":
-    domain_test('ferry', 'val', 'test-ferry.dt')
+    domain_test('ferry', 'test', 'test_ranker.dt')

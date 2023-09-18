@@ -45,10 +45,11 @@ def create_parser():
     # optimisation params
     parser.add_argument('--loss', type=str, choices=["mse", "wmse", "pemse"], default="mse")
     parser.add_argument('--lr', type=float, default=0.001)
+    parser.add_argument('--lr-limit', type=float, default=1e-6)
     parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--reduction', type=float, default=0.1)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--epochs', type=int, default=2000)
+    parser.add_argument('--epochs', type=int, default=5)
 
     # data arguments
     parser.add_argument('-r', '--rep', type=str, required=True, choices=representation.REPRESENTATIONS)
@@ -144,8 +145,8 @@ def main():
                 val_loss = val_stats['loss']
                 scheduler.step(val_loss)
 
-                # take model weights corresponding to best combined metric
-                combined_metric = (train_loss + 2 * val_loss) / 3
+                # take model weights corresponding to best combined metric # we just take val_loss
+                combined_metric = val_loss
                 if combined_metric < best_metric:
                     best_metric = combined_metric
                     best_dict = model.model.state_dict()
@@ -175,7 +176,7 @@ def main():
                 else:
                     print(desc)
 
-                if lr < 1e-5:
+                if lr < args.lr_limit:
                     print(f"Early stopping due to small lr: {lr}")
                     break
         except KeyboardInterrupt:
@@ -202,7 +203,7 @@ def main():
         else:
             save_gnn_model(model, args)
 
-    test.domain_test(args.domain.split("-")[1], args.test_files, args.save_file)
+    test.domain_test(args.domain.split("-")[1], args.test_files, args.save_file, "test")
 
     return
 

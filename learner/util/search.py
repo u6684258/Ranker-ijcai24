@@ -116,4 +116,5 @@ def fd_cmd(df, pf, model_type, m, search, seed, profile, timeout=TIMEOUT, aux_fi
                                               f"domain_file=\"{df}\", "+\
                                               f"instance_file=\"{pf}\""+\
                                               f")])'"
+  print(cmd)
   return cmd, aux_file

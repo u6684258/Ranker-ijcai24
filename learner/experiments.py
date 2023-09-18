@@ -16,22 +16,30 @@ Path(log_sub_dir).mkdir(parents=True, exist_ok=True)
 model = args.rep
 
 print(f"Selected domains: {args.domains}")
-for domain in args.domains:
-    cmd = f'python3 {exp_root}/train.py -m RGNNBATRANK -r {model} -d goose-{domain} --save' \
-          f'-file rank-{domain} --batched-ranker --fast-train'
 
-    f = open(f"{log_sub_dir}/train_rank_{domain}.logs", "w")
+for i in range(3, 11):
+    for domain in args.domains:
+        cmd = f'python3 {exp_root}/train.py ' \
+              f'-m RGNNBATRANK ' \
+              f'-r {model} ' \
+              f'-d goose-{domain} ' \
+              f'-L {i} ' \
+              f'--save-file rank-{domain} ' \
+              f'--batched-ranker ' \
+              f'--fast-train'
 
-    print(f"Experiment log: {f}")
+        f = open(f"{log_sub_dir}/train_rank_{domain}_L{i}.logs", "w")
 
-    subprocess.call(cmd.split(" "), stdout=f)
+        print(f"Experiment log: {f}")
 
-    cmd = f'python3 {exp_root}/train.py -m RGNN -r {model} -d goose-{domain} --save' \
-          f'-file goose-{domain} --fast-train'
+        subprocess.call(cmd.split(" "), stdout=f)
 
-    f = open(f"{log_sub_dir}/train_goose_{domain}.logs", "w")
-
-    print(f"Experiment log: {f}")
-
-    subprocess.call(cmd.split(" "), stdout=f)
+    # cmd = f'python3 {exp_root}/train.py -m RGNN -r {model} -d goose-{domain} --save' \
+    #       f'-file goose-{domain} --fast-train'
+    #
+    # f = open(f"{log_sub_dir}/train_goose_{domain}.logs", "w")
+    #
+    # print(f"Experiment log: {f}")
+    #
+    # subprocess.call(cmd.split(" "), stdout=f)
 

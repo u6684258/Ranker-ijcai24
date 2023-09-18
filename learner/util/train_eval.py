@@ -88,8 +88,9 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
             y_pred = torch.cat((y_pred, out.detach().cpu()))
             y_true = torch.cat((y_true, y.detach().cpu()))
 
+    # changed to net loss
     stats = {
-        "loss": train_loss / len(train_loader),
+        "loss": train_loss,
     }
     if not fast_train:
         macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
@@ -180,9 +181,9 @@ def evaluate_ranker(model, device, val_loader, criterion, fast_train, return_tru
         if not fast_train:
             y_pred = torch.cat((y_pred, out.detach().cpu()))
             y_true = torch.cat((y_true, y.detach().cpu()))
-
+    # changed to net loss
     stats = {
-        "loss": val_loss / len(val_loader),
+        "loss": val_loss,
     }
     if not fast_train:
         macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)

@@ -165,7 +165,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         with torch.no_grad():
             ys = data.y[indices].permute(1, 0)
             polarity_mask = ((ys[0, :] - ys[1, :]) > 0).long()
-            polarity = torch.mul(torch.ones_like(polarity_mask) * 2, polarity_mask) - 1
+            polarity = 2 * polarity_mask - 1
             # polarity_mask = ((ys[0, :] - ys[1, :]) == 0).long()
             # polarity = polarity + polarity_mask
             polarity = polarity.float()
@@ -182,8 +182,8 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         for i in range(len(edge_index)):
             edge_index[i] = edge_index[i].to(self.device)
         h = self.model.forward(x, edge_index, None)
-        # print(f"h: {h}")
         h = self.ranker(h).detach().cpu().numpy().reshape([-1, ])
+        # print(f"h: {h}")
         h = self.shift_heu(h)
         return h
 
@@ -193,21 +193,25 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
             x, edge_index = self.rep.state_to_tensor(state)
             data_list.append(Data(x=x, edge_index=edge_index))
         loader = DataLoader(dataset=data_list, batch_size=min(len(data_list), 32))
-        data = next(iter(loader)).to(self.device)
-        hs = self.model.forward(data.x, data.edge_index, data.batch)
-        # print(f"model: {hs}")
-        hs = self.ranker(hs)
-        hs = hs.detach().cpu().numpy().reshape([-1, ])  # annoying error with jit
+        hs_all = []
+        for data in loader:
+            data = data.to(self.device)
+            hs = self.model.forward(data.x, data.edge_index, data.batch)
+            hs = self.ranker(hs)
+            hs = hs.detach().cpu().numpy()  # annoying error with jit
+            hs_all.append(hs)
+        hs_all = np.concatenate(hs_all).astype(float).reshape([-1, ])
         # print(f"here: {hs}")
-        hs = self.shift_heu(hs).tolist()
+        hs = self.shift_heu(hs_all).tolist()
         # print(hs)
         return hs
 
     def shift_heu(self, h, scale=1e3, shift=1e4):
-        shift_result = h + shift
-        assert (shift_result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
-        result = np.round(shift_result * scale).astype("int32")
-        assert (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
+        result = h + shift
+        # print(f"result: {result}")
+        assert (2147483647 > result).all() and (result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
+        result = np.round(result * scale).astype("int32")
+        assert (2147483647 > result).all() and (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
         return result
 
     def predict_action(self, state: State):
