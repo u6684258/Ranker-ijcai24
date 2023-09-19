@@ -35,6 +35,7 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600):
     test_progress = tqdm(os.listdir(pd), desc=f"Testing on {test_file}")
     for name in test_progress:
         pf = f"{pd}/{name}"
+        test_progress.set_description(f"Testing on {name}")
         cmd, intermediate_file = search_cmd(
             df=df,
             pf=pf,
@@ -81,12 +82,11 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600):
         # Check whether search was successful or not. If it was not, return None;
         # if it was, return plan (as list of string-formatted action names, minus
         # parens).
-        if not timeout and 'Search stopped without finding a solution.' in out_text:
+        if not timeouted and 'Search stopped without finding a solution.' in out_text:
             rv = None
             state = SearchState.failed
-            # ("Time limit has been reached" in out_text
-            #  and "Solution found." not in out_text)
-        elif timeouted:
+        elif ("Time limit has been reached" in out_text
+             and "Solution found." not in out_text) or timeouted:
             # timeout
             state = SearchState.timed_out
             # print(out_text)

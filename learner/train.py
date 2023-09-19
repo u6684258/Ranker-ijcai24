@@ -1,7 +1,6 @@
 import os
 import time
-from enum import Enum
-from typing import List, Set
+from typing import List
 
 import torch
 import argparse
@@ -47,10 +46,10 @@ def create_parser():
     parser.add_argument('--loss', type=str, choices=["mse", "wmse", "pemse"], default="mse")
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--lr-limit', type=float, default=1e-6)
-    parser.add_argument('--patience', type=int, default=10)
+    parser.add_argument('--patience', type=int, default=15)
     parser.add_argument('--reduction', type=float, default=0.1)
     parser.add_argument('--batch-size', type=int, default=16)
-    parser.add_argument('--epochs', type=int, default=5)
+    parser.add_argument('--epochs', type=int, default=1000)
 
     # data arguments
     parser.add_argument('-r', '--rep', type=str, required=True, choices=representation.REPRESENTATIONS)
@@ -69,41 +68,42 @@ def create_parser():
     parser.add_argument('--fast-train', action='store_true',
                         help="ignore some additional computation of stats, does not change the training algorithm")
     parser.add_argument('--test-files', type=str, default="test")
-    parser.add_argument('--method', choices=Method,
-                        type=lambda val: Method.from_str(val),
-                        default=Method.BAT_RANKER.name)
+    parser.add_argument('--method',
+                        choices=["goose", "ranker", "batched_ranker", "rnd_ranker"],
+                        default="batched_ranker")
     return parser
 
 
-class _BasePlanningEnum(Enum):
-    @classmethod
-    def member_names(cls) -> Set[str]:
-        return {member.name for member in cls}
-
-    @classmethod
-    def from_str(cls, the_str: str):
-        return cls._from_str(the_str)
-
-    @classmethod
-    def _from_str(cls, the_str: str, error_str="Unknown member {}"):
-        for member in cls:
-            if member.name == the_str:
-                return member
-
-        raise ValueError(error_str.format(the_str))
-
-    def __str__(self):
-        return self.value
-
-
-class Method(_BasePlanningEnum):
-    GOOSE = "goose"
-    RANKER = "ranker"
-    BAT_RANKER = "batched_ranker"
-    RND_RANKER = "ranker_random"
+# class _BasePlanningEnum(Enum):
+#     @classmethod
+#     def member_names(cls) -> Set[str]:
+#         return {member.name for member in cls}
+#
+#     @classmethod
+#     def from_str(cls, the_str: str):
+#         return cls._from_str(the_str)
+#
+#     @classmethod
+#     def _from_str(cls, the_str: str, error_str="Unknown member {}"):
+#         for member in cls:
+#             if member.name == the_str:
+#                 return member
+#
+#         raise ValueError(error_str.format(the_str))
+#
+#     def __str__(self):
+#         return self.value
 
 
-RANKER_GROUP = [Method.RANKER, Method.BAT_RANKER, Method.RND_RANKER]
+# class Method(_BasePlanningEnum):
+#     GOOSE = "goose"
+#     RANKER = "ranker"
+#     BAT_RANKER = "batched_ranker"
+#     RND_RANKER = "ranker_random"
+#
+#
+# RANKER_GROUP = [Method.RANKER, Method.BAT_RANKER, Method.RND_RANKER]
+RANKER_GROUP = ["ranker", "batched_ranker", "rnd_ranker"]
 
 
 def main():
@@ -111,26 +111,27 @@ def main():
     args = parser.parse_args()
     # configuration.check_config(args)
     print_arguments(args)
-    if args.method != Method.GOOSE:
+    # args.method = Method.from_str(args.method)
+    if args.method != "goose":
         assert args.model == "RGNNRANK" or args.model == "RGNNBATRANK", "Are you using ranker model?"
     # cuda
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
     # init model
-    if args.method == Method.RANKER:
+    if args.method == "ranker":
         train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
         print("Don't use this parameter!")
         args.out_feat = 64
         args.in_feat = train_loader.dataset[0].x.shape[1]
-    elif args.method == Method.BAT_RANKER:
+    elif args.method == "batched_ranker":
         train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
         args.out_feat = 64
         args.in_feat = train_loader.dataset[0].x.shape[1]
-    elif args.method == Method.GOOSE:
+    elif args.method == "goose":
         train_loader, val_loader = get_loaders_from_args_gnn(args)
         args.out_feat = 1
         args.in_feat = train_loader.dataset[0].x.shape[1]
-    elif args.method == Method.RND_RANKER:
+    elif args.method == "rnd_ranker":
         generator = get_new_dataloader_each_epoch(args)
         args.out_feat = 64
         args.in_feat = generator.dataset[0].x.shape[1]
@@ -172,7 +173,7 @@ def main():
                 pbar = range(epochs)
             best_epoch = 0
             for e in pbar:
-                if args.method == Method.RND_RANKER:
+                if args.method == "rnd_ranker":
                     train_loader, val_loader = generator.gen_new_dataloaders()
                 t = time.time()
                 if args.method in RANKER_GROUP:
