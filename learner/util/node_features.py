@@ -70,7 +70,7 @@ def add_lpe(dataset: List[Data], args, **kwargs) -> List[Data]:
     ret = []
     # all our representations are undirected
     transform = AddLaplacianEigenvectorPE(k=k, attr_name=None, is_undirected=False)
-    for data in tqdm(dataset):
+    for data in dataset:
         original_e = data.edge_index
         data2 = data
         if "-el" in args.rep:

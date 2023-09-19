@@ -49,6 +49,7 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600):
         # val_err_file = f"{log_dir}/{name.replace('.pddl', '')}_{model_file}_err.log"
         st = time.time()
         timeouted = False
+        wrong = False
         with open(val_log_file, 'w') as out_fp:
             try:
                 subprocess.run(cmd, shell=True,
