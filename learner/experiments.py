@@ -22,13 +22,28 @@ for i in range(3, 11):
         cmd = f'python3 {exp_root}/train.py ' \
               f'-m RGNNBATRANK ' \
               f'-r {model} ' \
-              f'-d goose-{domain} ' \
+              f'-d rank-{domain} ' \
               f'-L {i} ' \
               f'--save-file rank-{domain} ' \
-              f'--batched-ranker ' \
+              f'--method batched_ranker ' \
               f'--fast-train'
 
         f = open(f"{log_sub_dir}/train_rank_{domain}_L{i}.logs", "w")
+
+        print(f"Experiment log: {f}")
+
+        subprocess.call(cmd.split(" "), stdout=f)
+
+        cmd = f'python3 {exp_root}/train.py ' \
+              f'-m RGNNBATRANK ' \
+              f'-r {model} ' \
+              f'-d rndrank-{domain} ' \
+              f'-L {i} ' \
+              f'--save-file rank-{domain} ' \
+              f'--method ranker_random ' \
+              f'--fast-train'
+
+        f = open(f"{log_sub_dir}/train_rndrank_{domain}_L{i}.logs", "w")
 
         print(f"Experiment log: {f}")
 

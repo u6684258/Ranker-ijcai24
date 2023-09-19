@@ -38,6 +38,7 @@ find_program(CMAKE_CXX_COMPILER NAMES $ENV{CXX} c++ g++ PATHS ENV PATH NO_DEFAUL
 
 # Path containing custom CMake modules
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR}/cmake_modules)
+set(CMAKE_PREFIX_PATH ${CMAKE_CURRENT_SOURCE_DIR}/../../venv/lib/python3.10/site-packages/)
 include(FastDownwardMacros)
 
 fast_downward_default_to_release_build()

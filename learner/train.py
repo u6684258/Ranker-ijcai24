@@ -1,6 +1,7 @@
 import os
 import time
-from typing import List
+from enum import Enum
+from typing import List, Set
 
 import torch
 import argparse
@@ -19,7 +20,7 @@ from util.stats import *
 from util.save_load import *
 from util import train, evaluate
 from dataset.dataset import get_loaders_from_args_gnn, \
-    get_by_problem_dataloaders_from_args
+    get_by_problem_dataloaders_from_args, get_new_dataloader_each_epoch
 from util.train_eval import train_ranker, evaluate_ranker
 
 
@@ -68,9 +69,41 @@ def create_parser():
     parser.add_argument('--fast-train', action='store_true',
                         help="ignore some additional computation of stats, does not change the training algorithm")
     parser.add_argument('--test-files', type=str, default="test")
-    parser.add_argument('--batched-ranker', action='store_true')
-    parser.add_argument('--ranker', action='store_true')
+    parser.add_argument('--method', choices=Method,
+                        type=lambda val: Method.from_str(val),
+                        default=Method.BAT_RANKER.name)
     return parser
+
+
+class _BasePlanningEnum(Enum):
+    @classmethod
+    def member_names(cls) -> Set[str]:
+        return {member.name for member in cls}
+
+    @classmethod
+    def from_str(cls, the_str: str):
+        return cls._from_str(the_str)
+
+    @classmethod
+    def _from_str(cls, the_str: str, error_str="Unknown member {}"):
+        for member in cls:
+            if member.name == the_str:
+                return member
+
+        raise ValueError(error_str.format(the_str))
+
+    def __str__(self):
+        return self.value
+
+
+class Method(_BasePlanningEnum):
+    GOOSE = "goose"
+    RANKER = "ranker"
+    BAT_RANKER = "batched_ranker"
+    RND_RANKER = "ranker_random"
+
+
+RANKER_GROUP = [Method.RANKER, Method.BAT_RANKER, Method.RND_RANKER]
 
 
 def main():
@@ -78,25 +111,32 @@ def main():
     args = parser.parse_args()
     # configuration.check_config(args)
     print_arguments(args)
-    if args.ranker or args.batched_ranker:
+    if args.method != Method.GOOSE:
         assert args.model == "RGNNRANK" or args.model == "RGNNBATRANK", "Are you using ranker model?"
-        assert args.ranker != args.batched_ranker, "Cannot set ranker and batched_ranker at the same time"
     # cuda
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
     # init model
-    if args.ranker:
+    if args.method == Method.RANKER:
         train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
         print("Don't use this parameter!")
         args.out_feat = 64
-    elif args.batched_ranker:
+        args.in_feat = train_loader.dataset[0].x.shape[1]
+    elif args.method == Method.BAT_RANKER:
         train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
         args.out_feat = 64
-    else:
+        args.in_feat = train_loader.dataset[0].x.shape[1]
+    elif args.method == Method.GOOSE:
         train_loader, val_loader = get_loaders_from_args_gnn(args)
         args.out_feat = 1
+        args.in_feat = train_loader.dataset[0].x.shape[1]
+    elif args.method == Method.RND_RANKER:
+        generator = get_new_dataloader_each_epoch(args)
+        args.out_feat = 64
+        args.in_feat = generator.dataset[0].x.shape[1]
+    else:
+        raise Exception("Invalid training method!")
     args.n_edge_labels = representation.REPRESENTATIONS[args.rep].n_edge_labels
-    args.in_feat = train_loader.dataset[0].x.shape[1]
     model_params = arg_to_params(args)
     model = GNNS[args.model](params=model_params).to(device)
 
@@ -132,13 +172,15 @@ def main():
                 pbar = range(epochs)
             best_epoch = 0
             for e in pbar:
+                if args.method == Method.RND_RANKER:
+                    train_loader, val_loader = generator.gen_new_dataloaders()
                 t = time.time()
-                if args.batched_ranker:
+                if args.method in RANKER_GROUP:
                     train_stats = train_ranker(model, device, train_loader, criterion, optimiser, fast_train=fast_train)
                 else:
                     train_stats = train(model, device, train_loader, criterion, optimiser, fast_train=fast_train)
                 train_loss = train_stats['loss']
-                if args.batched_ranker:
+                if args.method in RANKER_GROUP:
                     val_stats = evaluate_ranker(model, device, val_loader, criterion, fast_train=fast_train)
                 else:
                     val_stats = evaluate(model, device, val_loader, criterion, fast_train=fast_train)

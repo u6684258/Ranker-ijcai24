@@ -102,12 +102,12 @@ def preprocess_data(
 
   col_l = 40
   col_l2 = 10
-  print("domain"+" "*(col_l-len("domain")), "num_data"+" "*(col_l2-len("num_data")), "num_plans")
+  # print("domain"+" "*(col_l-len("domain")), "num_data"+" "*(col_l2-len("num_data")), "num_plans")
   for d in sorted(list(domain.keys())):
       n_data = str(domain[d])
       problems = problem[d]
       d = d.replace("visitall-multidimensional", "visitall").replace("-dim-visitall", "D")
-      print(d+" "*(col_l-len(d)), n_data+" "*(col_l2-len(n_data)), len(problems))
+      # print(d+" "*(col_l-len(d)), n_data+" "*(col_l2-len(n_data)), len(problems))
 
-  print(f"Data size after preprocessing: {len(data_list)}")
+  # print(f"Data size after preprocessing: {len(data_list)}")
   return data_list

@@ -70,7 +70,7 @@ def add_lpe(dataset: List[Data], args, **kwargs) -> List[Data]:
     ret = []
     # all our representations are undirected
     transform = AddLaplacianEigenvectorPE(k=k, attr_name=None, is_undirected=False)
-    for data in dataset:
+    for data in tqdm(dataset):
         original_e = data.edge_index
         data2 = data
         if "-el" in args.rep:
@@ -97,7 +97,7 @@ def add_lpe(dataset: List[Data], args, **kwargs) -> List[Data]:
 
 def add_p_idx(dataset: List[Data], args, **kwargs) -> List[Data]:
     ret = []
-    for data in tqdm(dataset):
+    for data in dataset:
         ret.append(Data(x=data.x, y=data.y, edge_index=data.edge_index, domain=data.domain, problem=data.problem,
                         p_idx=kwargs["idx"]))
 
@@ -111,7 +111,7 @@ def add_features(features, dataset: List[Data], args, **kwargs):
         print(f"Adding {feature} features.")
         t = time.time()
         ret = NODE_FEAT[feature](ret, args, **kwargs)
-        print(f"Time to add {feature} features: {time.time() - t:.2f}")
+        # print(f"Time to add {feature} features: {time.time() - t:.2f}")
     return ret
 
 

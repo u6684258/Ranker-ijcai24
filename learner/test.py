@@ -118,7 +118,7 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600):
             print(f"time length: {time_length}")
         else:
             state = SearchState.failed
-            print("Some uncathed error is happening!")
+            print("Some uncatched error is happening!")
         matrix = SearchMetrics(
             nodes_expanded=expansions,
             plan_length=plan_length,
@@ -136,4 +136,4 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600):
 
 
 if __name__ == "__main__":
-    domain_test('ferry', 'test', 'test_ranker.dt')
+    domain_test('ferry', 'test', 'test-bat-ranker.dt')

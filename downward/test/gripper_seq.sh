@@ -4,9 +4,16 @@ CONFIG="1"
 
 # 0: slg, 1: flg, 2: llg, 3: glg
 
-export GOOSE="$HOME/code/goose/learner"
+export GOOSE="$HOME/PycharmProjects/goose/learner"
 
 cd test
 
-# by default, reopen_closed=false
-./../fast-downward.py $DOMAIN $INSTANCE --search "eager_greedy([goose(graph=$CONFIG)])"
+
+./../fast-downward.py --search-time-limit 600 \
+  --sas-file test.sas_file \
+  --plan-file test.plan \
+  /home/ming/PycharmProjects/goose/learner/../benchmarks/goose/ferry/domain.pddl \
+  /home/ming/PycharmProjects/goose/learner/../benchmarks/goose/ferry/test/p-l85-c85-s4.pddl \
+  --search 'batch_eager_greedy([goose(model_path="/home/ming/PycharmProjects/goose/learner/trained_models_gnn/test-ferry.dt",
+  model_type="gnn", domain_file="/home/ming/PycharmProjects/goose/learner/../benchmarks/goose/ferry/domain.pddl",
+  instance_file="/home/ming/PycharmProjects/goose/learner/../benchmarks/goose/ferry/test/p-l85-c85-s4.pddl")])'

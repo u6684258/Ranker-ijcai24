@@ -135,6 +135,78 @@ def get_dataset_from_args_kernels(args):
 #     return new_dataset
 
 
+class Dataloader_Generator:
+
+    def __init__(self, args):
+        model_name = args.model
+        batch_size = args.batch_size
+        domain = args.domain
+        rep = args.rep
+        max_nodes = args.max_nodes
+        cutoff = args.cutoff
+        small_train = args.small_train
+
+        dataset: List[List[Data]] = get_graph_data_by_prob(domain=domain, representation=rep)
+        new_dataset = []
+        index_list = []
+        valid_count = 0
+        for i, datalist in enumerate(dataset):
+            new_datalist = preprocess_data(model_name, data_list=datalist, c_hi=cutoff, n_hi=max_nodes,
+                                           small_train=small_train)
+            if len(new_datalist) < 2:
+                continue
+            new_datalist = add_features(["p_idx"], new_datalist, args, idx=valid_count)
+            new_dataset += new_datalist
+            index_list += [valid_count] * len(datalist)
+            valid_count += 1
+
+        self.dataset = new_dataset
+        self.index_list = index_list
+        self.valid_count = valid_count
+        self.num_workers = 0
+        self.batch_size = batch_size
+
+
+
+    def gen_new_dataloaders(self):
+        trainset, valset = train_test_split(self.dataset, test_size=0.15, random_state=4550, stratify=self.index_list)
+        train_per_class_sample_indices = ByProblemDataset(trainset,
+                                                          self.valid_count).per_class_sample_indices()
+        train_batch_sampler = BatchSampler(train_per_class_sample_indices,
+                                           batch_size=self.batch_size)
+
+        train_loader = DataLoader(
+            trainset,
+            # batch_size=args.batch_size,
+            # shuffle=(train_sampler is None),
+            num_workers=self.num_workers,
+            pin_memory=True,
+            # sampler=train_sampler,
+            batch_sampler=train_batch_sampler
+        )
+
+        val_per_class_sample_indices = ByProblemDataset(valset,
+                                                        self.valid_count).per_class_sample_indices()
+        val_batch_sampler = BatchSampler(val_per_class_sample_indices,
+                                         batch_size=self.batch_size)
+
+        val_loader = DataLoader(
+            valset,
+            # batch_size=args.batch_size,
+            # shuffle=(train_sampler is None),
+            num_workers=self.num_workers,
+            pin_memory=True,
+            # sampler=train_sampler,
+            batch_sampler=val_batch_sampler
+        )
+        return train_loader, val_loader
+
+
+def get_new_dataloader_each_epoch(args):
+
+    return Dataloader_Generator(args)
+
+
 def get_by_problem_dataloaders_from_args(args):
     model_name = args.model
     batch_size = args.batch_size
@@ -215,8 +287,10 @@ class ByProblemDataset(Dataset):
 
         indices = [[] for _ in range(num_classes)]
 
-        for i, point in tqdm(enumerate(data), total=len(data), miniters=1,
-                             desc='Building class indices dataset..'):
+        # for i, point in tqdm(enumerate(data), total=len(data), miniters=1,
+        #                      desc='Building class indices dataset..'):
+        # print('Building class indices dataset..')
+        for i, point in enumerate(data):
             indices[point.p_idx].append(i)
 
         self.indices = indices
