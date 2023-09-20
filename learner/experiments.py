@@ -40,7 +40,7 @@ for i in range(3, 11):
               f'-d goose-{domain} ' \
               f'-L {i} ' \
               f'--save-file rndrank-{domain} ' \
-              f'--method rnd_ranker' \
+              f'--method rnd_ranker ' \
               f'--fast-train'
 
         f = open(f"{log_sub_dir}/train_rndrank_{domain}_L{i}.logs", "w")

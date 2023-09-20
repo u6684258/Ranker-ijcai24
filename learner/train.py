@@ -139,30 +139,31 @@ def main():
         raise Exception("Invalid training method!")
     args.n_edge_labels = representation.REPRESENTATIONS[args.rep].n_edge_labels
     model_params = arg_to_params(args)
-    model = GNNS[args.model](params=model_params).to(device)
-
-    lr = args.lr
-    reduction = args.reduction
-    patience = args.patience
-    epochs = args.epochs
-    loss_fn = args.loss
-    fast_train = args.fast_train
-
-    # init optimiser
-    criterion = LOSS[loss_fn]()
-    optimiser = torch.optim.Adam(model.parameters(), lr=lr)
-    scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser,
-                                                           mode='min',
-                                                           verbose=True,
-                                                           factor=reduction,
-                                                           patience=patience)
-
-    print(f"model size (#params): {model.get_num_parameters()}")
 
     # train val pipeline
     print("Training...")
     best_val = None
-    for fold in range(5):
+    for fold in range(1):
+        model = GNNS[args.model](params=model_params).to(device)
+
+        lr = args.lr
+        reduction = args.reduction
+        patience = args.patience
+        epochs = args.epochs
+        loss_fn = args.loss
+        fast_train = args.fast_train
+
+        # init optimiser
+        criterion = LOSS[loss_fn]()
+        optimiser = torch.optim.Adam(model.parameters(), lr=lr)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser,
+                                                               mode='min',
+                                                               verbose=True,
+                                                               factor=reduction,
+                                                               patience=patience)
+
+        print(f"model size (#params): {model.get_num_parameters()}")
+
         best_dict = None
         best_saved_model = None
         best_metric = float('inf')
