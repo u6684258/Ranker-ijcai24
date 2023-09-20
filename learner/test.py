@@ -17,11 +17,11 @@ from util.search import search_cmd
 exp_root = os.path.dirname(os.path.realpath(__file__))
 base_dir = os.path.join(os.path.join(exp_root, ".."), "benchmarks/goose")
 model_root = os.path.join(exp_root, "trained_models_gnn")
-val_log_dir = f"{exp_root}/logs/val/{datetime.now().isoformat()}"
-val_result_dir = f"{exp_root}/logs/result/{datetime.now().isoformat()}"
 
 
 def domain_test(domain, test_file, model_file, mode="val", timeout=600):
+    val_log_dir = f"{exp_root}/logs/val/{model_file}-{datetime.now().isoformat()}"
+    val_result_dir = f"{exp_root}/logs/result/{model_file}-{datetime.now().isoformat()}"
     if mode == "test":
         log_dir = os.path.join(val_result_dir, domain)
     else:
