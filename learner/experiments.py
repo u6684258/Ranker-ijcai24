@@ -34,27 +34,27 @@ for i in range(3, 11):
 
         subprocess.call(cmd.split(" "), stdout=f)
 
-        cmd = f'python3 {exp_root}/train.py ' \
-              f'-m RGNNBATRANK ' \
-              f'-r {model} ' \
-              f'-d goose-{domain} ' \
-              f'-L {i} ' \
-              f'--save-file rndrank-{domain} ' \
-              f'--method rnd_ranker ' \
-              f'--fast-train'
-
-        f = open(f"{log_sub_dir}/train_rndrank_{domain}_L{i}.logs", "w")
+        # cmd = f'python3 {exp_root}/train.py ' \
+        #       f'-m RGNNBATRANK ' \
+        #       f'-r {model} ' \
+        #       f'-d goose-{domain} ' \
+        #       f'-L {i} ' \
+        #       f'--save-file rndrank-{domain} ' \
+        #       f'--method rnd_ranker ' \
+        #       f'--fast-train'
+        #
+        # f = open(f"{log_sub_dir}/train_rndrank_{domain}_L{i}.logs", "w")
 
         print(f"Experiment log: {f}")
 
         subprocess.call(cmd.split(" "), stdout=f)
 
-    # cmd = f'python3 {exp_root}/train.py -m RGNN -r {model} -d goose-{domain} --save' \
-    #       f'-file goose-{domain} --fast-train'
-    #
-    # f = open(f"{log_sub_dir}/train_goose_{domain}.logs", "w")
-    #
-    # print(f"Experiment log: {f}")
-    #
-    # subprocess.call(cmd.split(" "), stdout=f)
+    cmd = f'python3 {exp_root}/train.py -m RGNN -r {model} -d goose-{domain} --save' \
+          f'-file goose-{domain} --fast-train --method goose '
+
+    f = open(f"{log_sub_dir}/train_goose_{domain}.logs", "w")
+
+    print(f"Experiment log: {f}")
+
+    subprocess.call(cmd.split(" "), stdout=f)
 

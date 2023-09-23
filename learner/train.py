@@ -143,7 +143,7 @@ def main():
     # train val pipeline
     print("Training...")
     best_val = None
-    for fold in range(1):
+    for fold in range(3):
         model = GNNS[args.model](params=model_params).to(device)
 
         lr = args.lr

@@ -26,7 +26,7 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600):
         log_dir = os.path.join(val_result_dir, domain)
     else:
         log_dir = os.path.join(val_log_dir, domain)
-    result_file = f"{val_result_dir}/{domain}.json"
+    result_file = f"{log_dir}/{domain}.json"
     Path(log_dir).mkdir(parents=True, exist_ok=True)
     Path(val_result_dir).mkdir(parents=True, exist_ok=True)
     df = f"{base_dir}/{domain}/domain.pddl"
@@ -53,12 +53,13 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600):
         wrong = False
         with open(val_log_file, 'w') as out_fp:
             try:
-                subprocess.run(cmd, shell=True,
+                rv = subprocess.Popen(cmd, shell=True,
                                cwd=exp_root,
                                stdout=out_fp,
                                stderr=subprocess.STDOUT,
-                               universal_newlines=True,
-                               timeout=timeout)
+                               universal_newlines=True
+                               )
+                rv.wait(timeout=timeout)
             except subprocess.TimeoutExpired:
                 timeouted = True
             except subprocess.CalledProcessError:

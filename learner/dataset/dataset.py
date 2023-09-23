@@ -230,10 +230,12 @@ def get_by_problem_dataloaders_from_args(args):
         if len(new_datalist) < 2:
             continue
         new_datalist = add_features(["p_idx"], new_datalist, args, idx=valid_count)
+        trains, vals = train_test_split(new_datalist, test_size=0.15, random_state=4550)
+        if len(trains) < 2 or len(vals) < 2:
+            continue
         new_dataset += new_datalist
         index_list += [valid_count] * len(datalist)
-        get_stats(dataset=new_datalist, desc="Whole dataset")
-        trains, vals = train_test_split(new_datalist, test_size=0.15, random_state=4550)
+        # get_stats(dataset=new_datalist, desc="Whole dataset")
         trainset += trains
         valset += vals
         valid_count += 1
