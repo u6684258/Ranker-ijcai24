@@ -8,7 +8,7 @@ from util.save_load import load_kernel_model_and_setup
 
 REPEATS = 1
 VAL_REPEATS = 5
-TIMEOUT = 620  # 10 minute timeout + time to load model etc.
+TIMEOUT = 1000000  # 10 minute timeout + time to load model etc.
 FAIL_LIMIT = {
   "gripper": 1,
   "spanner": 10,
@@ -110,7 +110,7 @@ def fd_cmd(df, pf, model_type, m, search, seed, profile, timeout=TIMEOUT, aux_fi
       cmd = f"{translator_cmd} && {PROFILE_CMD_} {search_cmd}"
       print("Original command completed.")
   else:
-    cmd = f"./../downward/fast-downward.py --sas-file {aux_file} --plan-file {plan_file} "+\
+    cmd = f"./../downward/fast-downward.py --search-time-limit {timeout} --sas-file {aux_file} --plan-file {plan_file} "+\
           f"{df} {pf} --search '{search}([goose(model_path=\"{m}\", "+\
                                               f"model_type=\"{model_type}\", "+\
                                               f"domain_file=\"{df}\", "+\
