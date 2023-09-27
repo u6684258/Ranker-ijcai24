@@ -1,6 +1,8 @@
 import torch
 import sys
 from torch.profiler import profile, record_function, ProfilerActivity
+from tqdm import tqdm
+
 from util import eval_f1_score, eval_admissibility, eval_interval, eval_accuracy
 
 """ Train and evaluation methods in training pipeline. """
@@ -62,7 +64,7 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
         y_true = torch.tensor([])
         y_pred = torch.tensor([])
 
-    for data in train_loader:
+    for data in tqdm(train_loader):
         data = data.to(device)
         if task == "a":
             applicable_action = data.applicable_action.float().to(device)

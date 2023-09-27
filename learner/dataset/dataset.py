@@ -333,7 +333,10 @@ class BatchSampler:
             yield batch
 
     def __len__(self):
-        return self.n_batches * self.batch_size
+        return self.n_batches
 
     def n_batches(self):
         return self.n_batches
+
+    def n_samples(self):
+        return sum([len(x) for x in self.per_class_sample_indices])

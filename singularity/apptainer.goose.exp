@@ -70,5 +70,7 @@ Stage: run
     cd /learner
     REP="$1"
     shift 1
+    LAYER="$1"
+    shift 1
     DOMAINS=("$@")
-    python3 experiments.py --rep "$REP" --domains "${DOMAINS[@]}"
+    python3 experiments.py --rep "$REP" --layers "$LAYER" --domains "${DOMAINS[@]}"

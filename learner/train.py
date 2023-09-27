@@ -1,5 +1,7 @@
+import gc
 import os
 import time
+from pathlib import Path
 from typing import List
 
 import torch
@@ -22,7 +24,8 @@ from dataset.dataset import get_loaders_from_args_gnn, \
     get_by_problem_dataloaders_from_args, get_new_dataloader_each_epoch
 from util.train_eval import train_ranker, evaluate_ranker
 
-
+# TMP_FILE = "tmp/"
+# Path(TMP_FILE).mkdir(parents=True, exist_ok=True)
 def create_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--device', type=int, default=0)
@@ -143,9 +146,9 @@ def main():
     # train val pipeline
     print("Training...")
     best_val = None
+    model_list = []
     for fold in range(3):
         model = GNNS[args.model](params=model_params).to(device)
-
         lr = args.lr
         reduction = args.reduction
         patience = args.patience
@@ -225,7 +228,8 @@ def main():
                     break
         except KeyboardInterrupt:
             print("Early stopping due to keyboard interrupt!")
-
+        # if best_dict is not None:
+        #     model_list.append((best_metric, best_dict))
         # save model parameters
         if best_dict is not None:
             if best_val is not None:
@@ -246,6 +250,19 @@ def main():
 
         else:
             save_gnn_model(model, args)
+    # best_val = -1
+    # best_model = model_list[0]
+    # for metric, model in model_list:
+    #     path = f'tmp.dt'
+    #     torch.save((model, args), path)
+    #     results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", path)
+    #     succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
+    #         results)
+    #     if succ_rate > best_val:
+    #         best_val = succ_rate
+    #         best_model = model
+
+    # save_gnn_model(best_model, args)
 
     test.domain_test(args.domain.split("-")[1], args.test_files, args.save_file, "test")
 
