@@ -65,7 +65,7 @@ def create_parser():
 
     # save file
     parser.add_argument('--save-file', dest="save_file", type=str, default=None)
-
+    parser.add_argument('--log-root', type=str, default="log")
     # anti verbose
     parser.add_argument('--no-tqdm', dest='tqdm', action='store_false')
     parser.add_argument('--fast-train', action='store_true',
@@ -233,7 +233,7 @@ def main():
         # save model parameters
         if best_dict is not None:
             if best_val is not None:
-                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file)
+                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root)
                 succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
                     results)
                 if succ_rate > best_val:
@@ -244,7 +244,7 @@ def main():
             else:
                 args.best_metric = best_metric
                 save_gnn_model_from_dict(best_dict, args)
-                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file)
+                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root)
                 best_val = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
                     results)
 
@@ -264,7 +264,7 @@ def main():
 
     # save_gnn_model(best_model, args)
 
-    test.domain_test(args.domain.split("-")[1], args.test_files, args.save_file, "test")
+    test.domain_test(args.domain.split("-")[1], args.test_files, args.save_file, "test", log_root=args.log_root)
 
     return
 

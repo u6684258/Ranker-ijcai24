@@ -120,9 +120,9 @@ def work(cmd, intermediate_file, log_file, timeout):
     return matrix
 
 
-def domain_test(domain, test_file, model_file, mode="val", timeout=600):
-    val_log_dir = f"{exp_root}/logs/val/{model_file}-{datetime.now().isoformat()}"
-    val_result_dir = f"{exp_root}/logs/result/{model_file}-{datetime.now().isoformat()}"
+def domain_test(domain, test_file, model_file, mode="val", timeout=600, log_root=exp_root):
+    val_log_dir = f"{log_root}/val/{model_file}-{datetime.now().isoformat()}"
+    val_result_dir = f"{log_root}/result/{model_file}-{datetime.now().isoformat()}"
     if mode == "test":
         log_dir = os.path.join(val_result_dir, domain)
     else:
@@ -151,7 +151,7 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600):
         # val_err_file = f"{log_dir}/{name.replace('.pddl', '')}_{model_file}_err.log
         jobs.append((cmd, intermediate_file, val_log_file, timeout))
 
-    count = multiprocessing.cpu_count()
+    count = 3
     pool = multiprocessing.Pool(processes=count)
     matrices = []
     r = pool.starmap_async(work, jobs, callback=matrices.append, error_callback=lambda x: print(x))
