@@ -110,6 +110,7 @@ def work(cmd, intermediate_file, log_file, timeout):
         state = SearchState.failed
         print("Some uncatched error is happening!")
     matrix = SearchMetrics(
+        problem=cmd.split(" ")[8].split("/")[-1],
         nodes_expanded=expansions,
         plan_length=plan_length,
         heuristic_calls=heuristic_calls,
@@ -151,7 +152,7 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600, log_root
         # val_err_file = f"{log_dir}/{name.replace('.pddl', '')}_{model_file}_err.log
         jobs.append((cmd, intermediate_file, val_log_file, timeout))
 
-    count = 3
+    count = 1
     pool = multiprocessing.Pool(processes=count)
     matrices = []
     r = pool.starmap_async(work, jobs, callback=matrices.append, error_callback=lambda x: print(x))
@@ -164,4 +165,4 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600, log_root
 
 
 if __name__ == "__main__":
-    domain_test('ferry', 'test', 'test-bat-ranker.dt')
+    domain_test('blocks', 'train', 'rank-blocks-L6.dt')

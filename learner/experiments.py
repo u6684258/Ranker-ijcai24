@@ -22,26 +22,26 @@ print(f"Selected domains: {args.domains}")
 
 def task(domain, layers):
     cmd = f'python3 {exp_root}/train.py ' \
-          f'-m RGNNBATRANK ' \
+          f'-m RGNNBATPROB ' \
           f'-r {model} ' \
           f'-d goose-{domain} ' \
           f'-L {layers} ' \
           f'--log-root {log_root} ' \
           f'--save-file rank-{domain}-L{layers} ' \
-          f'--method batched_ranker ' \
-          f'--fast-train'
+          f'--method batched_ranker'
+          # f'--fast-train'
 
     f = open(f"{log_sub_dir}/train_rank_{domain}_L{layers}.logs", "w")
     print(f"Experiment log: {f}")
     subprocess.call(cmd.split(" "), stdout=f)
 
-    cmd = f'python3 {exp_root}/train.py -m RGNN -r {model} -d goose-{domain} ' \
-          f'--save-file goose-{domain} -L {layers} --log-root {log_root} ' \
-          f'--fast-train --method goose'
-
-    f = open(f"{log_sub_dir}/train_goose_{domain}_L{layers}.logs", "w")
-    print(f"Experiment log: {f}")
-    subprocess.call(cmd.split(" "), stdout=f)
+    # cmd = f'python3 {exp_root}/train.py -m RGNN -r {model} -d goose-{domain} ' \
+    #       f'--save-file goose-{domain} -L {layers} --log-root {log_root} ' \
+    #       f'--fast-train --method goose'
+    #
+    # f = open(f"{log_sub_dir}/train_goose_{domain}_L{layers}.logs", "w")
+    # print(f"Experiment log: {f}")
+    # subprocess.call(cmd.split(" "), stdout=f)
 
 
 jobs = []
@@ -54,3 +54,7 @@ pool = multiprocessing.Pool(processes=count)
 matrices = []
 r = pool.starmap_async(task, jobs, error_callback=lambda x: print(x))
 r.wait()
+
+# if __name__ == "__main__":
+#     for domain in args.domains:
+#         task(domain, args.layers)

@@ -24,7 +24,7 @@ def eval_accuracy(y_pred: Tensor, y_true: Tensor):
         pass
     y_true = y_true.long()
     acc = accuracy_score(y_true, y_pred) * 100
-    return acc
+    return round(acc, 2)
 
 
 @torch.no_grad()
@@ -36,7 +36,7 @@ def eval_f1_score(y_pred: Tensor, y_true: Tensor) -> Tuple[int, int]:
     y_true = y_true.long()
     f1_macro = f1_score(y_true, y_pred, average='macro') * 100
     f1_micro = f1_score(y_true, y_pred, average='micro') * 100
-    return f1_macro, f1_micro
+    return round(f1_macro, 2), round(f1_micro, 2)
 
 
 @torch.no_grad()
@@ -86,6 +86,7 @@ class SearchState(str, Enum):
 
 
 class SearchMetrics(NamedTuple):
+    problem: str
     nodes_expanded: int
     plan_length: int
     heuristic_calls: int

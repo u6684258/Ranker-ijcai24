@@ -1,6 +1,7 @@
 import torch
 import sys
 from torch.profiler import profile, record_function, ProfilerActivity
+from torch_geometric.data import Data
 from tqdm import tqdm
 
 from util import eval_f1_score, eval_admissibility, eval_interval, eval_accuracy
@@ -64,7 +65,8 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
         y_true = torch.tensor([])
         y_pred = torch.tensor([])
 
-    for data in tqdm(train_loader):
+    # for data in tqdm(train_loader):
+    for data in train_loader:
         data = data.to(device)
         if task == "a":
             applicable_action = data.applicable_action.float().to(device)
@@ -92,13 +94,13 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
 
     # changed to net loss
     stats = {
-        "loss": train_loss,
+        "loss": train_loss / len(train_loader),
     }
     if not fast_train:
         macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
         stats["f1"] = macro_f1
-        stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
-        stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
+        # stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
+        # stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
         stats["acc"] = eval_accuracy(y_pred=y_pred, y_true=y_true)
     return stats
 
@@ -185,13 +187,13 @@ def evaluate_ranker(model, device, val_loader, criterion, fast_train, return_tru
             y_true = torch.cat((y_true, y.detach().cpu()))
     # changed to net loss
     stats = {
-        "loss": val_loss,
+        "loss": val_loss / len(val_loader),
     }
     if not fast_train:
         macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
         stats["f1"] = macro_f1
-        stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
-        stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
+        # stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
+        # stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
         stats["acc"] = eval_accuracy(y_pred=y_pred, y_true=y_true)
     if return_true_preds:
         assert not fast_train

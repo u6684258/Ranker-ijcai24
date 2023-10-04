@@ -21,7 +21,8 @@ from util.stats import *
 from util.save_load import *
 from util import train, evaluate
 from dataset.dataset import get_loaders_from_args_gnn, \
-    get_by_problem_dataloaders_from_args, get_new_dataloader_each_epoch
+    get_by_problem_dataloaders_from_args, get_new_dataloader_each_epoch, get_paired_dataloaders_from_args, \
+    get_by_train_val_dataloaders_from_args
 from util.train_eval import train_ranker, evaluate_ranker
 
 # TMP_FILE = "tmp/"
@@ -116,18 +117,18 @@ def main():
     print_arguments(args)
     # args.method = Method.from_str(args.method)
     if args.method != "goose":
-        assert args.model == "RGNNRANK" or args.model == "RGNNBATRANK", "Are you using ranker model?"
+        assert args.model != "RGNN", "Are you using ranker model?"
     # cuda
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
     # init model
     if args.method == "ranker":
-        train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
+        train_loader, val_loader = get_paired_dataloaders_from_args(args)
         print("Don't use this parameter!")
         args.out_feat = 64
         args.in_feat = train_loader.dataset[0].x.shape[1]
     elif args.method == "batched_ranker":
-        train_loader, val_loader = get_by_problem_dataloaders_from_args(args)
+        train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
         args.out_feat = 64
         args.in_feat = train_loader.dataset[0].x.shape[1]
     elif args.method == "goose":
@@ -214,7 +215,11 @@ def main():
                     desc = f"epoch {e}, " \
                            f"train_loss {train_loss:.2f}, " \
                            f"val_loss {val_loss:.2f}, " \
-                           f"time {time.time() - t:.1f}"
+                            f"train_f1 {train_stats['f1']:.1f}, " \
+                            f"val_f1 {val_stats['f1']:.1f}, " \
+                            f"train_acc {train_stats['acc']}, " \
+                            f"val_acc {val_stats['acc']}, " \
+                            f"time {time.time() - t:.1f}"
 
                 lr = optimiser.param_groups[0]['lr']
                 if args.tqdm:
