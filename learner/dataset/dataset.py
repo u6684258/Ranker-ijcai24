@@ -1,4 +1,5 @@
 import itertools
+import math
 import os
 import sys
 import random
@@ -20,6 +21,7 @@ from util.stats import get_stats
 from torch_geometric.loader import DataLoader
 from sklearn.model_selection import train_test_split
 from dataset.graphs_gnn import get_graph_data as get_graph_data_gnn, get_graph_data_by_prob
+from dataset.graphs_ranker import get_graph_data_by_prob as get_graph_data_ranker
 from dataset.graphs_kernel import get_graph_data as get_graph_data_kernel
 from dataset.transform import preprocess_data
 
@@ -297,13 +299,19 @@ def get_by_train_val_dataloaders_from_args(args):
     num_workers = 0
     pin_memory = True
 
-    dataset: List[List[Data]] = get_graph_data_by_prob(domain=domain, representation=rep)
+    if args.method == "batched_coord_ranker":
+
+        dataset: List[List[Data]] = get_graph_data_ranker(domain=domain, representation=rep)
+    else:
+        dataset: List[List[Data]] = get_graph_data_by_prob(domain=domain, representation=rep)
     new_dataset = []
     index_list = []
     trainset = []
     valset = []
     train_valid_count = 0
     val_valid_count = 0
+    valid_interval = 10
+    print("Preprocessing data...")
     for i, datalist in enumerate(dataset):
         new_datalist = preprocess_data(model_name, data_list=datalist, c_hi=cutoff, n_hi=max_nodes,
                                        small_train=small_train)
@@ -312,7 +320,7 @@ def get_by_train_val_dataloaders_from_args(args):
         # trains, vals = train_test_split(new_datalist, test_size=0.2, random_state=4550)
         # if len(trains) < 2 or len(vals) < 2:
         #     continue
-        if i < (len(dataset) * 0.1):
+        if i % valid_interval == 0:
             new_datalist = add_features(["p_idx"], new_datalist, args, idx=val_valid_count)
             valset += new_datalist
             val_valid_count += 1

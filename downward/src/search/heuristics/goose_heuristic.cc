@@ -215,6 +215,7 @@ int GooseHeuristic::compute_heuristic(const State &ancestor_state) {
   // Convert state into Python object and feed into Goose.
   py::list goose_state = list_to_goose_state(ancestor_state);
   int h = model.attr("h")(goose_state).cast<int>();
+  std::cout << "goose state: " << goose_state << "h: " << h << std::endl;
   return h;
 }
 
@@ -228,8 +229,10 @@ std::vector<int> GooseHeuristic::compute_heuristic_batch(const std::vector<State
   for (size_t i = 0; i < ret.size(); i++) {
     if (task_properties::is_goal_state(task_proxy, ancestor_states[i]))
       ret[i] = 0;
-    else
-      ret[i] = std::max(1, ret[i]);
+    else {
+        ret[i] = std::max(1, ret[i]);
+        std::cout << "goose state: " << py_states[i].cast<py::list>() << "h: " << ret[i] << std::endl;
+    }
   }
   return ret;
 }

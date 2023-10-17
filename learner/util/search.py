@@ -123,3 +123,29 @@ def fd_cmd(df, pf, model_type, m, search, seed, profile, timeout=TIMEOUT, aux_fi
               f")])"
     # print(cmd)
     return cmd, aux_file
+
+
+def fd_general_cmd(domain_file, problem_file, result_file, search="astar+lmcut"):
+    THIS_DIR = os.path.abspath(
+        os.path.join(
+            os.path.dirname(os.path.abspath(__file__)),
+            "../../downward-full"))
+    cmd = ["python3", os.path.join(THIS_DIR, "fast-downward.py"),
+           "--search-time-limit", "60",
+           "--plan-file", result_file,
+           domain_file, problem_file]
+
+    if search == "astar+lmcut":
+        cmd += ["--search", "astar(lmcut())"]
+
+    elif search == "lamafirst":
+        cmd += ["--evaluator",
+                ("hlm=landmark_sum(lm_factory=lm_reasonable_orders_hps(lm_rhw()),"
+                 "transform=adapt_costs(one),pref=false)"), "--evaluator",
+                "hff=ff(transform=adapt_costs(one))", "--search",
+                ("lazy_greedy([hff,hlm],preferred=[hff,hlm],cost_type=one,"
+                 "reopen_closed=false,bound={bound})")]
+    else:
+        cmd += ["--search", "astar(lmcut())"]
+
+    return cmd

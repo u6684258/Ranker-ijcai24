@@ -6,74 +6,77 @@ from torch_geometric.nn.conv import RGCNConv, FastRGCNConv  # (slow and/or mem i
 
 class ELMPNNLayer(Module):
     def __init__(self, in_features: int, out_features: int, n_edge_labels: int, aggr: str):
-      super(ELMPNNLayer, self).__init__()
-      self.convs = torch.nn.ModuleList()
-      for _ in range(n_edge_labels):
-        self.convs.append(LinearConv(in_features, out_features, aggr=aggr).jittable())
-      self.root = Linear(in_features, out_features, bias=True)
-      return
+        super(ELMPNNLayer, self).__init__()
+        self.convs = torch.nn.ModuleList()
+        for _ in range(n_edge_labels):
+            self.convs.append(LinearConv(in_features, out_features, aggr=aggr).jittable())
+        self.root = Linear(in_features, out_features, bias=True)
+        return
 
     def forward(self, x: Tensor, list_of_edge_index: List[Tensor]) -> Tensor:
-      x_out = self.root(x)
-      for i, conv in enumerate(self.convs):  # bottleneck; difficult to parallelise efficiently
-        x_out += conv(x, list_of_edge_index[i])
-      return x_out
+        x_out = self.root(x)
+        for i, conv in enumerate(self.convs):  # bottleneck; difficult to parallelise efficiently
+            x_out += conv(x, list_of_edge_index[i])
+        return x_out
+
 
 """ GNN with different weights for different edge labels """
+
+
 class ELMPNN(BaseGNN):
-  def __init__(self, params) -> None:
-    super().__init__(params)
-    if self.vn:
-      raise NotImplementedError("vn not implemented for ELGNN")
-    if self.share_layers:
-      raise NotImplementedError("sharing layers not implemented for ELGNN")
-    return
+    def __init__(self, params) -> None:
+        super().__init__(params)
+        if self.vn:
+            raise NotImplementedError("vn not implemented for ELGNN")
+        if self.share_layers:
+            raise NotImplementedError("sharing layers not implemented for ELGNN")
+        return
 
-  def create_layer(self):
-    return ELMPNNLayer(self.nhid, self.nhid, n_edge_labels=self.n_edge_labels, aggr=self.aggr)
+    def create_layer(self):
+        return ELMPNNLayer(self.nhid, self.nhid, n_edge_labels=self.n_edge_labels, aggr=self.aggr)
 
-  def node_embedding(self, x: Tensor, list_of_edge_index: List[Tensor], batch: Optional[Tensor]) -> Tensor:
-    """ overwrite typing (same semantics, different typing) for jit """
-    x = self.emb(x)
-    for layer in self.layers:
-      x = layer(x, list_of_edge_index)
-      x = F.relu(x)
-    return x
+    def node_embedding(self, x: Tensor, list_of_edge_index: List[Tensor], batch: Optional[Tensor]) -> Tensor:
+        """ overwrite typing (same semantics, different typing) for jit """
+        x = self.emb(x)
+        for layer in self.layers:
+            x = layer(x, list_of_edge_index)
+            x = F.leaky_relu(x)
+        return x
 
-  def graph_embedding(self, x: Tensor, list_of_edge_index: List[Tensor], batch: Optional[Tensor]) -> Tensor:
-    """ overwrite typing (same semantics, different typing) for jit """
-    x = self.node_embedding(x, list_of_edge_index, batch)
-    x = self.pool(x, batch)
-    return x
+    def graph_embedding(self, x: Tensor, list_of_edge_index: List[Tensor], batch: Optional[Tensor]) -> Tensor:
+        """ overwrite typing (same semantics, different typing) for jit """
+        x = self.node_embedding(x, list_of_edge_index, batch)
+        x = self.pool(x, batch)
+        return x
 
-  def forward(self, x: Tensor, list_of_edge_index: List[Tensor], batch: Optional[Tensor]) -> Tensor:
-    """ overwrite typing (same semantics, different typing) for jit """
-    x = self.graph_embedding(x, list_of_edge_index, batch)
-    x = self.mlp(x)
-    if x.size()[1] == 1:
-        x = x.squeeze(1)
-    return x
+    def forward(self, x: Tensor, list_of_edge_index: List[Tensor], batch: Optional[Tensor]) -> Tensor:
+        """ overwrite typing (same semantics, different typing) for jit """
+        x = self.graph_embedding(x, list_of_edge_index, batch)
+        x = self.mlp(x)
+        if x.size()[1] == 1:
+            x = x.squeeze(1)
+        return x
 
 
 class ELMPNNPredictor(BasePredictor):
-  def __init__(self, params, jit=False) -> None:
-    super().__init__(params, jit)
-    return
+    def __init__(self, params, jit=False) -> None:
+        super().__init__(params, jit)
+        return
 
-  def create_model(self, params):
-    self.model = ELMPNN(params)
+    def create_model(self, params):
+        self.model = ELMPNN(params)
 
-  def h(self, state: State) -> float:
-    x, edge_index = self.rep.state_to_tensor(state)
-    x = x.to(self.device)
-    for i in range(len(edge_index)):
-      edge_index[i] = edge_index[i].to(self.device)
-    h = self.model.forward(x, edge_index, None).item()
-    h = round(h)
-    return h
+    def h(self, state: State) -> float:
+        x, edge_index = self.rep.state_to_tensor(state)
+        x = x.to(self.device)
+        for i in range(len(edge_index)):
+            edge_index[i] = edge_index[i].to(self.device)
+        h = self.model.forward(x, edge_index, None).item()
+        h = round(h)
+        return h
 
-  def predict_action(self, state: State):
-    raise NotImplementedError
+    def predict_action(self, state: State):
+        raise NotImplementedError
 
 
 class ELMPNNRankerPredictor(BasePredictor):
@@ -144,7 +147,8 @@ class ELMPNNRankerPredictor(BasePredictor):
     def shift_heu(self, h, scale=1e3, shift=1e4):
         result = h + shift
         # print(f"result: {result}")
-        assert (2147483647 > result).all() and (result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
+        assert (2147483647 > result).all() and (
+                    result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
         result = np.round(result * scale).astype("int32")
         assert (2147483647 > result).all() and (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
         return result
@@ -162,6 +166,11 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
 
     def create_model(self, params):
         self.model = ELMPNN(params)
+        #       self.model.mlp = Sequential(
+        #   Linear(self.model.nhid, self.model.nhid),
+        #   LeakyReLU(),
+        #   Linear(self.model.nhid, self.model.out_feat),
+        # )
         self.model.mlp = nn.Identity()
 
     def forward(self, data):
@@ -173,7 +182,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
 
         indices = torch.combinations(torch.arange(encodes.shape[0]), 2)
         indices = torch.tensor([(i, j) for i, j in zip(torch.arange(encodes.shape[0]),
-                                  torch.arange(encodes.shape[0])[1:])]).reshape([-1, 2])
+                                                       torch.arange(encodes.shape[0])[1:])]).reshape([-1, 2])
 
         combined_encodes = encodes[indices].permute([1, 0, 2])
         diff = combined_encodes[0, :] - combined_encodes[1, :]
@@ -224,7 +233,8 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
     def shift_heu(self, h, scale=1e3, shift=1e4):
         result = h + shift
         # print(f"result: {result}")
-        assert (2147483647 > result).all() and (result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
+        assert (2147483647 > result).all() and (
+                    result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
         result = np.round(result * scale).astype("int32")
         assert (2147483647 > result).all() and (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
         return result
@@ -232,6 +242,54 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
     def predict_action(self, state: State):
         raise NotImplementedError
 
+
+class ELMPNNBatchedCoordRankerPredictor(ELMPNNBatchedRankerPredictor):
+
+    def forward(self, data):
+        with torch.no_grad():
+            assert torch.sum(data.p_idx) - data.p_idx[0] * data.p_idx.shape[0] == 0
+            # print(data.problem)
+        encodes = self.model.forward(data.x, data.edge_index, data.batch)
+
+        # coord_x_range = data.coord_x.max()
+        # main_sets = []
+        # compare_sets = []
+        # for i in range(coord_x_range+1):
+        #     coord_x_mask = data.coord_x == i
+        #     coord_y_mask = torch.logical_and(data.coord_y == 0, coord_x_mask).type(torch.int)
+        #     assert torch.sum(coord_y_mask) == 1
+        #     coord_y_coord = torch.argmax(coord_y_mask)
+        #     assert data.coord_x[coord_y_coord] == i
+        #     coord_x_mask[coord_y_coord] = 0
+        #     compare_set = encodes[coord_x_mask]
+        #     main_set = torch.ones_like(compare_set) * encodes[coord_y_coord]
+        #     assert torch.all(torch.eq(torch.tensor(main_set.size()), torch.tensor(compare_set.size())))
+        #     main_sets.append(main_set)
+        #     compare_sets.append(compare_set)
+        #
+        # main_set = torch.concatenate(main_sets, dim=0)
+        # compare_set = torch.concatenate(compare_sets, dim=0)
+        # assert compare_set.size(0) + len(compare_sets) == encodes.size(0)
+        # diff = compare_set - main_set
+        encodes_xy = torch.concatenate([encodes, data.coord_x.reshape([-1, 1]), data.coord_y.reshape([-1,1])], dim=1)
+        unique = torch.unique(data.coord_x)
+        split_by_x = [encodes_xy[data.coord_x == i] for i in unique]
+        diff = []
+        for s in split_by_x:
+            sort_s = s[s[:, -1].sort()[1]]
+            diff.append(sort_s[1:, :-2] - sort_s[0, :-2])
+        diff = torch.concatenate(diff,  dim=0)
+        assert diff.size(0) + unique.size(0) == encodes.size(0)
+
+        result = self.ranker_act(self.ranker(diff)).squeeze(1)
+        with torch.no_grad():
+            polarity = torch.ones(diff.size(0))
+            if torch.sum(torch.abs(diff)) / diff.shape[0] < 1e-3:
+                print(f"Warning: Encodings are very close to each other: {diff}")
+
+            if torch.sum(torch.abs(result)) / diff.shape[0] < 1e-3:
+                print(f"Warning: Classification is close to 0: {result}")
+        return result, polarity
 
 
 class ELMPNNBatchedProbPredictor(BasePredictor):
@@ -254,7 +312,7 @@ class ELMPNNBatchedProbPredictor(BasePredictor):
 
         # indices = torch.combinations(torch.arange(encodes.shape[0]), 2)
         indices = torch.tensor([(i, j) for i, j in zip(torch.arange(encodes.shape[0]),
-                                  torch.arange(encodes.shape[0])[1:])]).reshape([-1, 2])
+                                                       torch.arange(encodes.shape[0])[1:])]).reshape([-1, 2])
 
         combined_encodes = encodes[indices].permute([1, 0, 2])
         diff = combined_encodes[0, :] - combined_encodes[1, :]
@@ -303,7 +361,8 @@ class ELMPNNBatchedProbPredictor(BasePredictor):
     def shift_heu(self, h, scale=1e3, shift=1e4):
         result = h + shift
         # print(f"result: {result}")
-        assert (2147483647 > result).all() and (result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
+        assert (2147483647 > result).all() and (
+                    result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
         result = np.round(result * scale).astype("int32")
         assert (2147483647 > result).all() and (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
         return result

@@ -22,14 +22,23 @@ print(f"Selected domains: {args.domains}")
 
 def task(domain, layers):
     cmd = f'python3 {exp_root}/train.py ' \
-          f'-m RGNNBATPROB ' \
+          f'-m RGNNBATCOORDRANK ' \
           f'-r {model} ' \
           f'-d goose-{domain} ' \
           f'-L {layers} ' \
           f'--log-root {log_root} ' \
-          f'--save-file rank-{domain}-L{layers} ' \
-          f'--method batched_ranker'
+          f'--save-file rank-{domain}-L{layers}-coord ' \
+          f'--method batched_coord_ranker'
           # f'--fast-train'
+
+    # cmd = f'python3 {exp_root}/train.py ' \
+    #       f'-m RGNNBATRANK ' \
+    #       f'-r {model} ' \
+    #       f'-d goose-{domain} ' \
+    #       f'-L {layers} ' \
+    #       f'--log-root {log_root} ' \
+    #       f'--save-file rank-{domain}-L{layers} ' \
+    #       f'--method batched_ranker'
 
     f = open(f"{log_sub_dir}/train_rank_{domain}_L{layers}.logs", "w")
     print(f"Experiment log: {f}")

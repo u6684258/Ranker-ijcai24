@@ -3,7 +3,7 @@ import os
 import time
 from pathlib import Path
 from typing import List
-
+import matplotlib.pyplot as plt
 import torch
 import argparse
 import torch_geometric
@@ -71,9 +71,9 @@ def create_parser():
     parser.add_argument('--no-tqdm', dest='tqdm', action='store_false')
     parser.add_argument('--fast-train', action='store_true',
                         help="ignore some additional computation of stats, does not change the training algorithm")
-    parser.add_argument('--test-files', type=str, default="test")
+    parser.add_argument('--test-files', type=str, default="test_small")
     parser.add_argument('--method',
-                        choices=["goose", "ranker", "batched_ranker", "rnd_ranker"],
+                        choices=["goose", "ranker", "batched_ranker", "rnd_ranker", "batched_coord_ranker"],
                         default="batched_ranker")
     return parser
 
@@ -107,7 +107,39 @@ def create_parser():
 #
 #
 # RANKER_GROUP = [Method.RANKER, Method.BAT_RANKER, Method.RND_RANKER]
-RANKER_GROUP = ["ranker", "batched_ranker", "rnd_ranker"]
+RANKER_GROUP = ["ranker", "batched_ranker", "rnd_ranker", "batched_coord_ranker"]
+
+
+def get_distribution_of_pred_acc(pred, true, index):
+    # diff = true - pred
+    acc = torch.round(pred / true)
+    accum = [0 for _ in range(int(max(index).item())+1)]
+    count = [0 for _ in range(int(max(index).item())+1)]
+    for i, ind in enumerate(index):
+        accum[ind] += acc[i]
+        count[ind] += 1
+
+    print(np.array(accum) / np.array(count))
+    print(np.array(count))
+
+
+    plt.bar(np.arange(len(accum)), np.array(accum) / np.array(count),
+            color='maroon',
+            width=0.4)
+
+    plt.xlabel("h*")
+    plt.ylabel("average accuracy")
+    plt.title("accuracy by h*")
+    plt.show()
+
+    plt.bar(np.arange(len(accum)), np.array(count),
+            color='maroon',
+            width=0.4)
+
+    plt.xlabel("h*")
+    plt.ylabel("count")
+    plt.title("count by h*")
+    plt.show()
 
 
 def main():
@@ -128,6 +160,10 @@ def main():
         args.out_feat = 64
         args.in_feat = train_loader.dataset[0].x.shape[1]
     elif args.method == "batched_ranker":
+        train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
+        args.out_feat = 64
+        args.in_feat = train_loader.dataset[0].x.shape[1]
+    elif args.method == "batched_coord_ranker":
         train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
         args.out_feat = 64
         args.in_feat = train_loader.dataset[0].x.shape[1]
@@ -220,7 +256,6 @@ def main():
                             f"train_acc {train_stats['acc']}, " \
                             f"val_acc {val_stats['acc']}, " \
                             f"time {time.time() - t:.1f}"
-
                 lr = optimiser.param_groups[0]['lr']
                 if args.tqdm:
                     tqdm.write(desc)
@@ -231,6 +266,9 @@ def main():
                 if lr < args.lr_limit:
                     print(f"Early stopping due to small lr: {lr}")
                     break
+
+                # get_distribution_of_pred_acc(train_stats["pred"], train_stats["true"], train_stats["index"])
+                # get_distribution_of_pred_acc(val_stats["pred"], val_stats["true"], val_stats["index"])
         except KeyboardInterrupt:
             print("Early stopping due to keyboard interrupt!")
         # if best_dict is not None:

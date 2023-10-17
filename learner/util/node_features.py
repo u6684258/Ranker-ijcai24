@@ -98,8 +98,10 @@ def add_lpe(dataset: List[Data], args, **kwargs) -> List[Data]:
 def add_p_idx(dataset: List[Data], args, **kwargs) -> List[Data]:
     ret = []
     for data in dataset:
-        ret.append(Data(x=data.x, y=data.y, edge_index=data.edge_index, domain=data.domain, problem=data.problem,
-                        p_idx=kwargs["idx"]))
+        # ret.append(Data(x=data.x, y=data.y, edge_index=data.edge_index, domain=data.domain, problem=data.problem,
+        #                 p_idx=kwargs["idx"]))
+        setattr(data, "p_idx", kwargs["idx"])
+        ret.append(data)
 
     return ret
 
@@ -108,7 +110,7 @@ def add_features(features, dataset: List[Data], args, **kwargs):
 
     ret = dataset
     for feature in features:
-        print(f"Adding {feature} features.")
+        # print(f"Adding {feature} features.")
         t = time.time()
         ret = NODE_FEAT[feature](ret, args, **kwargs)
         # print(f"Time to add {feature} features: {time.time() - t:.2f}")

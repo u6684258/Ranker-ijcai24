@@ -56,7 +56,7 @@ def preprocess_data(
   c_lo: int=-1,
 ) -> List[Data]:
   new_data_list = []
-  print("Preprocessing data...")
+  # print("Preprocessing data...")
 
   for data in data_list:
     n = data.x.shape[0]

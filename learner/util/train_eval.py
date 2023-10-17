@@ -64,6 +64,7 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
     if not fast_train:
         y_true = torch.tensor([])
         y_pred = torch.tensor([])
+        y_index = torch.tensor([])
 
     # for data in tqdm(train_loader):
     for data in train_loader:
@@ -91,17 +92,21 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
         if not fast_train:
             y_pred = torch.cat((y_pred, out.detach().cpu()))
             y_true = torch.cat((y_true, y.detach().cpu()))
+            y_index = torch.cat((y_index, torch.flip(torch.arange(y.shape[0]), dims=(0,))))
 
     # changed to net loss
     stats = {
         "loss": train_loss / len(train_loader),
     }
     if not fast_train:
-        macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
-        stats["f1"] = macro_f1
+        _, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
+        stats["f1"] = micro_f1
         # stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
         # stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
         stats["acc"] = eval_accuracy(y_pred=y_pred, y_true=y_true)
+        stats["pred"] = y_pred
+        stats["true"] = y_true
+        stats["index"] = y_index.int()
     return stats
 
 
@@ -165,6 +170,7 @@ def evaluate_ranker(model, device, val_loader, criterion, fast_train, return_tru
     if not fast_train:
         y_true = torch.tensor([])
         y_pred = torch.tensor([])
+        y_index = torch.tensor([])
 
     for data in val_loader:
         data = data.to(device)
@@ -185,16 +191,21 @@ def evaluate_ranker(model, device, val_loader, criterion, fast_train, return_tru
         if not fast_train:
             y_pred = torch.cat((y_pred, out.detach().cpu()))
             y_true = torch.cat((y_true, y.detach().cpu()))
+            y_index = torch.cat((y_index, torch.flip(torch.arange(y.shape[0]), dims=(0,))))
+
     # changed to net loss
     stats = {
         "loss": val_loss / len(val_loader),
     }
     if not fast_train:
         macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
-        stats["f1"] = macro_f1
+        stats["f1"] = micro_f1
         # stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
         # stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
         stats["acc"] = eval_accuracy(y_pred=y_pred, y_true=y_true)
+        stats["pred"] = y_pred
+        stats["true"] = y_true
+        stats["index"] = y_index.int()
     if return_true_preds:
         assert not fast_train
         stats["y_true"] = y_true

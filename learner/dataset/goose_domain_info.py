@@ -52,3 +52,15 @@ def get_test_goose_instance_files():
         ret += get_domain_instance_pddl_for_domain(domain, "test")
     # print(f"num goose test instances: {len(ret)}")
     return ret
+
+
+def get_train_solution_goose_instance_files():
+    ret = []
+    for domain in sorted(GOOSE_DOMAINS):
+        dir_of_pddls = f"../benchmarks/goose/{domain}"
+        df = f"{dir_of_pddls}/domain.pddl"
+        for file in sorted(os.listdir(f'{dir_of_pddls}/train')):
+            pf = f"{dir_of_pddls}/train/{file}"
+            sf = f"{dir_of_pddls}/train_solution/{file}".replace(".pddl", "_1800.out")
+            ret.append((f'goose-{domain}', df, pf, sf))
+    return ret

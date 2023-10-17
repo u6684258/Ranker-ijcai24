@@ -130,7 +130,6 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600, log_root
         log_dir = os.path.join(val_log_dir, domain)
     result_file = f"{log_dir}/{domain}.json"
     Path(log_dir).mkdir(parents=True, exist_ok=True)
-    Path(val_result_dir).mkdir(parents=True, exist_ok=True)
     df = f"{base_dir}/{domain}/domain.pddl"
     pd = f"{base_dir}/{domain}/{test_file}"
     # test_progress = tqdm(os.listdir(pd), desc=f"Testing on {test_file}")
@@ -164,5 +163,36 @@ def domain_test(domain, test_file, model_file, mode="val", timeout=600, log_root
     return matrices[0]
 
 
+def single_test(domain, test_folder, test_file, model_file, mode="val", timeout=600, log_root=exp_root):
+    val_log_dir = f"{log_root}/val/{model_file}-{datetime.now().isoformat()}"
+    val_result_dir = f"{log_root}/result/{model_file}-{datetime.now().isoformat()}"
+    if mode == "test":
+        log_dir = os.path.join(val_result_dir, domain)
+    else:
+        log_dir = os.path.join(val_log_dir, domain)
+    result_file = f"{log_dir}/{domain}.json"
+    Path(log_dir).mkdir(parents=True, exist_ok=True)
+    df = f"{base_dir}/{domain}/domain.pddl"
+    pd = f"{base_dir}/{domain}/{test_folder}"
+    # test_progress = tqdm(os.listdir(pd), desc=f"Testing on {test_file}")
+
+    pf = f"{pd}/{test_file}"
+    cmd, intermediate_file = search_cmd(
+        df=df,
+        pf=pf,
+        m=f"{model_root}/{model_file}",
+        model_type="gnn",
+        planner="fd",
+        search="gbbfs",
+        seed=0,
+        profile=False,
+    )
+    val_log_file = f"{log_dir}/{test_file.replace('.pddl', '')}_{model_file}_out.log"
+
+    matrix = work(cmd, intermediate_file, val_log_file, timeout)
+
+    return matrix, val_log_file
+
 if __name__ == "__main__":
-    domain_test('blocks', 'train', 'rank-blocks-L6.dt')
+    # domain_test('blocks', 'train', 'rank-blocks-L4-coord.dt')
+    single_test("ferry", "train", "p-l2-c10-s1.pddl", 'rank-ferry-L4-coord.dt')

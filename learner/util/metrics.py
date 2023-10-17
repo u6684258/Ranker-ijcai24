@@ -28,6 +28,17 @@ def eval_accuracy(y_pred: Tensor, y_true: Tensor):
 
 
 @torch.no_grad()
+def eval_accuracy(y_pred: Tensor, y_true: Tensor):
+    try:
+        y_pred = torch.round(y_pred).long()
+    except:
+        pass
+    y_true = y_true.long()
+    acc = accuracy_score(y_true, y_pred) * 100
+    return round(acc, 2)
+
+
+@torch.no_grad()
 def eval_f1_score(y_pred: Tensor, y_true: Tensor) -> Tuple[int, int]:
     try:
         y_pred = torch.round(y_pred).long()
