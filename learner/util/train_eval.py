@@ -5,6 +5,7 @@ from torch_geometric.data import Data
 from tqdm import tqdm
 
 from util import eval_f1_score, eval_admissibility, eval_interval, eval_accuracy
+from util.metrics import eval_accuracy_rank, eval_f1_score_rank
 
 """ Train and evaluation methods in training pipeline. """
 
@@ -99,11 +100,11 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
         "loss": train_loss / len(train_loader),
     }
     if not fast_train:
-        _, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
+        _, micro_f1 = eval_f1_score_rank(y_pred=y_pred, y_true=y_true)
         stats["f1"] = micro_f1
         # stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
         # stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
-        stats["acc"] = eval_accuracy(y_pred=y_pred, y_true=y_true)
+        stats["acc"] = eval_accuracy_rank(y_pred=y_pred, y_true=y_true)
         stats["pred"] = y_pred
         stats["true"] = y_true
         stats["index"] = y_index.int()
@@ -198,11 +199,11 @@ def evaluate_ranker(model, device, val_loader, criterion, fast_train, return_tru
         "loss": val_loss / len(val_loader),
     }
     if not fast_train:
-        macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
+        macro_f1, micro_f1 = eval_f1_score_rank(y_pred=y_pred, y_true=y_true)
         stats["f1"] = micro_f1
         # stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
         # stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
-        stats["acc"] = eval_accuracy(y_pred=y_pred, y_true=y_true)
+        stats["acc"] = eval_accuracy_rank(y_pred=y_pred, y_true=y_true)
         stats["pred"] = y_pred
         stats["true"] = y_true
         stats["index"] = y_index.int()

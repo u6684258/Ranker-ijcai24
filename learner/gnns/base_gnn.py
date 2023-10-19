@@ -22,8 +22,7 @@ from torch_geometric.nn.inits import glorot, zeros
 def construct_mlp(in_features: int, out_features: int, n_hid: int) -> torch.nn.Module:
   return Sequential(
     Linear(in_features, n_hid),
-    ReLU(),
-    Linear(n_hid, out_features),
+    ReLU()
   )
   
 
@@ -103,7 +102,8 @@ class BaseGNN(ABC, nn.Module):
         if self.vn:
           self.vn_layers.append(self.create_vn_layer())
     self.mlp = construct_mlp(in_features=self.nhid, n_hid=self.nhid, out_features=self.out_feat)
-    return 
+    self.last_layer = Linear(self.nhid, self.out_feat)
+    return
 
   def node_embedding(self, x: Tensor, edge_index: Tensor, batch: Optional[Tensor]) -> Tensor:
     x = self.emb(x)
@@ -127,6 +127,7 @@ class BaseGNN(ABC, nn.Module):
   def forward(self, x: Tensor, edge_index: Tensor, batch: Optional[Tensor]) -> Tensor:
     x = self.graph_embedding(x, edge_index, batch)
     x = self.mlp(x)
+    x = self.last_layer(x)
     x = x.squeeze(1)
     return x
 

@@ -49,7 +49,7 @@ def create_parser():
     # optimisation params
     parser.add_argument('--loss', type=str, choices=["mse", "wmse", "pemse"], default="mse")
     parser.add_argument('--lr', type=float, default=0.001)
-    parser.add_argument('--lr-limit', type=float, default=1e-6)
+    parser.add_argument('--lr-limit', type=float, default=1e-5)
     parser.add_argument('--patience', type=int, default=15)
     parser.add_argument('--reduction', type=float, default=0.1)
     parser.add_argument('--batch-size', type=int, default=16)
@@ -73,7 +73,7 @@ def create_parser():
                         help="ignore some additional computation of stats, does not change the training algorithm")
     parser.add_argument('--test-files', type=str, default="test_small")
     parser.add_argument('--method',
-                        choices=["goose", "ranker", "batched_ranker", "rnd_ranker", "batched_coord_ranker"],
+                        choices=["goose", "ranker", "batched_ranker", "rnd_ranker", "batched_coord_ranker", "pretrained"],
                         default="batched_ranker")
     return parser
 
@@ -107,7 +107,7 @@ def create_parser():
 #
 #
 # RANKER_GROUP = [Method.RANKER, Method.BAT_RANKER, Method.RND_RANKER]
-RANKER_GROUP = ["ranker", "batched_ranker", "rnd_ranker", "batched_coord_ranker"]
+RANKER_GROUP = ["ranker", "batched_ranker", "rnd_ranker", "batched_coord_ranker", "pretrained"]
 
 
 def get_distribution_of_pred_acc(pred, true, index):
@@ -163,7 +163,7 @@ def main():
         train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
         args.out_feat = 64
         args.in_feat = train_loader.dataset[0].x.shape[1]
-    elif args.method == "batched_coord_ranker":
+    elif args.method == "batched_coord_ranker" or args.method == "pretrained":
         train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
         args.out_feat = 64
         args.in_feat = train_loader.dataset[0].x.shape[1]
@@ -186,6 +186,10 @@ def main():
     model_list = []
     for fold in range(3):
         model = GNNS[args.model](params=model_params).to(device)
+        if args.method == "pretrained":
+            pretrained_model, _ = load_gnn_model(args.domain)
+            pretrained_model.model.mlp = model.model.mlp
+            model.model = pretrained_model.model
         lr = args.lr
         reduction = args.reduction
         patience = args.patience
@@ -214,10 +218,10 @@ def main():
                 pbar = range(epochs)
             best_epoch = 0
             for e in pbar:
+                t = time.time()
                 if args.method == "rnd_ranker":
                     train_loader, val_loader = generator.gen_new_dataloaders()
-                t = time.time()
-                if args.method in RANKER_GROUP:
+                elif args.method in RANKER_GROUP:
                     train_stats = train_ranker(model, device, train_loader, criterion, optimiser, fast_train=fast_train)
                 else:
                     train_stats = train(model, device, train_loader, criterion, optimiser, fast_train=fast_train)
@@ -276,7 +280,7 @@ def main():
         # save model parameters
         if best_dict is not None:
             if best_val is not None:
-                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root)
+                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root, timeout=300)
                 succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
                     results)
                 if succ_rate > best_val:

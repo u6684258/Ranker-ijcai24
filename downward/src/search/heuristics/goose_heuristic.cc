@@ -231,7 +231,7 @@ std::vector<int> GooseHeuristic::compute_heuristic_batch(const std::vector<State
       ret[i] = 0;
     else {
         ret[i] = std::max(1, ret[i]);
-        std::cout << "goose state: " << py_states[i].cast<py::list>() << "h: " << ret[i] << std::endl;
+//        std::cout << "goose state: " << py_states[i].cast<py::list>() << "h: " << ret[i] << std::endl;
     }
   }
   return ret;

@@ -19,7 +19,7 @@ from dataset.goose_domain_info import get_train_goose_instance_files
 from dataset.ipc2023_learning_domain_info import get_train_ipc2023_learning_instance_files
 
 
-_SAVE_DIR = "data/graphs_gnn"
+_SAVE_DIR = "../data/graphs_gnn"
 
 def generate_graph_from_domain_problem_pddl(
   domain_name: str,

@@ -194,5 +194,6 @@ def single_test(domain, test_folder, test_file, model_file, mode="val", timeout=
     return matrix, val_log_file
 
 if __name__ == "__main__":
-    # domain_test('blocks', 'train', 'rank-blocks-L4-coord.dt')
-    single_test("ferry", "train", "p-l2-c10-s1.pddl", 'rank-ferry-L4-coord.dt')
+    domain_test('blocks', 'test'
+                          '', 'rank-blocks-L4-coord.dt')
+    # single_test("ferry", "train", "p-l2-c10-s1.pddl", 'rank-ferry-L4-coord.dt')

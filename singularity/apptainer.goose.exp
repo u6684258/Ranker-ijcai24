@@ -5,8 +5,8 @@ Stage: build
 
 %files
     ../learner
-    ../benchmarks
     ../downward
+    ../pyperplan
 
 
 %post
@@ -50,7 +50,12 @@ Stage: build
     pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
 
     cd /downward
+    rm -rf /builds/release/
     ./build.py release
+    cd ..
+
+    cd /pyperplan
+    pip install --editable .
     cd ..
 
 # Stage 2: Run the planner

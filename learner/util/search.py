@@ -1,7 +1,6 @@
 import os
 import re
 from representation import REPRESENTATIONS
-from util.save_load import load_kernel_model_and_setup
 
 """ Module containing useful methods and configurations for 24-AAAI search experiments. """
 
@@ -84,43 +83,12 @@ def fd_cmd(df, pf, model_type, m, search, seed, profile, timeout=TIMEOUT, aux_fi
         os.makedirs("plans", exist_ok=True)
         plan_file = f"plans/{description}.plan"
 
-    if model_type == "kernel-opt":
-        model = load_kernel_model_and_setup(m, df, pf)
-        model.write_model_data()
-        model.write_representation_to_file()
-        model_data = model.get_model_data_path()
-        graph_data = model.get_graph_file_path()
-
-        cmd = f"./../downward/fast-downward.py --search-time-limit {timeout} --sas-file {aux_file} --plan-file {plan_file} " + \
-              f"{df} {pf} --search '{search}([kernel(model_data=\"{model_data}\"," + \
-              f"graph_data=\"{graph_data}\"" + \
-              f")])'"
-        if profile:
-            import shutil
-            shutil.copyfile(model_data, model_data + "-copy")
-            shutil.copyfile(graph_data, graph_data + "-copy")
-            print("Running the original command to get individual commands for profiling...")
-            output = os.popen(f"export GOOSE={os.getcwd()} && {cmd}").readlines()
-            translator_cmd = ""
-            search_cmd = ""
-            for line in output:
-                if "INFO     translator command line string:" in line:
-                    translator_cmd = line.replace("INFO     translator command line string:", "").replace('\n', '')
-                    continue
-                if "INFO     search command line string:" in line:
-                    search_cmd = line.replace("INFO     search command line string:", "")
-                    continue
-            shutil.move(model_data + "-copy", model_data)
-            shutil.move(graph_data + "-copy", graph_data)
-            cmd = f"{translator_cmd} && {PROFILE_CMD_} {search_cmd}"
-            print("Original command completed.")
-    else:
-        cmd = f"./../downward/fast-downward.py --search-time-limit {timeout} --sas-file {aux_file} --plan-file {plan_file} " + \
-              f"{df} {pf} --search {search}([goose(model_path=\"{m}\"," + \
-              f"model_type=\"{model_type}\"," + \
-              f"domain_file=\"{df}\"," + \
-              f"instance_file=\"{pf}\"" + \
-              f")])"
+    cmd = f"./../downward/fast-downward.py --search-time-limit {timeout} --sas-file {aux_file} --plan-file {plan_file} " + \
+          f"{df} {pf} --search {search}([goose(model_path=\"{m}\"," + \
+          f"model_type=\"{model_type}\"," + \
+          f"domain_file=\"{df}\"," + \
+          f"instance_file=\"{pf}\"" + \
+          f")])"
     # print(cmd)
     return cmd, aux_file
 

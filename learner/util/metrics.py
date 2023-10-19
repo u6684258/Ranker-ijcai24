@@ -28,9 +28,9 @@ def eval_accuracy(y_pred: Tensor, y_true: Tensor):
 
 
 @torch.no_grad()
-def eval_accuracy(y_pred: Tensor, y_true: Tensor):
+def eval_accuracy_rank(y_pred: Tensor, y_true: Tensor):
     try:
-        y_pred = torch.round(y_pred).long()
+        y_pred = (y_pred > 0.5).long()
     except:
         pass
     y_true = y_true.long()
@@ -42,6 +42,18 @@ def eval_accuracy(y_pred: Tensor, y_true: Tensor):
 def eval_f1_score(y_pred: Tensor, y_true: Tensor) -> Tuple[int, int]:
     try:
         y_pred = torch.round(y_pred).long()
+    except:
+        pass
+    y_true = y_true.long()
+    f1_macro = f1_score(y_true, y_pred, average='macro') * 100
+    f1_micro = f1_score(y_true, y_pred, average='micro') * 100
+    return round(f1_macro, 2), round(f1_micro, 2)
+
+
+@torch.no_grad()
+def eval_f1_score_rank(y_pred: Tensor, y_true: Tensor) -> Tuple[int, int]:
+    try:
+        y_pred = (y_pred > 0.5).long()
     except:
         pass
     y_true = y_true.long()

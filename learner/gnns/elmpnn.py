@@ -26,6 +26,7 @@ class ELMPNNLayer(Module):
 class ELMPNN(BaseGNN):
     def __init__(self, params) -> None:
         super().__init__(params)
+        self.is_ranker = False
         if self.vn:
             raise NotImplementedError("vn not implemented for ELGNN")
         if self.share_layers:
@@ -40,7 +41,10 @@ class ELMPNN(BaseGNN):
         x = self.emb(x)
         for layer in self.layers:
             x = layer(x, list_of_edge_index)
-            x = F.leaky_relu(x)
+            if self.is_ranker:
+                x = F.leaky_relu(x)
+            else:
+                x = F.relu(x)
         return x
 
     def graph_embedding(self, x: Tensor, list_of_edge_index: List[Tensor], batch: Optional[Tensor]) -> Tensor:
@@ -53,6 +57,7 @@ class ELMPNN(BaseGNN):
         """ overwrite typing (same semantics, different typing) for jit """
         x = self.graph_embedding(x, list_of_edge_index, batch)
         x = self.mlp(x)
+        x = self.last_layer(x)
         if x.size()[1] == 1:
             x = x.squeeze(1)
         return x
@@ -86,7 +91,7 @@ class ELMPNNRankerPredictor(BasePredictor):
 
     def create_model(self, params):
         self.model = ELMPNN(params)
-        self.model.mlp = nn.Identity()
+        self.model.last_layer = nn.Identity()
         self.ranker = torch.nn.Linear(params["out_feat"], 1, bias=False)
         self.ranker_act = torch.tanh
 
@@ -160,19 +165,18 @@ class ELMPNNRankerPredictor(BasePredictor):
 class ELMPNNBatchedRankerPredictor(BasePredictor):
     def __init__(self, params, jit=False) -> None:
         super().__init__(params, jit)
-        self.ranker = torch.nn.Linear(params["out_feat"], 1, bias=False)
-        self.ranker_act = torch.nn.Tanh()
         return
 
     def create_model(self, params):
         self.model = ELMPNN(params)
-        #       self.model.mlp = Sequential(
-        #   Linear(self.model.nhid, self.model.nhid),
-        #   LeakyReLU(),
-        #   Linear(self.model.nhid, self.model.out_feat),
-        # )
-        self.model.mlp = nn.Identity()
-
+        self.model.mlp = Sequential(
+            Linear(self.model.nhid, self.model.nhid),
+            torch.nn.LeakyReLU(),
+        )
+        self.model.last_layer = Linear(self.model.nhid, self.model.out_feat)
+        self.model.ranker = torch.nn.Linear(params["out_feat"], 1, bias=False)
+        self.model.ranker_act = torch.nn.Sigmoid()
+        self.model.is_ranker = True
     def forward(self, data):
 
         with torch.no_grad():
@@ -187,7 +191,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         combined_encodes = encodes[indices].permute([1, 0, 2])
         diff = combined_encodes[0, :] - combined_encodes[1, :]
         # print(polarity)
-        result = self.ranker_act(self.ranker(diff)).squeeze(1)
+        result = self.model.ranker_act(self.model.ranker(diff)).squeeze(1)
         with torch.no_grad():
             ys = data.y[indices].permute(1, 0)
             polarity_mask = ((ys[0, :] - ys[1, :]) > 0).long()
@@ -206,7 +210,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         for i in range(len(edge_index)):
             edge_index[i] = edge_index[i].to(self.device)
         h = self.model.forward(x, edge_index, None)
-        h = self.ranker(h).detach().cpu().numpy().reshape([-1, ])
+        h = self.model.ranker(h).detach().cpu().numpy().reshape([-1, ])
         # print(f"h: {h}")
         h = self.shift_heu(h)
         return h
@@ -220,17 +224,17 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         hs_all = []
         for data in loader:
             data = data.to(self.device)
-            hs = self.model.forward(data.x, data.edge_index, data.batch)
-            hs = self.ranker(hs)
-            hs = hs.detach().cpu().numpy()  # annoying error with jit
-            hs_all.append(hs)
+            hs1 = self.model.forward(data.x, data.edge_index, data.batch)
+            hs2 = self.model.ranker(hs1)
+            hs = hs2.detach().cpu().numpy()  # annoying error with jit
+            hs_all.append((hs))
         hs_all = np.concatenate(hs_all).astype(float).reshape([-1, ])
         # print(f"here: {hs}")
         hs = self.shift_heu(hs_all).tolist()
         # print(hs)
         return hs
 
-    def shift_heu(self, h, scale=1e3, shift=1e4):
+    def shift_heu(self, h, scale=1e2, shift=1e4):
         result = h + shift
         # print(f"result: {result}")
         assert (2147483647 > result).all() and (
@@ -281,7 +285,7 @@ class ELMPNNBatchedCoordRankerPredictor(ELMPNNBatchedRankerPredictor):
         diff = torch.concatenate(diff,  dim=0)
         assert diff.size(0) + unique.size(0) == encodes.size(0)
 
-        result = self.ranker_act(self.ranker(diff)).squeeze(1)
+        result = self.model.ranker_act(self.model.ranker(diff)).squeeze(1)
         with torch.no_grad():
             polarity = torch.ones(diff.size(0))
             if torch.sum(torch.abs(diff)) / diff.shape[0] < 1e-3:

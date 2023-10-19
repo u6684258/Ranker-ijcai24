@@ -299,11 +299,11 @@ def get_by_train_val_dataloaders_from_args(args):
     num_workers = 0
     pin_memory = True
 
-    if args.method == "batched_coord_ranker":
-
-        dataset: List[List[Data]] = get_graph_data_ranker(domain=domain, representation=rep)
-    else:
+    if args.method == "goose":
         dataset: List[List[Data]] = get_graph_data_by_prob(domain=domain, representation=rep)
+    else:
+        dataset: List[List[Data]] = get_graph_data_ranker(domain=domain, representation=rep)
+
     new_dataset = []
     index_list = []
     trainset = []
