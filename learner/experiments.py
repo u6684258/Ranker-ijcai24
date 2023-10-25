@@ -30,6 +30,8 @@ def task(domain, layers):
           f'--save-file rank-{domain}-L{layers}-coord ' \
           f'--method batched_coord_ranker ' \
           f'--fast-train'
+          # f'--test-only'
+
 
     # cmd = f'python3 {exp_root}/train.py ' \
     #       f'-m RGNNBATRANK ' \
@@ -45,7 +47,7 @@ def task(domain, layers):
     subprocess.call(cmd.split(" "), stdout=f)
 
     cmd = f'python3 {exp_root}/train.py -m RGNN -r {model} -d goose-{domain} ' \
-          f'--save-file goose-{domain} -L {layers} --log-root {log_root} ' \
+          f'--save-file goose-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
           f'--fast-train --method goose'
 
     f = open(f"{log_sub_dir}/train_goose_{domain}_L{layers}.logs", "w")

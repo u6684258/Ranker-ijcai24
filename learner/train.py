@@ -1,27 +1,21 @@
-import gc
-import os
+
 import time
-from pathlib import Path
+
 from typing import List
-import matplotlib.pyplot as plt
-import torch
+
 import argparse
-import torch_geometric
-import random
-import numpy as np
+
 import test
 import representation
 
-from models import *
+
 from tqdm.auto import tqdm, trange
-from gnns.loss import LOSS
-from gnns import GNNS
+
 from util.metrics import SearchMetrics, SearchState
 from util.stats import *
 from util.save_load import *
 from util import train, evaluate
-from dataset.dataset import get_loaders_from_args_gnn, \
-    get_by_problem_dataloaders_from_args, get_new_dataloader_each_epoch, get_paired_dataloaders_from_args, \
+from dataset.dataset import get_loaders_from_args_gnn, get_new_dataloader_each_epoch, get_paired_dataloaders_from_args, \
     get_by_train_val_dataloaders_from_args
 from util.train_eval import train_ranker, evaluate_ranker
 
@@ -71,7 +65,9 @@ def create_parser():
     parser.add_argument('--no-tqdm', dest='tqdm', action='store_false')
     parser.add_argument('--fast-train', action='store_true',
                         help="ignore some additional computation of stats, does not change the training algorithm")
-    parser.add_argument('--test-files', type=str, default="test_small")
+    parser.add_argument('--test-only', action='store_true',
+                        help="skip training")
+    parser.add_argument('--test-files', type=str, default="test")
     parser.add_argument('--method',
                         choices=["goose", "ranker", "batched_ranker", "rnd_ranker", "batched_coord_ranker", "pretrained"],
                         default="batched_ranker")
@@ -153,164 +149,165 @@ def main():
     # cuda
     device = torch.device(f'cuda:{args.device}' if torch.cuda.is_available() else 'cpu')
 
-    # init model
-    if args.method == "ranker":
-        train_loader, val_loader = get_paired_dataloaders_from_args(args)
-        print("Don't use this parameter!")
-        args.out_feat = 64
-        args.in_feat = train_loader.dataset[0].x.shape[1]
-    elif args.method == "batched_ranker":
-        train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
-        args.out_feat = 64
-        args.in_feat = train_loader.dataset[0].x.shape[1]
-    elif args.method == "batched_coord_ranker" or args.method == "pretrained":
-        train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
-        args.out_feat = 64
-        args.in_feat = train_loader.dataset[0].x.shape[1]
-    elif args.method == "goose":
-        train_loader, val_loader = get_loaders_from_args_gnn(args)
-        args.out_feat = 1
-        args.in_feat = train_loader.dataset[0].x.shape[1]
-    elif args.method == "rnd_ranker":
-        generator = get_new_dataloader_each_epoch(args)
-        args.out_feat = 64
-        args.in_feat = generator.dataset[0].x.shape[1]
-    else:
-        raise Exception("Invalid training method!")
-    args.n_edge_labels = representation.REPRESENTATIONS[args.rep].n_edge_labels
-    model_params = arg_to_params(args)
+    if not args.test_only:
+        # init model
+        if args.method == "ranker":
+            train_loader, val_loader = get_paired_dataloaders_from_args(args)
+            print("Don't use this parameter!")
+            args.out_feat = 64
+            args.in_feat = train_loader.dataset[0].x.shape[1]
+        elif args.method == "batched_ranker":
+            train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
+            args.out_feat = 64
+            args.in_feat = train_loader.dataset[0].x.shape[1]
+        elif args.method == "batched_coord_ranker" or args.method == "pretrained":
+            train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
+            args.out_feat = 64
+            args.in_feat = train_loader.dataset[0].x.shape[1]
+        elif args.method == "goose":
+            train_loader, val_loader = get_loaders_from_args_gnn(args)
+            args.out_feat = 1
+            args.in_feat = train_loader.dataset[0].x.shape[1]
+        elif args.method == "rnd_ranker":
+            generator = get_new_dataloader_each_epoch(args)
+            args.out_feat = 64
+            args.in_feat = generator.dataset[0].x.shape[1]
+        else:
+            raise Exception("Invalid training method!")
+        args.n_edge_labels = representation.REPRESENTATIONS[args.rep].n_edge_labels
+        model_params = arg_to_params(args)
 
-    # train val pipeline
-    print("Training...")
-    best_val = None
-    model_list = []
-    for fold in range(3):
-        model = GNNS[args.model](params=model_params).to(device)
-        if args.method == "pretrained":
-            pretrained_model, _ = load_gnn_model(args.domain)
-            pretrained_model.model.mlp = model.model.mlp
-            model.model = pretrained_model.model
-        lr = args.lr
-        reduction = args.reduction
-        patience = args.patience
-        epochs = args.epochs
-        loss_fn = args.loss
-        fast_train = args.fast_train
+        # train val pipeline
+        print("Training...")
+        best_val = None
+        model_list = []
+        for fold in range(3):
+            model = GNNS[args.model](params=model_params).to(device)
+            if args.method == "pretrained":
+                pretrained_model, _ = load_gnn_model(args.domain)
+                pretrained_model.model.mlp = model.model.mlp
+                model.model = pretrained_model.model
+            lr = args.lr
+            reduction = args.reduction
+            patience = args.patience
+            epochs = args.epochs
+            loss_fn = args.loss
+            fast_train = args.fast_train
 
-        # init optimiser
-        criterion = LOSS[loss_fn]()
-        optimiser = torch.optim.Adam(model.parameters(), lr=lr)
-        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser,
-                                                               mode='min',
-                                                               verbose=True,
-                                                               factor=reduction,
-                                                               patience=patience)
+            # init optimiser
+            criterion = LOSS[loss_fn]()
+            optimiser = torch.optim.Adam(model.parameters(), lr=lr)
+            scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimiser,
+                                                                   mode='min',
+                                                                   verbose=True,
+                                                                   factor=reduction,
+                                                                   patience=patience)
 
-        print(f"model size (#params): {model.get_num_parameters()}")
+            print(f"model size (#params): {model.get_num_parameters()}")
 
-        best_dict = None
-        best_saved_model = None
-        best_metric = float('inf')
-        try:
-            if args.tqdm:
-                pbar = trange(epochs)
-            else:
-                pbar = range(epochs)
-            best_epoch = 0
-            for e in pbar:
-                t = time.time()
-                if args.method == "rnd_ranker":
-                    train_loader, val_loader = generator.gen_new_dataloaders()
-                elif args.method in RANKER_GROUP:
-                    train_stats = train_ranker(model, device, train_loader, criterion, optimiser, fast_train=fast_train)
-                else:
-                    train_stats = train(model, device, train_loader, criterion, optimiser, fast_train=fast_train)
-                train_loss = train_stats['loss']
-                if args.method in RANKER_GROUP:
-                    val_stats = evaluate_ranker(model, device, val_loader, criterion, fast_train=fast_train)
-                else:
-                    val_stats = evaluate(model, device, val_loader, criterion, fast_train=fast_train)
-                val_loss = val_stats['loss']
-                scheduler.step(val_loss)
-
-                # take model weights corresponding to best combined metric # we just take val_loss
-                combined_metric = val_loss
-                if combined_metric < best_metric:
-                    best_metric = combined_metric
-                    best_dict = model.model.state_dict()
-                    best_epoch = e
-
-                if fast_train:  # does not compute metrics like f1 score
-                    desc = f"epoch {e}, " \
-                           f"train_loss {train_loss:.2f}, " \
-                           f"val_loss {val_loss:.2f}, " \
-                           f"time {time.time() - t:.1f}"
-                else:  # computes all metrics
-                    # f"train_f1 {train_stats['f1']:.1f}, " \
-                    # f"val_f1 {val_stats['f1']:.1f}, " \
-                    # f"train_int {train_stats['interval']}, " \
-                    # f"val_int {val_stats['interval']}, " \
-                    # f"train_adm {train_stats['admis']:.1f}, " \
-                    # f"val_adm {val_stats['admis']:.1f}, " \
-                    desc = f"epoch {e}, " \
-                           f"train_loss {train_loss:.2f}, " \
-                           f"val_loss {val_loss:.2f}, " \
-                            f"train_f1 {train_stats['f1']:.1f}, " \
-                            f"val_f1 {val_stats['f1']:.1f}, " \
-                            f"train_acc {train_stats['acc']}, " \
-                            f"val_acc {val_stats['acc']}, " \
-                            f"time {time.time() - t:.1f}"
-                lr = optimiser.param_groups[0]['lr']
+            best_dict = None
+            best_saved_model = None
+            best_metric = float('inf')
+            try:
                 if args.tqdm:
-                    tqdm.write(desc)
-                    pbar.set_description(desc)
+                    pbar = trange(epochs)
                 else:
-                    print(desc)
+                    pbar = range(epochs)
+                best_epoch = 0
+                for e in pbar:
+                    t = time.time()
+                    if args.method == "rnd_ranker":
+                        train_loader, val_loader = generator.gen_new_dataloaders()
+                    elif args.method in RANKER_GROUP:
+                        train_stats = train_ranker(model, device, train_loader, criterion, optimiser, fast_train=fast_train)
+                    else:
+                        train_stats = train(model, device, train_loader, criterion, optimiser, fast_train=fast_train)
+                    train_loss = train_stats['loss']
+                    if args.method in RANKER_GROUP:
+                        val_stats = evaluate_ranker(model, device, val_loader, criterion, fast_train=fast_train)
+                    else:
+                        val_stats = evaluate(model, device, val_loader, criterion, fast_train=fast_train)
+                    val_loss = val_stats['loss']
+                    scheduler.step(val_loss)
 
-                if lr < args.lr_limit:
-                    print(f"Early stopping due to small lr: {lr}")
-                    break
+                    # take model weights corresponding to best combined metric # we just take val_loss
+                    combined_metric = val_loss
+                    if combined_metric < best_metric:
+                        best_metric = combined_metric
+                        best_dict = model.model.state_dict()
+                        best_epoch = e
 
-                # get_distribution_of_pred_acc(train_stats["pred"], train_stats["true"], train_stats["index"])
-                # get_distribution_of_pred_acc(val_stats["pred"], val_stats["true"], val_stats["index"])
-        except KeyboardInterrupt:
-            print("Early stopping due to keyboard interrupt!")
-        # if best_dict is not None:
-        #     model_list.append((best_metric, best_dict))
-        # save model parameters
-        if best_dict is not None:
-            if best_val is not None:
-                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root, timeout=300)
-                succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
-                    results)
-                if succ_rate > best_val:
-                    best_val = succ_rate
-                    print(f"best_avg_loss {best_metric:.8f} at fold {fold} epoch {best_epoch}")
+                    if fast_train:  # does not compute metrics like f1 score
+                        desc = f"epoch {e}, " \
+                               f"train_loss {train_loss:.2f}, " \
+                               f"val_loss {val_loss:.2f}, " \
+                               f"time {time.time() - t:.1f}"
+                    else:  # computes all metrics
+                        # f"train_f1 {train_stats['f1']:.1f}, " \
+                        # f"val_f1 {val_stats['f1']:.1f}, " \
+                        # f"train_int {train_stats['interval']}, " \
+                        # f"val_int {val_stats['interval']}, " \
+                        # f"train_adm {train_stats['admis']:.1f}, " \
+                        # f"val_adm {val_stats['admis']:.1f}, " \
+                        desc = f"epoch {e}, " \
+                               f"train_loss {train_loss:.2f}, " \
+                               f"val_loss {val_loss:.2f}, " \
+                                f"train_f1 {train_stats['f1']:.1f}, " \
+                                f"val_f1 {val_stats['f1']:.1f}, " \
+                                f"train_acc {train_stats['acc']}, " \
+                                f"val_acc {val_stats['acc']}, " \
+                                f"time {time.time() - t:.1f}"
+                    lr = optimiser.param_groups[0]['lr']
+                    if args.tqdm:
+                        tqdm.write(desc)
+                        pbar.set_description(desc)
+                    else:
+                        print(desc)
+
+                    if lr < args.lr_limit:
+                        print(f"Early stopping due to small lr: {lr}")
+                        break
+
+                    # get_distribution_of_pred_acc(train_stats["pred"], train_stats["true"], train_stats["index"])
+                    # get_distribution_of_pred_acc(val_stats["pred"], val_stats["true"], val_stats["index"])
+            except KeyboardInterrupt:
+                print("Early stopping due to keyboard interrupt!")
+            # if best_dict is not None:
+            #     model_list.append((best_metric, best_dict))
+            # save model parameters
+            if best_dict is not None:
+                if best_val is not None:
+                    results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root, timeout=300)
+                    succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
+                        results)
+                    if succ_rate > best_val:
+                        best_val = succ_rate
+                        print(f"best_avg_loss {best_metric:.8f} at fold {fold} epoch {best_epoch}")
+                        args.best_metric = best_metric
+                        save_gnn_model_from_dict(best_dict, args)
+                else:
                     args.best_metric = best_metric
                     save_gnn_model_from_dict(best_dict, args)
+                    results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root)
+                    best_val = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
+                        results)
+
             else:
-                args.best_metric = best_metric
-                save_gnn_model_from_dict(best_dict, args)
-                results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root)
-                best_val = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
-                    results)
+                save_gnn_model(model, args)
+        # best_val = -1
+        # best_model = model_list[0]
+        # for metric, model in model_list:
+        #     path = f'tmp.dt'
+        #     torch.save((model, args), path)
+        #     results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", path)
+        #     succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
+        #         results)
+        #     if succ_rate > best_val:
+        #         best_val = succ_rate
+        #         best_model = model
 
-        else:
-            save_gnn_model(model, args)
-    # best_val = -1
-    # best_model = model_list[0]
-    # for metric, model in model_list:
-    #     path = f'tmp.dt'
-    #     torch.save((model, args), path)
-    #     results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", path)
-    #     succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
-    #         results)
-    #     if succ_rate > best_val:
-    #         best_val = succ_rate
-    #         best_model = model
-
-    # save_gnn_model(best_model, args)
-
+        # save_gnn_model(best_model, args)
+    print("testing...")
     test.domain_test(args.domain.split("-")[1], args.test_files, args.save_file, "test", log_root=args.log_root)
 
     return
