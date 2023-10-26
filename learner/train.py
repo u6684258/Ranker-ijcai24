@@ -74,35 +74,6 @@ def create_parser():
     return parser
 
 
-# class _BasePlanningEnum(Enum):
-#     @classmethod
-#     def member_names(cls) -> Set[str]:
-#         return {member.name for member in cls}
-#
-#     @classmethod
-#     def from_str(cls, the_str: str):
-#         return cls._from_str(the_str)
-#
-#     @classmethod
-#     def _from_str(cls, the_str: str, error_str="Unknown member {}"):
-#         for member in cls:
-#             if member.name == the_str:
-#                 return member
-#
-#         raise ValueError(error_str.format(the_str))
-#
-#     def __str__(self):
-#         return self.value
-
-
-# class Method(_BasePlanningEnum):
-#     GOOSE = "goose"
-#     RANKER = "ranker"
-#     BAT_RANKER = "batched_ranker"
-#     RND_RANKER = "ranker_random"
-#
-#
-# RANKER_GROUP = [Method.RANKER, Method.BAT_RANKER, Method.RND_RANKER]
 RANKER_GROUP = ["ranker", "batched_ranker", "rnd_ranker", "batched_coord_ranker", "pretrained"]
 
 
@@ -202,7 +173,6 @@ def main():
                                                                    verbose=True,
                                                                    factor=reduction,
                                                                    patience=patience)
-
             print(f"model size (#params): {model.get_num_parameters()}")
 
             best_dict = None
