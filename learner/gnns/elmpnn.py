@@ -267,7 +267,7 @@ class ELMPNNBatchedCoordRankerPredictor(ELMPNNBatchedRankerPredictor):
 
         result = self.model.ranker_act(self.model.ranker(diff)).squeeze(1)
         with torch.no_grad():
-            polarity = torch.ones(diff.size(0)).to(self.device)
+            polarity = torch.ones(diff.size(0))
             if torch.sum(torch.abs(diff)) / diff.shape[0] < 1e-3:
                 print(f"Warning: Encodings are very close to each other: {diff}")
 

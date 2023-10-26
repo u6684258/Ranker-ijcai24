@@ -76,7 +76,7 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
         optimiser.zero_grad(set_to_none=True)
         # print(data.x.nelement() + 2*sum(e.shape[1] for e in data.edge_index) + data.batch.nelement() + y.nelement())
         out, y = model.forward(data)
-
+        y = y.float().to(device)
         if task == "h":
             loss = criterion.forward(out, y)
         else:  # task == "a"
