@@ -181,6 +181,7 @@ def evaluate_ranker(model, device, val_loader, criterion, fast_train, return_tru
             applicable_action = data.applicable_action.float().to(device)
         # y = data.y.float().to(device)
         out, y = model.forward(data)
+        y = y.float().to(device)
         if task == "h":
             loss = criterion.forward(out, y)
         else:  # task == "a"
