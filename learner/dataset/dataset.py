@@ -27,45 +27,48 @@ from dataset.transform import preprocess_data
 
 
 def get_loaders_from_args_gnn(args):
-  model_name = args.model
-  batch_size = args.batch_size
-  domain = args.domain
-  rep = args.rep
-  max_nodes = args.max_nodes
-  cutoff = args.cutoff
-  small_train = args.small_train
-  num_workers = 0
-  pin_memory = True
+    model_name = args.model
+    batch_size = args.batch_size
+    domain = args.domain
+    rep = args.rep
+    max_nodes = args.max_nodes
+    cutoff = args.cutoff
+    small_train = args.small_train
+    num_workers = 0
+    pin_memory = True
 
-  dataset = get_graph_data_gnn(domain=domain, representation=rep)
-  dataset = preprocess_data(model_name, data_list=dataset, c_hi=cutoff, n_hi=max_nodes, small_train=small_train)
-  get_stats(dataset=dataset, desc="Whole dataset")
+    dataset = get_graph_data_gnn(domain=domain, representation=rep)
+    dataset = preprocess_data(model_name, data_list=dataset, c_hi=cutoff, n_hi=max_nodes, small_train=small_train)
+    get_stats(dataset=dataset, desc="Whole dataset")
 
-  trainset, valset = train_test_split(dataset, test_size=0.15, random_state=4550)
+    trainset, valset = train_test_split(dataset, test_size=0.15, random_state=4550)
 
-  get_stats(dataset=trainset, desc="Train set")
-  get_stats(dataset=valset, desc="Val set")
-  print("train size:", len(trainset))
-  print("validation size:", len(valset))
+    get_stats(dataset=trainset, desc="Train set")
+    get_stats(dataset=valset, desc="Val set")
+    print("train size:", len(trainset))
+    print("validation size:", len(valset))
 
-  train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True, pin_memory=pin_memory, num_workers=num_workers)
-  val_loader = DataLoader(valset, batch_size=batch_size, shuffle=False, pin_memory=pin_memory, num_workers=num_workers)
+    train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True, pin_memory=pin_memory,
+                              num_workers=num_workers)
+    val_loader = DataLoader(valset, batch_size=batch_size, shuffle=False, pin_memory=pin_memory,
+                            num_workers=num_workers)
 
-  return train_loader, val_loader
+    return train_loader, val_loader
+
 
 def get_dataset_from_args_kernels(args):
-  rep = args.rep
-  domain = args.domain
+    rep = args.rep
+    domain = args.domain
 
-  dataset = get_graph_data_kernel(domain=domain, representation=rep)
-  if args.small_train:
-    dataset = random.sample(dataset, min(len(dataset, 1000)))
-  get_stats(dataset=dataset, desc="Whole dataset")
+    dataset = get_graph_data_kernel(domain=domain, representation=rep)
+    if args.small_train:
+        dataset = random.sample(dataset, min(len(dataset, 1000)))
+    get_stats(dataset=dataset, desc="Whole dataset")
 
-  graphs = [data[0] for data in dataset]
-  y = np.array([data[1] for data in dataset])
+    graphs = [data[0] for data in dataset]
+    y = np.array([data[1] for data in dataset])
 
-  return graphs, y
+    return graphs, y
 
 
 def get_paired_dataloaders_from_args(args):
@@ -173,8 +176,6 @@ class Dataloader_Generator:
         self.num_workers = 0
         self.batch_size = batch_size
 
-
-
     def gen_new_dataloaders(self):
         trainset, valset = train_test_split(self.dataset, test_size=0.15, random_state=4550, stratify=self.index_list)
         train_per_class_sample_indices = ByProblemDataset(trainset,
@@ -210,7 +211,6 @@ class Dataloader_Generator:
 
 
 def get_new_dataloader_each_epoch(args):
-
     return Dataloader_Generator(args)
 
 
@@ -304,8 +304,6 @@ def get_by_train_val_dataloaders_from_args(args):
     else:
         dataset: List[List[Data]] = get_graph_data_ranker(domain=domain, representation=rep)
 
-    new_dataset = []
-    index_list = []
     trainset = []
     valset = []
     train_valid_count = 0
@@ -317,62 +315,57 @@ def get_by_train_val_dataloaders_from_args(args):
                                        small_train=small_train)
         if len(new_datalist) < 2:
             continue
-        # trains, vals = train_test_split(new_datalist, test_size=0.2, random_state=4550)
-        # if len(trains) < 2 or len(vals) < 2:
-        #     continue
+
         if i % valid_interval == 0:
             new_datalist = add_features(["p_idx"], new_datalist, args, idx=val_valid_count)
             valset += new_datalist
             val_valid_count += 1
-            # train_index_list += [valid_count] * len(datalist)
         else:
             new_datalist = add_features(["p_idx"], new_datalist, args, idx=train_valid_count)
             trainset += new_datalist
             train_valid_count += 1
-            # test_index_list += [valid_count] * len(datalist)
 
-        # get_stats(dataset=new_datalist, desc="Whole dataset")
-        # trainset += trains
-        # valset += vals
+    if args.method == "goose":
+        train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True, pin_memory=pin_memory,
+                                  num_workers=num_workers)
+        val_loader = DataLoader(valset, batch_size=batch_size, shuffle=False, pin_memory=pin_memory,
+                                num_workers=num_workers)
 
-    train_per_class_sample_indices = ByProblemDataset(trainset,
-                                                      train_valid_count).per_class_sample_indices()
-    train_batch_sampler = BatchSampler(train_per_class_sample_indices,
-                                       batch_size=batch_size)
+    else:
+        train_per_class_sample_indices = ByProblemDataset(trainset,
+                                                          train_valid_count).per_class_sample_indices()
+        train_batch_sampler = BatchSampler(train_per_class_sample_indices,
+                                           batch_size=batch_size)
 
-    train_loader = DataLoader(
-        trainset,
-        # batch_size=args.batch_size,
-        # shuffle=(train_sampler is None),
-        num_workers=num_workers,
-        pin_memory=True,
-        # sampler=train_sampler,
-        batch_sampler=train_batch_sampler
-    )
+        train_loader = DataLoader(
+            trainset,
+            # batch_size=args.batch_size,
+            # shuffle=(train_sampler is None),
+            num_workers=num_workers,
+            pin_memory=True,
+            # sampler=train_sampler,
+            batch_sampler=train_batch_sampler
+        )
 
-    val_per_class_sample_indices = ByProblemDataset(valset,
-                                                    val_valid_count).per_class_sample_indices()
-    val_batch_sampler = BatchSampler(val_per_class_sample_indices,
-                                     batch_size=batch_size)
+        val_per_class_sample_indices = ByProblemDataset(valset,
+                                                        val_valid_count).per_class_sample_indices()
+        val_batch_sampler = BatchSampler(val_per_class_sample_indices,
+                                         batch_size=batch_size)
 
-    val_loader = DataLoader(
-        valset,
-        # batch_size=args.batch_size,
-        # shuffle=(train_sampler is None),
-        num_workers=num_workers,
-        pin_memory=True,
-        # sampler=train_sampler,
-        batch_sampler=val_batch_sampler
-    )
+        val_loader = DataLoader(
+            valset,
+            # batch_size=args.batch_size,
+            # shuffle=(train_sampler is None),
+            num_workers=num_workers,
+            pin_memory=True,
+            # sampler=train_sampler,
+            batch_sampler=val_batch_sampler
+        )
+
     get_stats(dataset=trainset, desc="Train set")
     get_stats(dataset=valset, desc="Val set")
     print("train size:", len(trainset))
     print("validation size:", len(valset))
-    #
-    # train_loader = DataLoader(trainset, batch_size=batch_size, shuffle=True, pin_memory=pin_memory,
-    #                           num_workers=num_workers)
-    # val_loader = DataLoader(valset, batch_size=batch_size, shuffle=False, pin_memory=pin_memory,
-    #                         num_workers=num_workers)
 
     return train_loader, val_loader
 

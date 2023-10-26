@@ -136,7 +136,7 @@ def main():
             args.out_feat = 64
             args.in_feat = train_loader.dataset[0].x.shape[1]
         elif args.method == "goose":
-            train_loader, val_loader = get_loaders_from_args_gnn(args)
+            train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
             args.out_feat = 1
             args.in_feat = train_loader.dataset[0].x.shape[1]
         elif args.method == "rnd_ranker":
@@ -248,35 +248,21 @@ def main():
             if best_dict is not None:
                 if best_val is not None:
                     results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root, timeout=300)
-                    succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
-                        results)
-                    if succ_rate > best_val:
-                        best_val = succ_rate
+                    nodes_expanded = len([x.nodes_expanded for x in results]) / len(results)
+                    if nodes_expanded < best_val:
+                        best_val = nodes_expanded
                         print(f"best_avg_loss {best_metric:.8f} at fold {fold} epoch {best_epoch}")
                         args.best_metric = best_metric
                         save_gnn_model_from_dict(best_dict, args)
                 else:
                     args.best_metric = best_metric
                     save_gnn_model_from_dict(best_dict, args)
-                    results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root)
-                    best_val = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
-                        results)
+                    results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", args.save_file, log_root=args.log_root, timeout=300)
+                    best_val = len([x.nodes_expanded for x in results]) / len(results)
 
             else:
                 save_gnn_model(model, args)
-        # best_val = -1
-        # best_model = model_list[0]
-        # for metric, model in model_list:
-        #     path = f'tmp.dt'
-        #     torch.save((model, args), path)
-        #     results: List[SearchMetrics] = test.domain_test(args.domain.split("-")[1], "val", path)
-        #     succ_rate = len([x.plan_length for x in results if x.search_state == SearchState.success]) / len(
-        #         results)
-        #     if succ_rate > best_val:
-        #         best_val = succ_rate
-        #         best_model = model
 
-        # save_gnn_model(best_model, args)
     print("testing...")
     test.domain_test(args.domain.split("-")[1], args.test_files, args.save_file, "test", log_root=args.log_root)
 

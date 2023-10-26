@@ -50,7 +50,7 @@ def train(model, device, train_loader, criterion, optimiser, fast_train):
     }
     if not fast_train:
         macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
-        stats["f1"] = macro_f1
+        stats["f1"] = micro_f1
         stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
         stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
         stats["acc"] = eval_accuracy(y_pred=y_pred, y_true=y_true)
@@ -147,7 +147,7 @@ def evaluate(model, device, val_loader, criterion, fast_train, return_true_preds
     }
     if not fast_train:
         macro_f1, micro_f1 = eval_f1_score(y_pred=y_pred, y_true=y_true)
-        stats["f1"] = macro_f1
+        stats["f1"] = micro_f1
         stats["admis"] = eval_admissibility(y_pred=y_pred, y_true=y_true)
         stats["interval"] = eval_interval(y_pred=y_pred, y_true=y_true)
         stats["acc"] = eval_accuracy(y_pred=y_pred, y_true=y_true)
