@@ -16,7 +16,6 @@ from representation import REPRESENTATIONS
 from dataset.htg_domain_info import get_all_htg_instance_files
 from dataset.ipc_domain_info import same_domain, GROUNDED_DOMAINS, get_ipc_domain_problem_files
 from dataset.goose_domain_info import get_train_goose_instance_files
-from dataset.ipc2023_learning_domain_info import get_train_ipc2023_learning_instance_files
 
 
 _SAVE_DIR = "../data/graphs_gnn"
@@ -145,7 +144,6 @@ def gen_graph_rep(
   # tasks  = get_ipc_domain_problem_files(del_free=False)
   # tasks += get_all_htg_instance_files(split=True)
   tasks = get_train_goose_instance_files()
-  tasks += get_train_ipc2023_learning_instance_files()
 
   new_generated = 0
   pbar = tqdm(tasks)

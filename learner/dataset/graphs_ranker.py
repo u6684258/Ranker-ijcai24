@@ -5,12 +5,11 @@ import torch
 from torch_geometric.data import Data
 from tqdm import tqdm
 
-from dataset import get_train_ipc2023_learning_instance_files
 from dataset.goose_domain_info import get_train_solution_goose_instance_files
 from representation import REPRESENTATIONS
 from util import pyperplan_api
 
-_SAVE_DIR = "data/graphs_ranker"
+_SAVE_DIR = "../data/graphs_ranker"
 
 
 def gen_graph_rep(
@@ -98,7 +97,7 @@ def get_data_path(domain_name: str,
 
 def get_data_dir_path(representation: str) -> str:
     save_dir = f'{_SAVE_DIR}/{representation}'
-    os.makedirs(save_dir, exist_ok=True)
+    # os.makedirs(save_dir, exist_ok=True)
     return save_dir
 
 
