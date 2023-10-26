@@ -255,26 +255,6 @@ class ELMPNNBatchedCoordRankerPredictor(ELMPNNBatchedRankerPredictor):
             # print(data.problem)
         encodes = self.model.forward(data.x, data.edge_index, data.batch)
 
-        # coord_x_range = data.coord_x.max()
-        # main_sets = []
-        # compare_sets = []
-        # for i in range(coord_x_range+1):
-        #     coord_x_mask = data.coord_x == i
-        #     coord_y_mask = torch.logical_and(data.coord_y == 0, coord_x_mask).type(torch.int)
-        #     assert torch.sum(coord_y_mask) == 1
-        #     coord_y_coord = torch.argmax(coord_y_mask)
-        #     assert data.coord_x[coord_y_coord] == i
-        #     coord_x_mask[coord_y_coord] = 0
-        #     compare_set = encodes[coord_x_mask]
-        #     main_set = torch.ones_like(compare_set) * encodes[coord_y_coord]
-        #     assert torch.all(torch.eq(torch.tensor(main_set.size()), torch.tensor(compare_set.size())))
-        #     main_sets.append(main_set)
-        #     compare_sets.append(compare_set)
-        #
-        # main_set = torch.concatenate(main_sets, dim=0)
-        # compare_set = torch.concatenate(compare_sets, dim=0)
-        # assert compare_set.size(0) + len(compare_sets) == encodes.size(0)
-        # diff = compare_set - main_set
         encodes_xy = torch.concatenate([encodes, data.coord_x.reshape([-1, 1]), data.coord_y.reshape([-1,1])], dim=1)
         unique = torch.unique(data.coord_x)
         split_by_x = [encodes_xy[data.coord_x == i] for i in unique]
@@ -287,7 +267,7 @@ class ELMPNNBatchedCoordRankerPredictor(ELMPNNBatchedRankerPredictor):
 
         result = self.model.ranker_act(self.model.ranker(diff)).squeeze(1)
         with torch.no_grad():
-            polarity = torch.ones(diff.size(0))
+            polarity = torch.ones(diff.size(0)).to(self.device)
             if torch.sum(torch.abs(diff)) / diff.shape[0] < 1e-3:
                 print(f"Warning: Encodings are very close to each other: {diff}")
 
