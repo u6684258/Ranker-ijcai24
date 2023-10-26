@@ -52,7 +52,7 @@ def task(domain, layers, method):
 jobs = []
 for domain in args.domains:
     for layer in range(args.layers, args.layers + 7):
-        jobs.append((domain, layer))
+        jobs.append((domain, layer, args.method))
 
 count = 1
 pool = multiprocessing.Pool(processes=count)
