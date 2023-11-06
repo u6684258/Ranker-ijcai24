@@ -7,6 +7,7 @@ Stage: build
     ../learner
     ../downward
     ../pyperplan
+    ../FD-Hypernet-master
 
 
 %post
@@ -50,6 +51,11 @@ Stage: build
     pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
 
     cd /downward
+    rm -rf /builds/release/
+    ./build.py release
+    cd ..
+
+    cd /FD-Hypernet-master
     rm -rf /builds/release/
     ./build.py release
     cd ..
