@@ -6,9 +6,9 @@ from numbers import Number
 from pathlib import Path
 from typing import NamedTuple, FrozenSet, TypeVar, List, Dict, Tuple
 
-from pyperplan.pyperplan.planner import get_domain_and_task
-from pyperplan.pyperplan.pddl.pddl import Domain as PyperplanDomain
-from pyperplan.pyperplan.task import Task as PyperplanTask, Operator
+from pyperplan.planner import get_domain_and_task
+from pyperplan.pddl.pddl import Domain as PyperplanDomain
+from pyperplan.task import Task as PyperplanTask, Operator
 from util.search import fd_general_cmd
 
 """
