@@ -2,7 +2,7 @@ import os.path as osp
 import os
 import json
 
-RANKER_EXP_PATH = "logs/2023-10-23T16:12:44.301576/result"
+RANKER_EXP_PATH = "logs/logs_from_server/logs/2023-10-26T23:05:04.232256/result"
 
 ranker_dirs = os.listdir(RANKER_EXP_PATH)
 
@@ -24,7 +24,7 @@ for dir in ranker_dirs:
 
         result[dir] = succ_count
     except Exception:
-        print("Log Not found or something wrong!")
+        print(f"Log Not found or something wrong! {result_file}")
 
-for key, value in result.items():
+for key, value in sorted(list((k, v) for k, v in result.items())):
     print(f"{key} : {value}")

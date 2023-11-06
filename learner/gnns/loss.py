@@ -1,3 +1,5 @@
+from typing import List
+
 import torch
 import torch.nn.functional as F
 
@@ -41,9 +43,39 @@ class PenaltyEnhancedMSELoss():
     loss = torch.sum(e) / len(e)
     return loss
 
+class HGNLoss():
+  def __init__(self) -> None:
+    self._criterion = torch.nn.MSELoss()
+  def calc_avg_loss(self,
+                    preds: List[Tensor],
+                    target: List[Tensor],
+                    ):
+    """
+    Calculates average loss for a criterion over multiple predictions
+    """
+    sum_index = 1
+    start_index = 0
+    accum_loss = self._criterion(preds[start_index], target[start_index])
+    for pass_idx in range(start_index + 1, len(preds)):
+      loss = self._criterion(
+        preds[pass_idx], target[pass_idx]
+      )
+      accum_loss += loss
+      sum_index += 1
+
+    return accum_loss / float(sum_index)
+
+  def forward(self, preds: List[Tensor],
+                    target: List[Tensor],
+                    ):
+
+    return self.calc_avg_loss(preds, target)
+
+
 LOSS = {
   "mse": MSELoss,
   "wmse": WeightedMSELoss,
   "pemse": PenaltyEnhancedMSELoss,
+  "hgnloss": HGNLoss,
 }
 

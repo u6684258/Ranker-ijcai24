@@ -32,9 +32,12 @@ def search_cmd(df, pf, m, model_type, planner, search, seed, profile, timeout=TI
     search_engine = {
         "pwl": pwl_cmd,
         "fd": fd_cmd,
+        "hgn": hgn_cmd,
     }[planner]
     cmd, aux_file = search_engine(df, pf, model_type, m, search, seed, profile, timeout, aux_file, plan_file)
     os.environ['GOOSE'] = f'{os.getcwd()}'
+    os.environ['STRIPS_HGN_NEW'] = f'{os.getcwd()}'
+    os.environ['FD_HGN'] = f'{os.getcwd()}/../FD-Hypernet-master'
     # cmd = f"export GOOSE={os.getcwd()} && {cmd}"
     return cmd, aux_file
 
@@ -117,3 +120,32 @@ def fd_general_cmd(domain_file, problem_file, result_file, search="astar+lmcut")
         cmd += ["--search", "astar(lmcut())"]
 
     return cmd
+
+
+def hgn_cmd(df, pf, model_type, m, search, seed, profile, timeout=TIMEOUT, aux_file=None, plan_file=None):
+    if search == "gbbfs":
+        search = "batch_eager_greedy"
+    elif search == "gbfs":
+        search = "eager_greedy"
+    else:
+        raise NotImplementedError
+
+    description = f"fd_{pf.replace('.pddl', '').replace('/', '-')}_{search}_{os.path.basename(m).replace('.dt', '')}".replace(
+        '.', '')
+
+    if aux_file is None:
+        os.makedirs("sas_files", exist_ok=True)
+        aux_file = f"sas_files/{description}.sas_file"
+
+    if plan_file is None:
+        os.makedirs("plans", exist_ok=True)
+        plan_file = f"plans/{description}.plan"
+
+    cmd = f"./../FD-Hypernet-master/fast-downward.py --search-time-limit {timeout} --sas-file {aux_file} --plan-file {plan_file} " + \
+          f"{df} {pf} --translate-options --full-encoding --search-options " \
+          f"--search eager(single(hgn2(network_file={m}," \
+                                    f"domain_file={df}," \
+                                    f"instance_file={pf}," \
+                                    f"type={model_type})))"
+    # print(cmd)
+    return cmd, aux_file

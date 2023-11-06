@@ -25,7 +25,7 @@ TMP_DIR = os.path.join(EXP_ROOT, "tmp")
 
 
 class STRIPSProblem:
-    def __init__(self, domain_pddl: str, problem_pddl: str, solution_file: str = None):
+    def __init__(self, domain_pddl: str, problem_pddl: str, solution_file: str = None, require_plan=False):
         self.domain_pddl = domain_pddl
         self.problem_pddl = problem_pddl
         self.solution_file = solution_file
@@ -56,7 +56,7 @@ class STRIPSProblem:
         self._state_to_heuristic: Dict[State, Number] = {}
         if self.solution_file:
             self.plan_to_state_heuristics(self.initial_state, self.solution_file)
-        else:
+        elif require_plan:
             self.get_state_heuristic(self.initial_state)
     @property
     def domain_name(self) -> str:
@@ -85,6 +85,10 @@ class STRIPSProblem:
     @property
     def number_of_propositions(self) -> int:
         return len(self.propositions)
+
+    @property
+    def number_of_actions(self) -> int:
+        return len(self.actions)
 
     @property
     def state_to_heuristic(self) -> Dict[State, Number]:

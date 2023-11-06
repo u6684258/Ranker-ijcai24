@@ -1,4 +1,5 @@
 import itertools
+import json
 import math
 import os
 import sys
@@ -7,10 +8,13 @@ from typing import List, Tuple
 
 import numpy as np
 import torch
+from torch import tensor, Tensor
 from torch.utils.data import Dataset
 from torch_geometric.data import Data
 from tqdm import tqdm
 
+from representation import HypergraphsTuple
+from representation.hypergraph_nets.hypergraph_nets_adaptor import set_p_idx, merge_hypergraphs_tuple
 from util.node_features import add_features
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
@@ -22,7 +26,7 @@ from torch_geometric.loader import DataLoader
 from sklearn.model_selection import train_test_split
 from dataset.graphs_gnn import get_graph_data as get_graph_data_gnn, get_graph_data_by_prob
 from dataset.graphs_ranker import get_graph_data_by_prob as get_graph_data_ranker
-from dataset.graphs_kernel import get_graph_data as get_graph_data_kernel
+from dataset.graphs_hgn import get_graph_data_by_prob as get_graph_data_hgn
 from dataset.transform import preprocess_data
 
 
@@ -54,21 +58,6 @@ def get_loaders_from_args_gnn(args):
                             num_workers=num_workers)
 
     return train_loader, val_loader
-
-
-def get_dataset_from_args_kernels(args):
-    rep = args.rep
-    domain = args.domain
-
-    dataset = get_graph_data_kernel(domain=domain, representation=rep)
-    if args.small_train:
-        dataset = random.sample(dataset, min(len(dataset, 1000)))
-    get_stats(dataset=dataset, desc="Whole dataset")
-
-    graphs = [data[0] for data in dataset]
-    y = np.array([data[1] for data in dataset])
-
-    return graphs, y
 
 
 def get_paired_dataloaders_from_args(args):
@@ -429,3 +418,67 @@ class BatchSampler:
 
     def n_samples(self):
         return sum([len(x) for x in self.per_class_sample_indices])
+
+
+def get_by_train_val_dataloaders_for_hgn(args):
+    model_name = args.model
+    batch_size = args.batch_size
+    domain = args.domain
+    rep = args.rep
+    max_nodes = args.max_nodes
+    cutoff = args.cutoff
+    num_workers = 0
+    pin_memory = True
+
+    dataset, hyps = get_graph_data_hgn(domain=domain, representation=rep)
+
+    trainset = []
+    valset = []
+    train_valid_count = 0
+    val_valid_count = 0
+    valid_interval = 10
+    print("Preprocessing data...")
+    for i, datalist in enumerate(dataset):
+        new_datalist = datalist
+
+        if len(new_datalist) < 2:
+            continue
+
+        if i % valid_interval == 0:
+            new_datalist = set_p_idx(new_datalist, val_valid_count)
+            valset += new_datalist
+            val_valid_count += 1
+        else:
+            new_datalist = set_p_idx(new_datalist, train_valid_count)
+            trainset += new_datalist
+            train_valid_count += 1
+
+    train_per_class_dataset = ByProblemDataset(trainset, train_valid_count)
+    train_batch_sampler = BatchSampler(train_per_class_dataset.per_class_sample_indices(),
+                                       batch_size=batch_size)
+
+    train_loader = torch.utils.data.DataLoader(
+        train_per_class_dataset,
+        num_workers=num_workers,
+        pin_memory=True,
+        batch_sampler=train_batch_sampler,
+        collate_fn=merge_hypergraphs_tuple
+    )
+
+    val_per_class_dataset = ByProblemDataset(valset, val_valid_count)
+    val_batch_sampler = BatchSampler(val_per_class_dataset.per_class_sample_indices(),
+                                     batch_size=batch_size)
+
+    val_loader = torch.utils.data.DataLoader(
+        val_per_class_dataset,
+        num_workers=num_workers,
+        pin_memory=True,
+        batch_sampler=val_batch_sampler,
+        collate_fn=merge_hypergraphs_tuple
+    )
+
+    print("train size:", len(trainset))
+    print("validation size:", len(valset))
+
+
+    return train_loader, val_loader, hyps[domain]

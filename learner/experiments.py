@@ -48,6 +48,26 @@ def task(domain, layers, method):
         print(f"Experiment log: {f}")
         subprocess.call(cmd.split(" "), stdout=f)
 
+    elif method == "hgn":
+        cmd = f'python3 {exp_root}/train_hgn.py -m HGNN -r {model} -d goose-{domain} ' \
+              f'--save-file hgn-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
+              f'--fast-train ' \
+              f'--method hgn'
+
+        f = open(f"{log_sub_dir}/train_hgn_{domain}_L{layers}.logs", "w")
+        print(f"Experiment log: {f}")
+        subprocess.call(cmd.split(" "), stdout=f)
+
+    elif method == "hgn_ranker":
+        cmd = f'python3 {exp_root}/train_hgn.py -m HGNNRANK -r {model} -d goose-{domain} ' \
+              f'--save-file hgn-rank-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
+              f'--fast-train ' \
+              f'--method hgn_ranker'
+
+        f = open(f"{log_sub_dir}/train_hgn_rank_{domain}_L{layers}.logs", "w")
+        print(f"Experiment log: {f}")
+        subprocess.call(cmd.split(" "), stdout=f)
+
 
 jobs = []
 for domain in args.domains:
