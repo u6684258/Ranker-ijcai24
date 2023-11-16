@@ -117,7 +117,7 @@ def parse_args():
     return args
 
 
-if __name__ == "__main__":
+def main():
     args = parse_args()
     print_arguments(args)
     np.random.seed(args.seed)
@@ -127,6 +127,13 @@ if __name__ == "__main__":
     if predict_deadends:
         graphs, y_true = get_deadend_dataset_from_args(args)
         scoring = _SCORING_DEADENDS
+        if len(graphs) == 0:
+            print(f"No deadends to learn for {args.domain}!")
+            print(f"Saving a redundant file...")
+            args.model = "empty"
+            model = kernels.KernelModelWrapper(args)
+            save_kernel_model(model, args)
+            return
     else:
         graphs, y_true = get_dataset_from_args(args)
         scoring = _SCORING_HEURISTIC
@@ -156,7 +163,7 @@ if __name__ == "__main__":
     for metric in scoring:
         score = scoring[metric](model.get_learning_model(), X, y_true)
         print(f"train_{metric}: {score:.2f}")
-    
+
     if predict_deadends:
         print("confusion matrix:")
         print(confusion_matrix(y_true, y_pred))
@@ -199,3 +206,7 @@ if __name__ == "__main__":
         )
     except Exception as e:  # not possible for true kernel methods
         pass
+
+
+if __name__ == "__main__":
+    main()

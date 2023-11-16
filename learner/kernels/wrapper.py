@@ -26,6 +26,8 @@ _MAX_MODEL_ITER = 10000
 class KernelModelWrapper:
     def __init__(self, args) -> None:
         super().__init__()
+        if args.model == "empty":
+            return  # when there are no dead ends to learn
         self._model_name = args.model
 
         self._kernel = kernels.KERNELS[args.kernel](iterations=args.iterations, prune=args.prune)
@@ -74,17 +76,17 @@ class KernelModelWrapper:
                     early_stopping=True,
                     validation_fraction=0.15,
                 ),
-        }[self._model_name]
+            }[self._model_name]
 
         self._train = True
         self._indices = None
 
     def train(self) -> None:
-        """ set train mode, not actually training anything """
+        """set train mode, not actually training anything"""
         self._kernel.train()
 
     def eval(self) -> None:
-        """ set eval mode, not actually evaluating anything """
+        """set eval mode, not actually evaluating anything"""
         self._kernel.eval()
 
     def fit(self, X, y) -> None:

@@ -14,8 +14,8 @@ configs = product(
     ["linear-svr", "lasso", "ridge", "rbf-svr", "quadratic-svr", "cubic-svr", "mlp"],  # models
 )
 
-for target, flag in [("H", ""), ("D", "--deadends")]:
-    for wl, iterations, rep, domain, model in configs:
+for wl, iterations, rep, domain, model in configs:
+    for target, flag in [("H", ""), ("D", "--deadends")]:
         desc = f"{wl}_{iterations}_{rep}_{domain}_{target}"
         save_file = f"{SAVE_DIR}/{desc}.joblib"
         log_file = f"{LOG_DIR}/{desc}.log"
