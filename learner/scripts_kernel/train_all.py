@@ -16,7 +16,7 @@ configs = product(
 
 for wl, iterations, rep, domain, model in configs:
     for target, flag in [("H", ""), ("D", "--deadends")]:
-        desc = f"{wl}_{iterations}_{rep}_{domain}_{target}"
+        desc = f"{wl}_{iterations}_{rep}_{model}_{target}_{domain}"
         save_file = f"{SAVE_DIR}/{desc}.joblib"
         log_file = f"{LOG_DIR}/{desc}.log"
         if os.path.exists(save_file) and os.path.exists(log_file):
