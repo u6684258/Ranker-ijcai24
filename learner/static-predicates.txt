@@ -1,0 +1,7 @@
+link 2
+object 1
+location 1
+locatable 1
+man 1
+nut 1
+spanner 1

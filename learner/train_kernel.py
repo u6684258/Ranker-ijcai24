@@ -7,11 +7,12 @@ import numpy as np
 import representation
 import kernels
 from sklearn.model_selection import cross_validate
-from sklearn.metrics import make_scorer, mean_squared_error
+from sklearn.metrics import confusion_matrix, log_loss, make_scorer, mean_squared_error
 from kernels.wrapper import MODELS
-from dataset.graphs_kernel import get_dataset_from_args
+from dataset.graphs_kernel import get_dataset_from_args, get_deadend_dataset_from_args
 from util.save_load import print_arguments, save_kernel_model
 from util.metrics import f1_macro
+from dataset.ipc2023_learning_domain_info import IPC2023_LEARNING_DOMAINS
 
 import warnings
 
@@ -19,14 +20,28 @@ warnings.filterwarnings("ignore")
 
 _CV_FOLDS = 5
 _PLOT_DIR = "plots"
-_SCORING = {"mse": make_scorer(mean_squared_error), "f1_macro": make_scorer(f1_macro)}
+_SCORING_HEURISTIC = {"mse": make_scorer(mean_squared_error), "f1_macro": make_scorer(f1_macro)}
+_SCORING_DEADENDS = {"ll": make_scorer(log_loss), "f1_macro": make_scorer(f1_macro)}
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("domain_pddl", help="path to domain pddl")
-    parser.add_argument("tasks_dir", help="path to training task directory")
-    parser.add_argument("plans_dir", help="path to training plan directory")
+    # parser.add_argument("domain_pddl", help="path to domain pddl")
+    # parser.add_argument("tasks_dir", help="path to training task directory")
+    # parser.add_argument("plans_dir", help="path to training plan directory")
+
+    parser.add_argument(
+        "domain",
+        help="domain to learn domain knowledge for",
+        choices=IPC2023_LEARNING_DOMAINS,
+    )
+
+    parser.add_argument(
+        "-d",
+        "--deadends",
+        action="store_true",
+        help="learn dead ends",
+    )
 
     parser.add_argument(
         "-r",
@@ -82,57 +97,55 @@ def parse_args():
         help="epsilon parameter in epsilon insensitive loss function of SVR",
     )
 
-    parser.add_argument(
-        "-d",
-        "--domain",
-        type=str,
-        default="goose-di",
-        help="domain to train on; defaults to goose-di which is di training",
-    )
-
     parser.add_argument("-s", "--seed", type=int, default=0, help="random seed")
     parser.add_argument("--planner", default="fd", choices=["fd", "pwl"])
 
-    parser.add_argument(
-        "-c", "--compactify", action="store_true", help="compactify weights"
-    )
+    parser.add_argument("-c", "--compactify", action="store_true", help="compactify weights")
 
-    parser.add_argument(
-        "--save-file", type=str, default=None, help="save file of model weights"
-    )
+    parser.add_argument("--save-file", type=str, default=None, help="save file of model weights")
     parser.add_argument(
         "--small-train",
         action="store_true",
         help="use small train set, useful for debugging",
     )
 
-    return parser.parse_args()
+    args = parser.parse_args()
+    domain = args.domain
+    args.domain_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
+    args.tasks_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy"
+    args.plans_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training_plans"
+    return args
 
 
 if __name__ == "__main__":
     args = parse_args()
     print_arguments(args)
-
     np.random.seed(args.seed)
 
-    graphs, y = get_dataset_from_args(args)
+    predict_deadends = args.deadends
+
+    if predict_deadends:
+        graphs, y_true = get_deadend_dataset_from_args(args)
+        scoring = _SCORING_DEADENDS
+    else:
+        graphs, y_true = get_dataset_from_args(args)
+        scoring = _SCORING_HEURISTIC
 
     print(f"Setting up training data and initialising model...")
     t = time.time()
+    # class decides whether to use classifier or regressor
     model = kernels.KernelModelWrapper(args)
     model.train()
     t = time.time()
     train_histograms = model.compute_histograms(graphs)
     print(f"Initialised WL for {len(graphs)} graphs in {time.time() - t:.2f}s")
-    print(
-        f"Collected {model.n_colours_} colours over {sum(len(G.nodes) for G in graphs)} nodes"
-    )
+    print(f"Collected {model.n_colours_} colours over {sum(len(G.nodes) for G in graphs)} nodes")
     X = model.get_matrix_representation(graphs, train_histograms)
     print(f"Set up training data in {time.time()-t:.2f}s")
 
     print(f"Training on entire {args.domain} for {args.model}...")
     t = time.time()
-    model.fit(X, y)
+    model.fit(X, y_true)
     print(f"Model training completed in {time.time()-t:.2f}s")
     y_pred = model.predict(X)
 
@@ -140,17 +153,22 @@ if __name__ == "__main__":
     # print(list(X[0].astype(int)))
     # breakpoint()
 
-    for metric in _SCORING:
-        score = _SCORING[metric](model.get_learning_model(), X, y)
+    for metric in scoring:
+        score = scoring[metric](model.get_learning_model(), X, y_true)
         print(f"train_{metric}: {score:.2f}")
+    
+    if predict_deadends:
+        print("confusion matrix:")
+        print(confusion_matrix(y_true, y_pred))
 
-    if args.compactify:
+    # delete weights smaller than args.prune
+    if args.compactify and predict_deadends:
         lb = 0
         ub = 1
         weights = model.get_weights()
         bias = model.get_bias()
         y_pred_int = np.rint(y_pred)
-        while ub - lb > 1e-5:
+        while ub - lb > 1e-5:  # bin search
             cutoff = (lb + ub) / 2
             indices = np.abs(weights) > cutoff
             pruned_weights = weights[indices]
@@ -169,7 +187,6 @@ if __name__ == "__main__":
                 lb = cutoff
             else:
                 ub = cutoff
-
         print(f"pruned weights with cutoff {cutoff}")
         indices = np.abs(weights) > cutoff
         model.set_weight_indices(indices)
@@ -180,5 +197,5 @@ if __name__ == "__main__":
             f"zero_weights: {model.get_num_zero_weights()}/{model.get_num_weights()} = "
             + f"{model.get_num_zero_weights()/model.get_num_weights():.2f}"
         )
-    except Exception as e:
+    except Exception as e:  # not possible for true kernel methods
         pass

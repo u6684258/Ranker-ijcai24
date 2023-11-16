@@ -1,7 +1,7 @@
 import numpy as np
-from sklearn.neural_network import MLPRegressor
-from sklearn.linear_model import Lasso, Ridge, LinearRegression
-from sklearn.svm import LinearSVR, SVR
+from sklearn.neural_network import MLPClassifier, MLPRegressor
+from sklearn.linear_model import Lasso, Ridge, LinearRegression, LogisticRegression
+from sklearn.svm import LinearSVR, SVR, LinearSVC, SVC
 from typing import Iterable, List, Optional, Dict
 import kernels
 from representation import CGraph, Representation, REPRESENTATIONS
@@ -28,9 +28,7 @@ class KernelModelWrapper:
         super().__init__()
         self._model_name = args.model
 
-        self._kernel = kernels.KERNELS[args.kernel](
-            iterations=args.iterations, prune=args.prune
-        )
+        self._kernel = kernels.KERNELS[args.kernel](iterations=args.iterations, prune=args.prune)
 
         self._iterations = args.iterations
         self._prune = args.prune
@@ -41,34 +39,52 @@ class KernelModelWrapper:
         kwargs = {
             "max_iter": _MAX_MODEL_ITER,
         }
-        self._model = {
-            "linear-regression": LinearRegression(),
-            "linear-svr": LinearSVR(dual="auto", epsilon=args.e, C=args.C, **kwargs),
-            "lasso": Lasso(alpha=args.a, **kwargs),
-            "ridge": Ridge(alpha=args.a, **kwargs),
-            "rbf-svr": SVR(kernel="rbf", epsilon=args.e, C=args.C, **kwargs),
-            "quadratic-svr": SVR(
-                kernel="poly", degree=2, epsilon=args.e, C=args.C, **kwargs
-            ),
-            "cubic-svr": SVR(
-                kernel="poly", degree=3, epsilon=args.e, C=args.C, **kwargs
-            ),
-            "mlp": MLPRegressor(
-                hidden_layer_sizes=(64,),
-                batch_size=16,
-                learning_rate="adaptive",
-                early_stopping=True,
-                validation_fraction=0.15,
-            ),
+
+        self._deadends = args.deadends
+        if self._deadends:  # deadends is binary classification
+            self._model = {
+                "linear-regression": LogisticRegression(penalty=None),
+                "linear-svr": LinearSVC(dual="auto", C=args.C, **kwargs),
+                "lasso": LogisticRegression(penalty="l1", C=1 / args.a, **kwargs),
+                "ridge": LogisticRegression(penalty="l2", C=1 / args.a, **kwargs),
+                "rbf-svr": SVC(kernel="rbf", C=args.C, **kwargs),
+                "quadratic-svr": SVR(kernel="poly", degree=2, C=args.C, **kwargs),
+                "cubic-svr": SVR(kernel="poly", degree=3, C=args.C, **kwargs),
+                "mlp": MLPClassifier(
+                    hidden_layer_sizes=(64,),
+                    batch_size=16,
+                    learning_rate="adaptive",
+                    early_stopping=True,
+                    validation_fraction=0.15,
+                ),
+            }[self._model_name]
+        else:  # heuristic is regression
+            self._model = {
+                "linear-regression": LinearRegression(),
+                "linear-svr": LinearSVR(dual="auto", epsilon=args.e, C=args.C, **kwargs),
+                "lasso": Lasso(alpha=args.a, **kwargs),
+                "ridge": Ridge(alpha=args.a, **kwargs),
+                "rbf-svr": SVR(kernel="rbf", epsilon=args.e, C=args.C, **kwargs),
+                "quadratic-svr": SVR(kernel="poly", degree=2, epsilon=args.e, C=args.C, **kwargs),
+                "cubic-svr": SVR(kernel="poly", degree=3, epsilon=args.e, C=args.C, **kwargs),
+                "mlp": MLPRegressor(
+                    hidden_layer_sizes=(64,),
+                    batch_size=16,
+                    learning_rate="adaptive",
+                    early_stopping=True,
+                    validation_fraction=0.15,
+                ),
         }[self._model_name]
 
         self._train = True
         self._indices = None
 
     def train(self) -> None:
+        """ set train mode, not actually training anything """
         self._kernel.train()
 
     def eval(self) -> None:
+        """ set eval mode, not actually evaluating anything """
         self._kernel.eval()
 
     def fit(self, X, y) -> None:
@@ -142,9 +158,7 @@ class KernelModelWrapper:
             bias = self.get_bias()
 
             zero_weights = np.count_nonzero(weights == 0)
-            print(
-                f"{zero_weights}/{len(weights)} = {zero_weights/len(weights):.2f} are zero"
-            )
+            print(f"{zero_weights}/{len(weights)} = {zero_weights/len(weights):.2f} are zero")
 
             # prune zero weights
             new_weights = []
