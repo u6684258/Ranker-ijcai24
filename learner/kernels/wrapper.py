@@ -47,11 +47,13 @@ class KernelModelWrapper:
             self._model = {
                 "linear-regression": LogisticRegression(penalty=None),
                 "linear-svr": LinearSVC(dual="auto", C=args.C, **kwargs),
-                "lasso": LogisticRegression(penalty="l1", C=1 / args.a, **kwargs),
+                "lasso": LogisticRegression(  # l1 only works with liblinear and saga
+                    penalty="l1", C=1 / args.a, solver="liblinear", **kwargs
+                ),
                 "ridge": LogisticRegression(penalty="l2", C=1 / args.a, **kwargs),
                 "rbf-svr": SVC(kernel="rbf", C=args.C, **kwargs),
-                "quadratic-svr": SVR(kernel="poly", degree=2, C=args.C, **kwargs),
-                "cubic-svr": SVR(kernel="poly", degree=3, C=args.C, **kwargs),
+                "quadratic-svr": SVC(kernel="poly", degree=2, C=args.C, **kwargs),
+                "cubic-svr": SVC(kernel="poly", degree=3, C=args.C, **kwargs),
                 "mlp": MLPClassifier(
                     hidden_layer_sizes=(64,),
                     batch_size=16,
