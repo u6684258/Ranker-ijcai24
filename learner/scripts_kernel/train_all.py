@@ -1,5 +1,6 @@
 import os 
 from itertools import product
+from tqdm import tqdm
 
 SAVE_DIR = "trained_kernel_models"
 LOG_DIR = "logs_training_kernels"
@@ -14,7 +15,7 @@ configs = product(
     ["linear-svr", "lasso", "ridge", "rbf-svr", "quadratic-svr", "cubic-svr", "mlp"],  # models
 )
 
-for wl, iterations, rep, domain, model in configs:
+for wl, iterations, rep, domain, model in tqdm(configs):
     for target, flag in [("H", ""), ("D", "--deadends")]:
         desc = f"{wl}_{iterations}_{rep}_{model}_{target}_{domain}"
         save_file = f"{SAVE_DIR}/{desc}.joblib"

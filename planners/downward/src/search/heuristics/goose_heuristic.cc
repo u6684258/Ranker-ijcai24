@@ -3,16 +3,15 @@
 #include "../plugins/plugin.h"
 #include "../task_utils/task_properties.h"
 
+#include <fstream>
 #include <iostream>
-#include <fstream> 
 
 namespace py = pybind11;
 
 using std::string;
 
 namespace goose_heuristic {
-GooseHeuristic::GooseHeuristic(const plugins::Options &opts)
-    : Heuristic(opts) {
+GooseHeuristic::GooseHeuristic(const plugins::Options &opts) : Heuristic(opts) {
   initialise_model(opts);
   initialise_facts();
 }
@@ -21,14 +20,14 @@ void GooseHeuristic::initialise_model(const plugins::Options &opts) {
   // Add GOOSE submodule to the python path
   auto gnn_path = std::getenv("GOOSE");
   if (!gnn_path) {
-      std::cout << "GOOSE env variable not found. Aborting." << std::endl;
-      exit(-1);
+    std::cout << "GOOSE env variable not found. Aborting." << std::endl;
+    exit(-1);
   }
   std::string path(gnn_path);
   std::cout << "GOOSE path is " << path << std::endl;
   if (access(path.c_str(), F_OK) == -1) {
-      std::cout << "GOOSE points to non-existent path. Aborting." << std::endl;
-      exit(-1);
+    std::cout << "GOOSE points to non-existent path. Aborting." << std::endl;
+    exit(-1);
   }
 
   // Append python module directory to the path
@@ -50,21 +49,15 @@ void GooseHeuristic::initialise_model(const plugins::Options &opts) {
   py::module util_module = py::module::import("util.save_load");
   if (model_type == "gnn") {
     model = util_module.attr("load_gnn_model_and_setup")(
-      model_path, 
-      domain_file, 
-      instance_file
-    );
+        model_path, domain_file, instance_file);
     std::cout << "Loaded model!" << std::endl;
     model.attr("dump_model_stats")();
   } else if (model_type == "kernel") {
     model = util_module.attr("load_kernel_model_and_setup")(
-      model_path, 
-      domain_file, 
-      instance_file
-    );
+        model_path, domain_file, instance_file);
     std::cout << "Loaded model!" << std::endl;
   } else {
-    std::cout << "Model type " << model_type <<" not supported\n";
+    std::cout << "Model type " << model_type << " not supported\n";
     exit(-1);
   }
 
@@ -88,8 +81,7 @@ void GooseHeuristic::initialise_grounded_facts() {
         continue;
       } else {
         std::cout << "Substring of downward fact does not start with 'Atom ': "
-                  << "or 'NegatedAtom '"
-                  << name << std::endl;
+                  << "or 'NegatedAtom '" << name << std::endl;
         exit(-1);
       }
     }
@@ -113,14 +105,14 @@ void GooseHeuristic::initialise_grounded_facts() {
     name = "(" + name + ")";
     fact_to_grounded_goose_input.insert({fact.get_pair(), name});
 
-    #ifndef NDEBUG
-      std::cout << name << " ";
-    #endif
+#ifndef NDEBUG
+    std::cout << name << " ";
+#endif
   }
 
-  #ifndef NDEBUG
-    std::cout << std::endl;
-  #endif
+#ifndef NDEBUG
+  std::cout << std::endl;
+#endif
 }
 
 void GooseHeuristic::initialise_lifted_facts() {
@@ -138,8 +130,7 @@ void GooseHeuristic::initialise_lifted_facts() {
         continue;
       } else {
         std::cout << "Substring of downward fact does not start with 'Atom ': "
-                  << "or 'NegatedAtom '"
-                  << name << std::endl;
+                  << "or 'NegatedAtom '" << name << std::endl;
         exit(-1);
       }
     }
@@ -171,18 +162,18 @@ void GooseHeuristic::initialise_lifted_facts() {
         args.push_back(s);
       }
     }
-    std::pair<std::string, std::vector<std::string>> lifted_fact(pred, args); 
+    std::pair<std::string, std::vector<std::string>> lifted_fact(pred, args);
 
     fact_to_lifted_goose_input.insert({fact.get_pair(), lifted_fact});
 
-    #ifndef NDEBUG
-      std::cout << name << " ";
-    #endif
+#ifndef NDEBUG
+    std::cout << name << " ";
+#endif
   }
 
-  #ifndef NDEBUG
-    std::cout << std::endl;
-  #endif
+#ifndef NDEBUG
+  std::cout << std::endl;
+#endif
 }
 
 void GooseHeuristic::initialise_facts() {
@@ -216,57 +207,33 @@ int GooseHeuristic::compute_heuristic(const State &ancestor_state) {
   return h;
 }
 
-std::vector<int> GooseHeuristic::compute_heuristic_batch(const std::vector<State> &ancestor_states) {
-  py::list py_states;
-  for (const auto& state : ancestor_states) {
-    py_states.append(list_to_goose_state(state));
+class GooseHeuristicFeature
+    : public plugins::TypedFeature<Evaluator, GooseHeuristic> {
+ public:
+  GooseHeuristicFeature() : TypedFeature("goose") {
+    document_title("GOOSE heuristic");
+    document_synopsis("TODO");
+
+    // https://github.com/aibasel/downward/pull/170 for string options
+    add_option<string>("model_type", "gnn or kernel", "default_value");
+    add_option<string>("model_path", "path to trained model or model weights",
+                       "default_value");
+    add_option<string>("domain_file", "Path to the domain file.",
+                       "default_file");
+    add_option<string>("instance_file", "Path to the instance file.",
+                       "default_file");
+
+    Heuristic::add_options_to_feature(*this);
+
+    document_language_support("action costs", "not supported");
+    document_language_support("conditional effects", "not supported");
+    document_language_support("axioms", "not supported");
+
+    document_property("admissible", "no");
+    document_property("consistent", "no");
+    document_property("safe", "yes");
+    document_property("preferred operators", "no");
   }
-  py::object heuristics = model.attr("h_batch")(py_states);
-  std::vector<int> ret = heuristics.cast<std::vector<int>>();
-  for (size_t i = 0; i < ret.size(); i++) {
-    if (task_properties::is_goal_state(task_proxy, ancestor_states[i]))
-      ret[i] = 0;
-    else
-      ret[i] = std::max(1, ret[i]);
-  }
-  return ret;
-}
-
-class GooseHeuristicFeature : public plugins::TypedFeature<Evaluator, GooseHeuristic> {
-public:
-    GooseHeuristicFeature() : TypedFeature("goose") {
-        document_title("GOOSE heuristic");
-        document_synopsis("TODO");
-
-        // https://github.com/aibasel/downward/pull/170 for string options
-        add_option<string>(
-            "model_type",
-            "gnn or kernel",
-            "default_value");
-        add_option<string>(
-            "model_path",
-            "path to trained model or model weights",
-            "default_value");
-        add_option<string>(
-            "domain_file",
-            "Path to the domain file.",
-            "default_file");
-        add_option<string>(
-            "instance_file",
-            "Path to the instance file.",
-            "default_file");
-
-        Heuristic::add_options_to_feature(*this);
-
-        document_language_support("action costs", "not supported");
-        document_language_support("conditional effects", "not supported");
-        document_language_support("axioms", "not supported");
-
-        document_property("admissible", "no");
-        document_property("consistent", "no");
-        document_property("safe", "yes");
-        document_property("preferred operators", "no");
-    }
 };
 
 static plugins::FeaturePlugin<GooseHeuristicFeature> _plugin;

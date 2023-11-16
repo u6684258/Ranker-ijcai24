@@ -49,8 +49,6 @@ class GooseHeuristic : public Heuristic {
 
  protected:
   virtual int compute_heuristic(const State &ancestor_state) override;
-  virtual std::vector<int> compute_heuristic_batch(
-    const std::vector<State> &ancestor_states) override;
   
  public:
   explicit GooseHeuristic(const plugins::Options &opts);

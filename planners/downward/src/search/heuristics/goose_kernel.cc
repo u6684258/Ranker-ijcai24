@@ -149,7 +149,7 @@ void GooseKernel::initialise_facts() {
   }
 }
 
-CGraph GooseKernel::state_to_graph(const State &state) {
+CGraph GooseKernel::state_to_graph(const State &state) { 
   std::vector<std::vector<std::pair<int, int>>> edges = graph_.get_edges();
   std::vector<int> colours = graph_.get_colours();
   int cur_node_fact;
@@ -319,14 +319,6 @@ int GooseKernel::compute_heuristic(const State &ancestor_state) {
   // step 3.
   int h = predict(feature);
   return h;
-}
-
-std::vector<int> GooseKernel::compute_heuristic_batch(const std::vector<State> &ancestor_states) {
-  std::vector<int> ret;
-  for (auto state : ancestor_states) {
-    ret.push_back(compute_heuristic(state));
-  }
-  return ret;
 }
 
 class GooseKernelFeature : public plugins::TypedFeature<Evaluator, GooseKernel> {

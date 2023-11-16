@@ -27,7 +27,7 @@ class GooseLinearRegression : public Heuristic {
 
   /* Heuristic computation consists of three steps */
 
-  // 1. convert state to CGraph
+  // 1. convert state to CGraph (IG representation)
   CGraph state_to_graph(const State &state);
 
   // 2. perform WL on CGraph
@@ -38,7 +38,6 @@ class GooseLinearRegression : public Heuristic {
 
  protected:
   int compute_heuristic(const State &ancestor_state) override;
-  std::vector<int> compute_heuristic_batch(const std::vector<State> &ancestor_states) override;
   
  public:
   explicit GooseLinearRegression(const plugins::Options &opts);

@@ -59,12 +59,10 @@ protected:
     // Use task_proxy to access task information.
     TaskProxy task_proxy;
 
-    enum {DEAD_END = -1, NO_VALUE = -2};
+    // learned heuristics may become negative
+    enum {DEAD_END = -2147483647+1, NO_VALUE = -2147483647+2};
 
     virtual int compute_heuristic(const State &ancestor_state) = 0;
-
-    virtual std::vector<int> compute_heuristic_batch(
-      const std::vector<State> &states) = 0;
 
     /*
       Usage note: Marking the same operator as preferred multiple times
@@ -87,12 +85,6 @@ public:
 
     virtual EvaluationResult compute_result(
         EvaluationContext &eval_context) override;
-
-    virtual std::vector<int> compute_result_batch(
-        const std::vector<State> &states) override;
-
-    virtual int compute_result_single(
-        const State &state) override;
 
     virtual bool does_cache_estimates() const override;
     virtual bool is_estimate_cached(const State &state) const override;

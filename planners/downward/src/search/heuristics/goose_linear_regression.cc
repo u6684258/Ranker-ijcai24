@@ -312,14 +312,6 @@ int GooseLinearRegression::compute_heuristic(const State &ancestor_state) {
   return h;
 }
 
-std::vector<int> GooseLinearRegression::compute_heuristic_batch(const std::vector<State> &ancestor_states) {
-  std::vector<int> ret;
-  for (auto state : ancestor_states) {
-    ret.push_back(compute_heuristic(state));
-  }
-  return ret;
-}
-
 class GooseLinearRegressionFeature : public plugins::TypedFeature<Evaluator, GooseLinearRegression> {
  public:
   GooseLinearRegressionFeature() : TypedFeature("linear_regression") {
