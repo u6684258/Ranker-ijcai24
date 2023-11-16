@@ -2,7 +2,7 @@ lock
 logs*
 plans_*
 .ipynb_checkpoints
-trained_
+trained_*
 trained_models*
 validated_models*
 saved_models*

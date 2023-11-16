@@ -1,8 +1,0 @@
-capacity-predecessor 2
-road 2
-object 1
-size 1
-location 1
-locatable 1
-vehicle 1
-package 1
