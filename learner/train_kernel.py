@@ -20,8 +20,14 @@ warnings.filterwarnings("ignore")
 
 _CV_FOLDS = 5
 _PLOT_DIR = "plots"
-_SCORING_HEURISTIC = {"mse": make_scorer(mean_squared_error), "f1_macro": make_scorer(f1_macro)}
-_SCORING_DEADENDS = {"ll": make_scorer(log_loss), "f1_macro": make_scorer(f1_macro)}
+_SCORING_HEURISTIC = {
+    "mse": mean_squared_error,
+    "f1_macro": f1_macro,
+}
+_SCORING_DEADENDS = {
+    "ll": log_loss,
+    "f1_macro": f1_macro,
+}
 
 
 def parse_args():
@@ -54,10 +60,10 @@ def parse_args():
 
     parser.add_argument(
         "-k",
-        "--kernel",
+        "--features",
         type=str,
         required=True,
-        choices=kernels.KERNELS,
+        choices=kernels.GRAPH_FEATURE_GENERATORS,
         help="graph representation to use",
     )
     parser.add_argument(
@@ -72,7 +78,7 @@ def parse_args():
         "--prune",
         type=int,
         default=0,
-        help="discard colours with total train count <= prune",
+        help="reduce feature sizes by discarding colours with total train count <= prune",
     )
 
     parser.add_argument(
@@ -100,13 +106,25 @@ def parse_args():
     parser.add_argument("-s", "--seed", type=int, default=0, help="random seed")
     parser.add_argument("--planner", default="fd", choices=["fd", "pwl"])
 
-    parser.add_argument("-c", "--compactify", action="store_true", help="compactify weights")
-
     parser.add_argument("--save-file", type=str, default=None, help="save file of model weights")
     parser.add_argument(
         "--small-train",
         action="store_true",
         help="use small train set, useful for debugging",
+    )
+
+    parser.add_argument(
+        "--matrix-save-file",
+        type=str,
+        default=None,
+        help="save file for data; if this option is provided, training is skipped",
+    )
+
+    parser.add_argument(
+        "--matrix-load-file",
+        type=str,
+        default=None,
+        help="load file for data; if this option is provided, data generation is skipped",
     )
 
     args = parser.parse_args()
@@ -122,88 +140,83 @@ def main():
     print_arguments(args)
     np.random.seed(args.seed)
 
+    matrix_save_file = args.matrix_save_file
+    matrix_load_file = args.matrix_load_file
+
     predict_deadends = args.deadends
 
-    if predict_deadends:
-        graphs, y_true = get_deadend_dataset_from_args(args)
-        scoring = _SCORING_DEADENDS
-        if len(graphs) == 0:
-            print(f"No deadends to learn for {args.domain}!")
-            print(f"Saving a redundant file...")
-            args.model = "empty"
-            model = kernels.KernelModelWrapper(args)
-            save_kernel_model(model, args)
-            return
+    if matrix_load_file is not None:
+        # TODO, add some code that checks matrix is compatible with args
+        print(f"loading X and y from {matrix_load_file}")
+        data = np.load(matrix_load_file)
+        X = data["X"]
+        y_true = data["y"]
     else:
-        graphs, y_true = get_dataset_from_args(args)
-        scoring = _SCORING_HEURISTIC
+        if predict_deadends:
+            graphs, y_true = get_deadend_dataset_from_args(args)
+            scoring = _SCORING_DEADENDS
+            if len(graphs) == 0:
+                print(f"No deadends to learn for {args.domain}!")
+                print(f"Saving a redundant file...")
+                args.model = "empty"
+                model = kernels.KernelModelWrapper(args)
+                save_kernel_model(model, args)
+                return
+        else:
+            graphs, y_true = get_dataset_from_args(args)
+            scoring = _SCORING_HEURISTIC
 
-    print(f"Setting up training data and initialising model...")
-    t = time.time()
-    # class decides whether to use classifier or regressor
-    model = kernels.KernelModelWrapper(args)
-    model.train()
-    t = time.time()
-    train_histograms = model.compute_histograms(graphs)
-    print(f"Initialised WL for {len(graphs)} graphs in {time.time() - t:.2f}s")
-    print(f"Collected {model.n_colours_} colours over {sum(len(G.nodes) for G in graphs)} nodes")
-    X = model.get_matrix_representation(graphs, train_histograms)
-    print(f"Set up training data in {time.time()-t:.2f}s")
+        print(f"Setting up training data and initialising model...")
+        t = time.time()
+        # class decides whether to use classifier or regressor
+        model = kernels.KernelModelWrapper(args)
+        model.train()
+        t = time.time()
+        train_histograms = model.compute_histograms(graphs)
+        print(f"Initialised {args.features} for {len(graphs)} graphs in {time.time() - t:.2f}s")
+        print(
+            f"Collected {model.n_colours_} colours over {sum(len(G.nodes) for G in graphs)} nodes"
+        )
+        X = model.get_matrix_representation(graphs, train_histograms)
+        print(f"Set up training data in {time.time()-t:.2f}s")
 
+    # decide to save data or not
+    # if save data, skip training
+    if matrix_save_file is not None:
+        print(f"saving X and y to {matrix_save_file}")
+        np.savez(matrix_save_file, X=X, y=y_true)
+        return
+
+    # training
     print(f"Training on entire {args.domain} for {args.model}...")
     t = time.time()
     model.fit(X, y_true)
     print(f"Model training completed in {time.time()-t:.2f}s")
+
+    # metrics
+    print("Predicting...")
+    t = time.time()
     y_pred = model.predict(X)
-
-    # print(y_pred)
-    # print(list(X[0].astype(int)))
-    # breakpoint()
-
+    print(f"Predicting completed in {time.time()-t:.2f}s")
+    print("Scoring...")
+    t = time.time()
     for metric in scoring:
-        score = scoring[metric](model.get_learning_model(), X, y_true)
+        score = scoring[metric](y_true, y_pred)
         print(f"train_{metric}: {score:.2f}")
+    print(f"Scoring completed in {time.time()-t:.2f}s")
 
     if predict_deadends:
         print("confusion matrix:")
         print(confusion_matrix(y_true, y_pred))
 
-    # delete weights smaller than args.prune
-    if args.compactify and predict_deadends:
-        lb = 0
-        ub = 1
-        weights = model.get_weights()
-        bias = model.get_bias()
-        y_pred_int = np.rint(y_pred)
-        while ub - lb > 1e-5:  # bin search
-            cutoff = (lb + ub) / 2
-            indices = np.abs(weights) > cutoff
-            pruned_weights = weights[indices]
-
-            if len(pruned_weights) == 0:
-                ub /= 2
-                continue
-
-            X_pruned = X[:, indices]
-            y_pruned = X[:, indices] @ pruned_weights + bias
-            y_pruned_int = np.rint(y_pruned)
-
-            diff_int = np.linalg.norm(y_pred_int - y_pruned_int)
-
-            if diff_int == 0:
-                lb = cutoff
-            else:
-                ub = cutoff
-        print(f"pruned weights with cutoff {cutoff}")
-        indices = np.abs(weights) > cutoff
-        model.set_weight_indices(indices)
-
+    # save model
     save_kernel_model(model, args)
+
+    # print % weights are zero
     try:
-        print(
-            f"zero_weights: {model.get_num_zero_weights()}/{model.get_num_weights()} = "
-            + f"{model.get_num_zero_weights()/model.get_num_weights():.2f}"
-        )
+        n_zero_weights = model.get_num_zero_weights()
+        n_weights = model.get_num_weights()
+        print(f"zero_weights: {n_zero_weights}/{n_weights} = {n_zero_weights/n_weights:.2f}")
     except Exception as e:  # not possible for true kernel methods
         pass
 

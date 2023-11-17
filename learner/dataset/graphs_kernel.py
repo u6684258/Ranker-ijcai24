@@ -33,8 +33,8 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, planner):
                 continue
             actions.append(line.replace("\n", ""))
 
-    state_output_file = f"{domain_pddl}+{problem_pddl}+{plan_file}+{planner}"
-    state_output_file = state_output_file.replace("/", "-").replace(".", "-")
+    state_output_file = hash((domain_pddl, problem_pddl, plan_file, planner))
+    state_output_file = repr(state_output_file).replace("-", "n")
     state_output_file = state_output_file + ".states"
 
     cmd = {
@@ -44,7 +44,7 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, planner):
         "fd": f"export PLAN_INPUT_PATH={plan_file} "
         + f"&& export STATES_OUTPUT_PATH={state_output_file} "
         + f"&& {_DOWNWARD} {domain_pddl} {problem_pddl} "
-        + f'--search \'perfect([linear_regression(model_data="", graph_data="")])\'',  # need filler h
+        + f'--search \'perfect([blind()])\'',  # need filler h
     }[planner]
     output = os.popen(cmd).readlines()
     with open(state_output_file, "r") as f:
