@@ -23,9 +23,11 @@ def sample_from_dict(d, sample, seed):
     return dict(zip(keys, values))
 
 
-def get_plan_info(domain_pddl, problem_pddl, plan_file, planner):
+def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
     states = []
     actions = []
+
+    planner = args.planner
 
     with open(plan_file, "r") as f:
         for line in f.readlines():
@@ -33,8 +35,11 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, planner):
                 continue
             actions.append(line.replace("\n", ""))
 
-    state_output_file = f"{domain_pddl}+{problem_pddl}+{plan_file}+{planner}"
-    state_output_file = state_output_file.replace("/", "-").replace(".", "-")
+    # state_output_file = f"{domain_pddl}_{problem_pddl}_{plan_file}_{repr(args)}"
+    # for c in ["/", ".", "(", ")", " ", "'", "=", ",", "-", "_"]:
+    #     state_output_file = state_output_file.replace(c, "")
+    state_output_file = repr(hash(repr(args))).replace("-", "n")
+    aux_file = state_output_file + ".sas"
     state_output_file = state_output_file + ".states"
 
     cmd = {
@@ -43,10 +48,21 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, planner):
         + f"--plan-file {state_output_file}",
         "fd": f"export PLAN_INPUT_PATH={plan_file} "
         + f"&& export STATES_OUTPUT_PATH={state_output_file} "
-        + f"&& {_DOWNWARD} {domain_pddl} {problem_pddl} "
+        + f"&& {_DOWNWARD} --sas-file {aux_file} {domain_pddl} {problem_pddl} "
         + f'--search \'perfect([linear_regression(model_data="", graph_data="")])\'',  # need filler h
     }[planner]
+
+    # print("generating plan states with:")
+    # print(cmd)
+
+    # disgusting method which hopefully makes running in parallel work fine
+    assert not os.path.exists(aux_file), aux_file
+    assert not os.path.exists(state_output_file), state_output_file
     output = os.popen(cmd).readlines()
+    if output == None:
+        print("make this variable seen")
+    os.remove(aux_file)
+
     with open(state_output_file, "r") as f:
         for line in f.readlines():
             if ";" in line:
@@ -75,9 +91,14 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, planner):
     return ret
 
 
-def get_graphs_from_plans(representation, planner, domain_pddl, tasks_dir, plans_dir):
+def get_graphs_from_plans(args):
     print("Generating graphs from plans...")
     graphs = []
+
+    representation = args.rep
+    domain_pddl = args.domain_pddl
+    tasks_dir = args.tasks_dir
+    plans_dir = args.plans_dir
 
     for plan_file in tqdm(list(os.listdir(plans_dir))):
         problem_pddl = f"{tasks_dir}/{plan_file.replace('.plan', '.pddl')}"
@@ -87,7 +108,7 @@ def get_graphs_from_plans(representation, planner, domain_pddl, tasks_dir, plans
 
         # rep.convert_to_pyg()
         rep.convert_to_coloured_graph()
-        plan = get_plan_info(domain_pddl, problem_pddl, plan_file, planner)
+        plan = get_plan_info(domain_pddl, problem_pddl, plan_file, args)
 
         for s, action, distance_to_goal in plan:
             if REPRESENTATIONS[representation].lifted:
@@ -101,15 +122,9 @@ def get_graphs_from_plans(representation, planner, domain_pddl, tasks_dir, plans
 
 
 def get_dataset_from_args(args):
-    rep = args.rep
-    planner = args.planner
     small_train = args.small_train
 
-    domain_pddl = args.domain_pddl
-    tasks_dir = args.tasks_dir
-    plans_dir = args.plans_dir
-
-    dataset = get_graphs_from_plans(rep, planner, domain_pddl, tasks_dir, plans_dir)
+    dataset = get_graphs_from_plans(args)
     if small_train:
         random.seed(123)
         dataset = random.sample(dataset, k=1000)
