@@ -22,6 +22,7 @@ plots
 *.model
 *.txt
 *.npz
+*.pkl
 
 slg
 flg

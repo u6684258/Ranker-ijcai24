@@ -1,6 +1,8 @@
 """ Main training pipeline script. """
 
 import os
+import pickle
+import sys
 import time
 import argparse
 import numpy as np
@@ -32,13 +34,13 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "domain",
+        "-d",
+        "--domain",
         help="domain to learn domain knowledge for",
         choices=IPC2023_LEARNING_DOMAINS,
     )
 
     parser.add_argument(
-        "-d",
         "--deadends",
         action="store_true",
         help="learn dead ends",
@@ -48,7 +50,6 @@ def parse_args():
         "-r",
         "--rep",
         type=str,
-        required=True,
         choices=representation.REPRESENTATIONS,
         help="graph representation to use",
     )
@@ -57,7 +58,6 @@ def parse_args():
         "-k",
         "--features",
         type=str,
-        required=True,
         choices=kernels.GRAPH_FEATURE_GENERATORS,
         help="graph representation to use",
     )
@@ -123,10 +123,30 @@ def parse_args():
     )
 
     args = parser.parse_args()
+
     domain = args.domain
     args.domain_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
     args.tasks_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy"
     args.plans_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training_plans"
+
+    data_load_file = args.data_load_file
+    if data_load_file is not None:
+        # replaces parsed args by args loaded from file
+        assert os.path.exists(data_load_file), data_load_file
+        with open(data_load_file, "rb") as inp:
+            data = pickle.load(inp)
+            args = data["train_args"]
+        args.data_load_file = data_load_file
+        args.data_save_file = None
+        print(f"using args in {data_load_file}")
+    else:
+        if args.domain is None or args.rep is None or args.features is None:
+            parser.print_help()
+            print(
+                "error: the following arguments are required: -d/--domain, -r/--rep, -k/--features"
+            )
+            sys.exit(-1)
+
     return args
 
 
@@ -149,14 +169,13 @@ def main():
     scoring = _SCORING_DEADENDS if predict_deadends else _SCORING_HEURISTIC
 
     if data_load_file is not None:
-        # TODO, add some code that checks data is compatible with args
-        assert os.path.exists(data_load_file), data_load_file
         print(f"loading X and y from {data_load_file}")
-        data = np.load(data_load_file)
-        X_train = data["X_train"]
-        X_val = data["X_val"]
-        y_train = data["y_train"]
-        y_val = data["y_val"]
+        with open(data_load_file, "rb") as inp:
+            data = pickle.load(inp)
+            X_train = data["X_train"]
+            X_val = data["X_val"]
+            y_train = data["y_train"]
+            y_val = data["y_val"]
     else:
         if predict_deadends:
             graphs, y_true = get_deadend_dataset_from_args(args)
@@ -201,7 +220,15 @@ def main():
         save_dir = os.path.dirname(data_save_file)
         os.makedirs(save_dir, exist_ok=True)
         print(f"saving train and validation X and y to {data_save_file}")
-        np.savez(data_save_file, X_train=X_train, X_val=X_val, y_train=y_train, y_val=y_val)
+        with open(data_save_file, "wb") as outp:
+            data = {
+                "train_args": args,
+                "X_train": X_train,
+                "X_val": X_val,
+                "y_train": y_train,
+                "y_val": y_val,
+            }
+            pickle.dump(data, outp, pickle.HIGHEST_PROTOCOL)
         return
 
     # training
