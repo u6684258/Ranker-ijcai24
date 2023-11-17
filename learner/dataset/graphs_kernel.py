@@ -35,10 +35,8 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
                 continue
             actions.append(line.replace("\n", ""))
 
-    # state_output_file = f"{domain_pddl}_{problem_pddl}_{plan_file}_{repr(args)}"
-    # for c in ["/", ".", "(", ")", " ", "'", "=", ",", "-", "_"]:
-    #     state_output_file = state_output_file.replace(c, "")
     state_output_file = repr(hash(repr(args))).replace("-", "n")
+    state_output_file += repr(hash(domain_pddl))+repr(hash(problem_pddl))+repr(hash(plan_file))
     aux_file = state_output_file + ".sas"
     state_output_file = state_output_file + ".states"
 
@@ -48,7 +46,7 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
         + f"--plan-file {state_output_file}",
         "fd": f"export PLAN_INPUT_PATH={plan_file} "
         + f"&& export STATES_OUTPUT_PATH={state_output_file} "
-        + f"&& {_DOWNWARD} {domain_pddl} {problem_pddl} "
+        + f"&& {_DOWNWARD} --sas-file {aux_file} {domain_pddl} {problem_pddl} "
         + f'--search \'perfect([blind()])\'',  # need filler h
     }[planner]
 
@@ -61,7 +59,8 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
     output = os.popen(cmd).readlines()
     if output == None:
         print("make this variable seen")
-    os.remove(aux_file)
+    if os.path.exists(aux_file):
+        os.remove(aux_file)
 
     with open(state_output_file, "r") as f:
         for line in f.readlines():
