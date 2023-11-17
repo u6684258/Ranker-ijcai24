@@ -143,6 +143,11 @@ def main():
 
     predict_deadends = args.deadends
 
+    # class decides whether to use classifier or regressor
+    model = kernels.KernelModelWrapper(args)
+    model.train()
+    scoring = _SCORING_DEADENDS if predict_deadends else _SCORING_HEURISTIC
+
     if data_load_file is not None:
         # TODO, add some code that checks data is compatible with args
         assert os.path.exists(data_load_file), data_load_file
@@ -155,7 +160,6 @@ def main():
     else:
         if predict_deadends:
             graphs, y_true = get_deadend_dataset_from_args(args)
-            scoring = _SCORING_DEADENDS
             if len(graphs) == 0:
                 print(f"No deadends to learn for {args.domain}!")
                 print(f"Saving a redundant file...")
@@ -165,15 +169,10 @@ def main():
                 return
         else:
             graphs, y_true = get_dataset_from_args(args)
-            scoring = _SCORING_HEURISTIC
 
         graphs_train, graphs_val, y_train, y_val = train_test_split(
             graphs, y_true, test_size=0.33, random_state=2023
         )
-
-        # class decides whether to use classifier or regressor
-        model = kernels.KernelModelWrapper(args)
-        model.train()
 
         print(f"Setting up training data...")
         t = time.time()
