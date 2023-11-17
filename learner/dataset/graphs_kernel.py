@@ -48,8 +48,8 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
         + f"--plan-file {state_output_file}",
         "fd": f"export PLAN_INPUT_PATH={plan_file} "
         + f"&& export STATES_OUTPUT_PATH={state_output_file} "
-        + f"&& {_DOWNWARD} --sas-file {aux_file} {domain_pddl} {problem_pddl} "
-        + f'--search \'perfect([linear_regression(model_data="", graph_data="")])\'',  # need filler h
+        + f"&& {_DOWNWARD} {domain_pddl} {problem_pddl} "
+        + f'--search \'perfect([blind()])\'',  # need filler h
     }[planner]
 
     # print("generating plan states with:")

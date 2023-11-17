@@ -21,6 +21,8 @@ plots
 *.states
 *.model
 *.txt
+*.npz
+*.pkl
 
 slg
 flg

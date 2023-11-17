@@ -1,4 +1,8 @@
 from .wrapper import KernelModelWrapper
-from .wl import WeisfeilerLehmanKernel
+from .wl1 import ColourRefinement
+from .wl2 import Wl2
 
-KERNELS = {"wl": WeisfeilerLehmanKernel}
+GRAPH_FEATURE_GENERATORS = {
+    "wl": ColourRefinement,
+    "2wl": Wl2,
+}

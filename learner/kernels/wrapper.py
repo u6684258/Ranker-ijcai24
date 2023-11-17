@@ -10,7 +10,7 @@ from kernels.base_kernel import Histogram
 
 
 MODELS = [
-    "linear-regression",
+    # "linear-regression",
     "linear-svr",
     "ridge",
     "lasso",
@@ -20,7 +20,7 @@ MODELS = [
     "mlp",
 ]
 
-_MAX_MODEL_ITER = 10000
+_MAX_MODEL_ITER = 1000000
 
 
 class KernelModelWrapper:
@@ -30,7 +30,7 @@ class KernelModelWrapper:
             return  # when there are no dead ends to learn
         self._model_name = args.model
 
-        self._kernel = kernels.KERNELS[args.kernel](iterations=args.iterations, prune=args.prune)
+        self._kernel = kernels.GRAPH_FEATURE_GENERATORS[args.features](iterations=args.iterations, prune=args.prune)
 
         self._iterations = args.iterations
         self._prune = args.prune
@@ -90,6 +90,12 @@ class KernelModelWrapper:
     def eval(self) -> None:
         """set eval mode, not actually evaluating anything"""
         self._kernel.eval()
+
+    def get_hit_colours(self) -> int:
+        return self._kernel.get_hit_colours()
+    
+    def get_missed_colours(self) -> int:
+        return self._kernel.get_missed_colours()
 
     def fit(self, X, y) -> None:
         self._model.fit(X, y)

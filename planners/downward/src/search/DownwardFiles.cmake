@@ -497,6 +497,20 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME GOOSE_KERNEL_HEURISTIC
+    HELP "The GOOSE heuristic with kernel"
+    SOURCES
+        heuristics/goose_kernel
+)
+
+fast_downward_plugin(
+    NAME GOOSE_LINEAR_REGRESSION
+    HELP "The GOOSE heuristic with linear regression"
+    SOURCES
+        heuristics/goose_linear_regression
+)
+
+fast_downward_plugin(
     NAME LP_SOLVER
     HELP "Interface to an LP solver"
     SOURCES
