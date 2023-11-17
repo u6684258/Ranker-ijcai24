@@ -232,7 +232,8 @@ def main():
     # if save data, skip training
     if data_save_file is not None:
         save_dir = os.path.dirname(data_save_file)
-        os.makedirs(save_dir, exist_ok=True)
+        if len(save_dir) > 0:
+            os.makedirs(save_dir, exist_ok=True)
         print(f"saving train and validation X and y to {data_save_file}")
         with open(data_save_file, "wb") as outp:
             data = {

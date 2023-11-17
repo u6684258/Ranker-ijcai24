@@ -45,6 +45,7 @@ class KernelModelWrapper:
         self._deadends = args.deadends
         if self._deadends:  # deadends is binary classification
             self._model = {
+                None: None,
                 "linear-regression": LogisticRegression(penalty=None),
                 "linear-svr": LinearSVC(dual="auto", C=args.C, **kwargs),
                 "lasso": LogisticRegression(  # l1 only works with liblinear and saga
@@ -64,6 +65,7 @@ class KernelModelWrapper:
             }[self._model_name]
         else:  # heuristic is regression
             self._model = {
+                None: None,
                 "linear-regression": LinearRegression(),
                 "linear-svr": LinearSVR(dual="auto", epsilon=args.e, C=args.C, **kwargs),
                 "lasso": Lasso(alpha=args.a, **kwargs),

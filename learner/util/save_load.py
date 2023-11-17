@@ -82,7 +82,8 @@ def save_kernel_model(model, args):
     print("Saving model...")
     model_file_name = args.model_save_file.replace(".joblib", "")
     base_dir = os.path.dirname(model_file_name)
-    os.makedirs(base_dir, exist_ok=True)
+    if len(base_dir) > 0:
+        os.makedirs(base_dir, exist_ok=True)
     path = f"{model_file_name}.joblib"
     joblib.dump((model, args), path)
     print("Model saved!")

@@ -2,7 +2,6 @@
  
 #PBS -P xb83
 #PBS -q normal
-#PBS -l walltime=00:30:00
 #PBS -l ncpus=1
 #PBS -l mem=4GB
 #PBS -l jobfs=20GB

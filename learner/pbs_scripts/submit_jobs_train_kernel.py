@@ -7,15 +7,30 @@ from itertools import product
 ~> 30 minute + 8GB job = 2 SU
 """
 
+_TIMEOUT = "00:10:00"
+
 _CONFIGS = product(
-    ["wl"],  # wl algorithms
-    [1,2,3,4,6,8,12,16,24,32],  # iterations
+    ["wl", "2wl"],  # wl algorithms
+    [1, 2, 4, 8, 16],  # iterations
+    [0, 1, 2, 4, 8, 16],  # count prunes
     ["ig"],  # representation
-    ["ferry", "blocksworld", "childsnack", "floortile", "miconic", "rovers", "satellite", "sokoban", "spanner", "transport"],  # domains
-    ["linear-svr", "lasso", "ridge", "rbf-svr", "quadratic-svr", "cubic-svr", "mlp"],  # models
+    [
+        "ferry",
+        "blocksworld",
+        "childsnack",
+        "floortile",
+        "miconic",
+        "rovers",
+        "satellite",
+        "sokoban",
+        "spanner",
+        "transport",
+    ],  # domains
+    ["linear-svr", "quadratic-svr", "cubic-svr", "rbf-svr", "lasso", "ridge"],  # ml models
 )
 
 _LOG_DIR = "logs_training_kernels"
+_DATA_DIR = "kernel_training_data"
 _LOCK_DIR = "lock"
 _MODEL_DIR = "trained_kernel_models"
 
@@ -34,13 +49,16 @@ def main():
 
     e = args.e
 
-    for wl, iterations, rep, domain, model in _CONFIGS:
-        desc = f"{wl}_{iterations}_{rep}_{model}_H_{domain}"
-        save_file = f"{_MODEL_DIR}/{desc}.joblib"
+    for wl, iterations, prune, rep, domain, model in _CONFIGS:
+        data_desc = "_".join([wl, str(iterations), str(prune), rep, domain, "H"])
+        load_save_file = f"{_DATA_DIR}/{data_desc}.pkl"
+
+        desc = "_".join([model, wl, str(iterations), str(prune), rep, domain, "H"])
         lock_file = f"{_LOCK_DIR}/{desc}.lock"
         log_file = f"{_LOG_DIR}/{desc}.log"
+        model_save_file = f"{_MODEL_DIR}/{desc}.joblib"
 
-        if (os.path.exists(save_file) and os.path.exists(log_file)) or (os.path.exists(lock_file)):
+        if (os.path.exists(model_save_file) and os.path.exists(log_file)) or (os.path.exists(lock_file)):
             skipped += 1
             continue
 
@@ -51,10 +69,12 @@ def main():
         with open(lock_file, "w") as f:
             pass
 
-        cmd = f"python3 train_kernel.py {domain} -k {wl} -l {iterations} -r {rep} -m {model} --save-file {save_file}"
+        cmd = f"python3 train_kernel.py -m {model} --data-load-file {load_save_file} --model-save-file {model_save_file}"
+        print(cmd)
+        breakpoint()
 
         cmd = (
-            f"qsub -o {log_file} -j oe -v "
+            f"qsub -o {log_file} -j oe -l walltime={_TIMEOUT} -v "
             + f'CMD="{cmd}",'
             + f'LOCK_FILE="{lock_file}" '
             + f"pbs_scripts/train_kernel_job.sh"

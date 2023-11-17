@@ -7,10 +7,12 @@ from itertools import product
 ~> 30 minute + 8GB job = 2 SU
 """
 
+_TIMEOUT = "00:30:00"
+
 _CONFIGS = product(
     ["wl", "2wl"],  # wl algorithms
     [1, 2, 4, 8, 16],  # iterations
-    [1, 2, 4, 8, 16],  # count prunes
+    [0, 1, 2, 4, 8, 16],  # count prunes
     ["ig"],  # representation
     [
         "ferry",
@@ -65,7 +67,7 @@ def main():
         cmd = f"python3 train_kernel.py -d {domain} -k {wl} -l {iterations} -r {rep} -p {prune} --data-save-file {save_file}"
 
         cmd = (
-            f"qsub -o {log_file} -j oe -v "
+            f"qsub -o {log_file} -j oe -l walltime={_TIMEOUT} -v "
             + f'CMD="{cmd}",'
             + f'LOCK_FILE="{lock_file}" '
             + f"pbs_scripts/train_kernel_job.sh"
