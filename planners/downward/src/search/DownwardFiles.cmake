@@ -490,6 +490,13 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME CGRAPH
+    HELP "GOOSE kernel CGraphs"
+    SOURCES
+        goose/coloured_graph
+)
+
+fast_downward_plugin(
     NAME GOOSE_HEURISTIC
     HELP "The GOOSE heuristic"
     SOURCES
@@ -501,6 +508,7 @@ fast_downward_plugin(
     HELP "The GOOSE heuristic with kernel"
     SOURCES
         heuristics/goose_kernel
+    DEPENDS CGRAPH
 )
 
 fast_downward_plugin(
@@ -508,6 +516,7 @@ fast_downward_plugin(
     HELP "The GOOSE heuristic with linear regression"
     SOURCES
         heuristics/goose_linear_regression
+    DEPENDS CGRAPH
 )
 
 fast_downward_plugin(
