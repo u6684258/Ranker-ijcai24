@@ -77,10 +77,10 @@ def save_gnn_model(model, args):
 
 
 def save_kernel_model(model, args):
-    if not hasattr(args, "save_file") or args.save_file is None:
+    if not hasattr(args, "model_save_file") or args.model_save_file is None:
         return
     print("Saving model...")
-    model_file_name = args.save_file.replace(".joblib", "")
+    model_file_name = args.model_save_file.replace(".joblib", "")
     base_dir = os.path.dirname(model_file_name)
     os.makedirs(base_dir, exist_ok=True)
     path = f"{model_file_name}.joblib"

@@ -33,19 +33,44 @@ _SCORING_DEADENDS = {
 def parse_args():
     parser = argparse.ArgumentParser()
 
+    # ml model arguments
+    parser.add_argument(
+        "-m", "--model", type=str, default=None, choices=[None] + MODELS, help="ML model"
+    )
+    parser.add_argument(
+        "-a",
+        type=float,
+        default=1,
+        help="L1 and L2 regularisation parameter of linear regression; strength is proportional to a",
+    )
+    parser.add_argument(
+        "-C",
+        type=float,
+        default=1,
+        help="regularisation parameter of SVR; strength is inversely proportional to C",
+    )
+    parser.add_argument(
+        "-e",
+        type=float,
+        default=0.1,
+        help="epsilon parameter in epsilon insensitive loss function of SVR",
+    )
+    parser.add_argument(
+        "--model-save-file", type=str, default=None, help="save file of model weights"
+    )
+
+    # data arguments
     parser.add_argument(
         "-d",
         "--domain",
         help="domain to learn domain knowledge for",
         choices=IPC2023_LEARNING_DOMAINS,
     )
-
     parser.add_argument(
         "--deadends",
         action="store_true",
         help="learn dead ends",
     )
-
     parser.add_argument(
         "-r",
         "--rep",
@@ -53,7 +78,6 @@ def parse_args():
         choices=representation.REPRESENTATIONS,
         help="graph representation to use",
     )
-
     parser.add_argument(
         "-k",
         "--features",
@@ -75,46 +99,19 @@ def parse_args():
         default=0,
         help="reduce feature sizes by discarding colours with total train count <= prune",
     )
-
-    parser.add_argument(
-        "-m", "--model", type=str, default="linear-svr", choices=MODELS, help="ML model"
-    )
-    parser.add_argument(
-        "-a",
-        type=float,
-        default=1,
-        help="L1 and L2 regularisation parameter of linear regression; strength is proportional to a",
-    )
-    parser.add_argument(
-        "-C",
-        type=float,
-        default=1,
-        help="regularisation parameter of SVR; strength is inversely proportional to C",
-    )
-    parser.add_argument(
-        "-e",
-        type=float,
-        default=0.1,
-        help="epsilon parameter in epsilon insensitive loss function of SVR",
-    )
-
-    parser.add_argument("-s", "--seed", type=int, default=0, help="random seed")
-    parser.add_argument("--planner", default="fd", choices=["fd", "pwl"])
-
-    parser.add_argument("--save-file", type=str, default=None, help="save file of model weights")
     parser.add_argument(
         "--small-train",
         action="store_true",
         help="use small train set, useful for debugging",
     )
-
+    parser.add_argument("-s", "--seed", type=int, default=0, help="random seed")
+    parser.add_argument("--planner", default="fd", choices=["fd", "pwl"])
     parser.add_argument(
         "--data-save-file",
         type=str,
         default=None,
         help="save file for data; if this option is provided, training is skipped",
     )
-
     parser.add_argument(
         "--data-load-file",
         type=str,
@@ -133,12 +130,29 @@ def parse_args():
     if data_load_file is not None:
         # replaces parsed args by args loaded from file
         assert os.path.exists(data_load_file), data_load_file
+        if args.model is None:
+            print("error: -m/--model is required when loading data")
+            sys.exit(-1)
+
+        model = args.model
+        a = args.a
+        C = args.C
+        e = args.e
+        model_save_file = args.model_save_file
+
         with open(data_load_file, "rb") as inp:
             data = pickle.load(inp)
             args = data["train_args"]
+        print(f"using all data args in {data_load_file}")
+
         args.data_load_file = data_load_file
         args.data_save_file = None
-        print(f"using args in {data_load_file}")
+        
+        args.model = model
+        args.a = a
+        args.C = C
+        args.e = e
+        args.model_save_file = model_save_file
     else:
         if args.domain is None or args.rep is None or args.features is None:
             parser.print_help()
