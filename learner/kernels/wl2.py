@@ -140,10 +140,6 @@ class Wl2(WlAlgorithm):
 
         return K
 
-    def eval(self):
-        super().eval()
-        self._train_histogram = None
-
     @property
     def n_colours_(self) -> int:
         return len(self._hash)

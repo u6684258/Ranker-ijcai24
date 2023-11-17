@@ -6,8 +6,8 @@ import argparse
 import numpy as np
 import representation
 import kernels
-from sklearn.model_selection import cross_validate
-from sklearn.metrics import confusion_matrix, log_loss, make_scorer, mean_squared_error
+from sklearn.model_selection import cross_validate, train_test_split
+from sklearn.metrics import confusion_matrix, log_loss, mean_squared_error
 from kernels.wrapper import MODELS
 from dataset.graphs_kernel import get_dataset_from_args, get_deadend_dataset_from_args
 from util.save_load import print_arguments, save_kernel_model
@@ -18,8 +18,6 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
-_CV_FOLDS = 5
-_PLOT_DIR = "plots"
 _SCORING_HEURISTIC = {
     "mse": mean_squared_error,
     "f1_macro": f1_macro,
@@ -32,9 +30,6 @@ _SCORING_DEADENDS = {
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    # parser.add_argument("domain_pddl", help="path to domain pddl")
-    # parser.add_argument("tasks_dir", help="path to training task directory")
-    # parser.add_argument("plans_dir", help="path to training plan directory")
 
     parser.add_argument(
         "domain",
@@ -114,14 +109,14 @@ def parse_args():
     )
 
     parser.add_argument(
-        "--matrix-save-file",
+        "--data-save-file",
         type=str,
         default=None,
         help="save file for data; if this option is provided, training is skipped",
     )
 
     parser.add_argument(
-        "--matrix-load-file",
+        "--data-load-file",
         type=str,
         default=None,
         help="load file for data; if this option is provided, data generation is skipped",
@@ -140,17 +135,23 @@ def main():
     print_arguments(args)
     np.random.seed(args.seed)
 
-    matrix_save_file = args.matrix_save_file
-    matrix_load_file = args.matrix_load_file
+    data_save_file = args.data_save_file
+    data_load_file = args.data_load_file
+    assert (
+        data_save_file is None or data_load_file is None
+    ), "cannot provide both save and load data files"
 
     predict_deadends = args.deadends
 
-    if matrix_load_file is not None:
-        # TODO, add some code that checks matrix is compatible with args
-        print(f"loading X and y from {matrix_load_file}")
-        data = np.load(matrix_load_file)
-        X = data["X"]
-        y_true = data["y"]
+    if data_load_file is not None:
+        # TODO, add some code that checks data is compatible with args
+        assert os.path.exists(data_load_file), data_load_file
+        print(f"loading X and y from {data_load_file}")
+        data = np.load(data_load_file)
+        X_train = data["X_train"]
+        X_val = data["X_val"]
+        y_train = data["y_train"]
+        y_val = data["y_val"]
     else:
         if predict_deadends:
             graphs, y_true = get_deadend_dataset_from_args(args)
@@ -166,48 +167,69 @@ def main():
             graphs, y_true = get_dataset_from_args(args)
             scoring = _SCORING_HEURISTIC
 
-        print(f"Setting up training data and initialising model...")
-        t = time.time()
+        graphs_train, graphs_val, y_train, y_val = train_test_split(
+            graphs, y_true, test_size=0.33, random_state=2023
+        )
+
         # class decides whether to use classifier or regressor
         model = kernels.KernelModelWrapper(args)
         model.train()
+
+        print(f"Setting up training data...")
         t = time.time()
-        train_histograms = model.compute_histograms(graphs)
-        print(f"Initialised {args.features} for {len(graphs)} graphs in {time.time() - t:.2f}s")
-        print(
-            f"Collected {model.n_colours_} colours over {sum(len(G.nodes) for G in graphs)} nodes"
-        )
-        X = model.get_matrix_representation(graphs, train_histograms)
+        train_histograms = model.compute_histograms(graphs_train)
+        n_train_nodes = sum(len(G.nodes) for G in graphs_train)
+        print(f"Initialised {args.features} for {len(graphs_train)} graphs")
+        print(f"Collected {model.n_colours_} colours over {n_train_nodes} nodes")
+        X_train = model.get_matrix_representation(graphs_train, train_histograms)
         print(f"Set up training data in {time.time()-t:.2f}s")
+
+        print(f"Setting up validation data...")
+        model.eval()
+        t = time.time()
+        val_histograms = model.compute_histograms(graphs_val)
+        X_val = model.get_matrix_representation(graphs_val, val_histograms)
+        print(f"Set up validation data in {time.time()-t:.2f}s")
+        n_hit_colours = model.get_hit_colours()
+        n_missed_colours = model.get_missed_colours()
+        print(f"hit colours: {n_hit_colours}")
+        print(f"missed colours: {n_missed_colours}")
+        print(f"ratio hit/all colours: {n_hit_colours/(n_hit_colours+n_missed_colours):.2f}")
 
     # decide to save data or not
     # if save data, skip training
-    if matrix_save_file is not None:
-        print(f"saving X and y to {matrix_save_file}")
-        np.savez(matrix_save_file, X=X, y=y_true)
+    if data_save_file is not None:
+        save_dir = os.path.dirname(data_save_file)
+        os.makedirs(save_dir, exist_ok=True)
+        print(f"saving train and validation X and y to {data_save_file}")
+        np.savez(data_save_file, X_train=X_train, X_val=X_val, y_train=y_train, y_val=y_val)
         return
 
     # training
     print(f"Training on entire {args.domain} for {args.model}...")
     t = time.time()
-    model.fit(X, y_true)
+    model.fit(X_train, y_train)
     print(f"Model training completed in {time.time()-t:.2f}s")
 
-    # metrics
+    # predict on train and val sets
     print("Predicting...")
     t = time.time()
-    y_pred = model.predict(X)
+    y_train_pred = model.predict(X_train)
+    y_val_pred = model.predict(X_val)
     print(f"Predicting completed in {time.time()-t:.2f}s")
-    print("Scoring...")
+
+    # metrics
+    print("Scores:")
     t = time.time()
     for metric in scoring:
-        score = scoring[metric](y_true, y_pred)
-        print(f"train_{metric}: {score:.2f}")
-    print(f"Scoring completed in {time.time()-t:.2f}s")
+        print(f"train_{metric}: {scoring[metric](y_train, y_train_pred):.2f}")
+        print(f"val_{metric}: {scoring[metric](y_val, y_val_pred):.2f}")
 
     if predict_deadends:
-        print("confusion matrix:")
-        print(confusion_matrix(y_true, y_pred))
+        print("train confusion matrix:")
+        print(confusion_matrix(y_train, y_train_pred))
+        print("val confusion matrix:")
+        print(confusion_matrix(y_val, y_val_pred))
 
     # save model
     save_kernel_model(model, args)

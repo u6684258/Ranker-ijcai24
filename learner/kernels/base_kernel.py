@@ -28,8 +28,10 @@ class WlAlgorithm(ABC):
         # number of wl iterations
         self.iterations = iterations
 
-        # see self._prune_hash
-        self._train_histogram = None
+        # counters during evaluation of hit and missed colours
+        self._hit_colours = 0
+        self._missed_colours = 0
+
         return
 
     @abstractmethod
@@ -49,8 +51,10 @@ class WlAlgorithm(ABC):
             return self._hash[colour]
         else:
             if colour in self._hash:
+                self._hit_colours += 1
                 return self._hash[colour]
             else:
+                self._missed_colours += 1
                 return -1
 
     def _prune_hash(self, histograms):
@@ -87,8 +91,6 @@ class WlAlgorithm(ABC):
                 new_histogram[old_colour_hash_to_new_hash[old_col_hash]] = cnt
             ret_histograms[G] = new_histogram
 
-        self._train_histogram = train_histogram
-
         return ret_histograms
 
     def train(self) -> None:
@@ -96,7 +98,14 @@ class WlAlgorithm(ABC):
 
     def eval(self) -> None:
         self._train = False
-        self._train_histogram = None
+        self._hit_colours = 0
+        self._missed_colours = 0
+
+    def get_hit_colours(self) -> int:
+        return self._hit_colours
+    
+    def get_missed_colours(self) -> int:
+        return self._missed_colours
 
     def get_x(
         self, graphs: CGraph, histograms: Optional[Dict[CGraph, Histogram]] = None

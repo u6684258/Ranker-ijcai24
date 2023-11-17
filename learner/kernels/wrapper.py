@@ -91,6 +91,12 @@ class KernelModelWrapper:
         """set eval mode, not actually evaluating anything"""
         self._kernel.eval()
 
+    def get_hit_colours(self) -> int:
+        return self._kernel.get_hit_colours()
+    
+    def get_missed_colours(self) -> int:
+        return self._kernel.get_missed_colours()
+
     def fit(self, X, y) -> None:
         self._model.fit(X, y)
 
