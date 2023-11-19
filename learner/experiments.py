@@ -46,7 +46,7 @@ def task(domain, layers, method):
           f'-d goose-{domain} ' \
           f'-L {layers} ' \
           f'--log-root {log_root} ' \
-          f'--save-file rank-{domain}-L{layers}-coord ' \
+          f'--save-file rank-slg-{domain}-L{layers} ' \
           f'--method batched_coord_ranker ' \
           f'--fast-train'
     # f'--test-only'
@@ -75,29 +75,29 @@ def task(domain, layers, method):
     subprocess.call(cmd.split(" "), stdout=f)
 
     # elif method == "hgn":
-    cmd = f'python3 {exp_root}/train_hgn.py -m HGNN -r hgn -d goose-{domain} ' \
-          f'--save-file hgn-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
-          f'--fast-train ' \
-          f'--method hgn'
-
-    f = open(f"{log_sub_dir}/train_hgn_{domain}_L{layers}.logs", "w")
-    print(f"Experiment log: {f}")
-    subprocess.call(cmd.split(" "), stdout=f)
-
-    # elif method == "hgn_ranker":
-    cmd = f'python3 {exp_root}/train_hgn.py -m HGNNRANK -r hgn_ranker -d goose-{domain} ' \
-          f'--save-file hgn-rank-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
-          f'--fast-train ' \
-          f'--method hgn_ranker'
-
-    f = open(f"{log_sub_dir}/train_hgn_rank_{domain}_L{layers}.logs", "w")
-    print(f"Experiment log: {f}")
-    subprocess.call(cmd.split(" "), stdout=f)
+    # cmd = f'python3 {exp_root}/train_hgn.py -m HGNN -r hgn -d goose-{domain} ' \
+    #       f'--save-file hgn-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
+    #       f'--fast-train ' \
+    #       f'--method hgn'
+    #
+    # f = open(f"{log_sub_dir}/train_hgn_{domain}_L{layers}.logs", "w")
+    # print(f"Experiment log: {f}")
+    # subprocess.call(cmd.split(" "), stdout=f)
+    #
+    # # elif method == "hgn_ranker":
+    # cmd = f'python3 {exp_root}/train_hgn.py -m HGNNRANK -r hgn_ranker -d goose-{domain} ' \
+    #       f'--save-file hgn-rank-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
+    #       f'--fast-train ' \
+    #       f'--method hgn_ranker'
+    #
+    # f = open(f"{log_sub_dir}/train_hgn_rank_{domain}_L{layers}.logs", "w")
+    # print(f"Experiment log: {f}")
+    # subprocess.call(cmd.split(" "), stdout=f)
 
 
 jobs = []
 for domain in args.domains:
-    for layer in [4, 7, 10, 13]:
+    for layer in [4, 7, 10]:
         jobs.append((domain, layer, args.method))
 
 count = 1
