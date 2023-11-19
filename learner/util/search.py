@@ -109,13 +109,18 @@ def fd_general_cmd(domain_file, problem_file, result_file, search="astar+lmcut")
     if search == "astar+lmcut":
         cmd += ["--search", "astar(lmcut())"]
 
+    if search == "hff":
+        cmd += ["--evaluator",
+                "hff=ff(transform=adapt_costs(one))", "--search",
+                ("eager_greedy([hff])")]
+
     elif search == "lamafirst":
         cmd += ["--evaluator",
                 ("hlm=landmark_sum(lm_factory=lm_reasonable_orders_hps(lm_rhw()),"
                  "transform=adapt_costs(one),pref=false)"), "--evaluator",
                 "hff=ff(transform=adapt_costs(one))", "--search",
                 ("lazy_greedy([hff,hlm],preferred=[hff,hlm],cost_type=one,"
-                 "reopen_closed=false,bound={bound})")]
+                 "reopen_closed=false)")]
     else:
         cmd += ["--search", "astar(lmcut())"]
 

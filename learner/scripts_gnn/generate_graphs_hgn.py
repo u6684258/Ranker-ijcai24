@@ -13,7 +13,7 @@ if __name__ == "__main__":
     parser.add_argument('--step', type=int, default=1, help="how deep is the pairs (default 1)")
     args = parser.parse_args()
 
-    gen_graph_rep(representation="hgn_ranker",
+    gen_graph_rep(representation="hgn",
                   regenerate=args.regenerate,
                   domain=args.domain,
                   step=args.step)

@@ -35,27 +35,28 @@ def gen_graph_rep(
     print("Gathering problems...")
     problems = {}
     domain_to_max = {}
-    for domain_name, domain_pddl, problem_pddl, solution_file in tasks:
-        if domain is not None and domain != domain_name:
-            continue
-        if domain_name not in problems.keys():
-            problems[domain_name] = []
-            print(domain)
-        problem = STRIPSProblem(domain_pddl, problem_pddl, solution_file)
-        problems[domain_name].append([max(
-            len(action.add_effects)
-            for action in problem.actions
-        ), max(
-            len(action.preconditions)
-            for action in problem.actions
-        ), problem.number_of_propositions,
-            problem.number_of_actions,
-        ])
-    print("Computing max_receivers and max_senders...")
-    for domain, vars in problems.items():
-        domain_to_max[domain] = [max(var[0] for var in vars), max(var[1] for var in vars), max(var[2] for var in vars), max(var[3] for var in vars)]
-
-    json.dump(domain_to_max, open(f"{_SAVE_DIR}/hyperparameters.json", "w"))
+    # for domain_name, domain_pddl, problem_pddl, solution_file in tasks:
+    #     if domain is not None and domain != domain_name:
+    #         continue
+    #     if domain_name not in problems.keys():
+    #         problems[domain_name] = []
+    #         print(domain_name)
+    #     problem = STRIPSProblem(domain_pddl, problem_pddl, solution_file)
+    #     problems[domain_name].append([max(
+    #         len(action.add_effects)
+    #         for action in problem.actions
+    #     ), max(
+    #         len(action.preconditions)
+    #         for action in problem.actions
+    #     ), problem.number_of_propositions,
+    #         problem.number_of_actions,
+    #     ])
+    # print("Computing max_receivers and max_senders...")
+    # for domain, vars in problems.items():
+    #     domain_to_max[domain] = [max(var[0] for var in vars), max(var[1] for var in vars), max(var[2] for var in vars), max(var[3] for var in vars)]
+    #
+    # json.dump(domain_to_max, open(f"{_SAVE_DIR}/hyperparameters.json", "w"))
+    domain_to_max = json.load(open(f"{_SAVE_DIR}/hyperparameters.json", "r"))
     new_generated = 0
     pbar = tqdm(tasks)
     for domain_name, domain_pddl, problem_pddl, solution_file in tasks:
