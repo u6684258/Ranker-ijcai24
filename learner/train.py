@@ -247,7 +247,7 @@ def main():
             # save model parameters
             if best_dict is not None:
                 if best_val is not None:
-                    results: List[SearchMetrics] = test.domain_test("n-puzzle", "val", args.save_file, log_root=args.log_root, timeout=300)
+                    results: List[SearchMetrics] = test.domain_test(args.domain.split("-", 1)[1], "val", args.save_file, log_root=args.log_root, timeout=300)
                     nodes_expanded = len([x.nodes_expanded for x in results]) / len(results)
                     if nodes_expanded < best_val:
                         best_val = nodes_expanded
@@ -257,14 +257,14 @@ def main():
                 else:
                     args.best_metric = best_metric
                     save_gnn_model_from_dict(best_dict, args)
-                    results: List[SearchMetrics] = test.domain_test("n-puzzle", "val", args.save_file, log_root=args.log_root, timeout=300)
+                    results: List[SearchMetrics] = test.domain_test(args.domain.split("-", 1)[1], "val", args.save_file, log_root=args.log_root, timeout=300)
                     best_val = len([x.nodes_expanded for x in results]) / len(results)
 
             else:
                 save_gnn_model(model, args)
 
     print("testing...")
-    test.domain_test("n-puzzle", args.test_files, args.save_file, "test", log_root=args.log_root)
+    test.domain_test(args.domain.split("-", 1)[1], args.test_files, args.save_file, "test", log_root=args.log_root)
     # args.domain.split("-")[1]
     return
 
