@@ -200,7 +200,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
             if torch.sum(torch.abs(diff)) / diff.shape[0] < 1e-3:
                 print(f"Warning: Encodings are very close to each other: {diff}")
 
-            if torch.sum(torch.abs(result)) / diff.shape[0] < 1e-3:
+            if torch.sum(torch.abs(result)-0.5) / diff.shape[0] < 1e-3:
                 print(f"Warning: Classification is close to 0: {result}")
         return result, polarity
 
@@ -271,7 +271,7 @@ class ELMPNNBatchedCoordRankerPredictor(ELMPNNBatchedRankerPredictor):
             if torch.sum(torch.abs(diff)) / diff.shape[0] < 1e-3:
                 print(f"Warning: Encodings are very close to each other: {diff}")
 
-            if torch.sum(torch.abs(result)) / diff.shape[0] < 1e-3:
+            if torch.sum(torch.abs(result)-0.5) / diff.shape[0] < 1e-3:
                 print(f"Warning: Classification is close to 0: {result}")
         return result, polarity
 

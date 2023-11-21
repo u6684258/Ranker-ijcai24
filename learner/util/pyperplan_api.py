@@ -224,7 +224,7 @@ class STRIPSProblem:
             # append parent state
             new_pair_set[state] = [by_index_state[heu + 1]]
             # append parent's successors except this state
-            for i in range(heu+1, min(max_heu+1, heu+1+step+1)):
+            for i in range(heu+1, min(max_heu+1, heu+1+step)):
                 new_pair_set[state] += successor_set[by_index_state[i]]
             new_pair_set[state].remove(state)
         return new_pair_set
