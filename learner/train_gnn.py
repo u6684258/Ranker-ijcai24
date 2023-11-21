@@ -23,7 +23,7 @@ def parse_args():
     parser.add_argument(
         "--aggr",
         type=str,
-        default="max",
+        default="mean",
         choices=["sum", "mean", "max"],
         help="mpnn aggregation function",
     )

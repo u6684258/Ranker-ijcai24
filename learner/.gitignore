@@ -10,6 +10,7 @@ data
 lifted
 plans
 plots
+aux/
 
 *.sh.e*
 *.sh.o*
@@ -23,6 +24,7 @@ plots
 *.txt
 *.npz
 *.pkl
+*.joblib
 
 slg
 flg

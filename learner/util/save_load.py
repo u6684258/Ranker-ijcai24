@@ -3,10 +3,6 @@ import os
 import joblib
 
 
-_TRAINED_GNNS_SAVE_DIR = "trained_models_gnn"
-_TRAINED_KERNELS_SAVE_DIR = "trained_models_kernel"
-
-
 def arg_to_params(args, in_feat=4, out_feat=1):
     # this is an artifact of legacy code, it could
     nlayers = args.nlayers
@@ -65,14 +61,13 @@ def save_kernel_model(model, args):
     if not hasattr(args, "model_save_file") or args.model_save_file is None:
         return
     print("Saving model...")
-    model_file_name = args.model_save_file.replace(".joblib", "")
-    base_dir = os.path.dirname(model_file_name)
+    model_save_file = args.model_save_file
+    base_dir = os.path.dirname(model_save_file)
     if len(base_dir) > 0:
         os.makedirs(base_dir, exist_ok=True)
-    path = f"{model_file_name}.joblib"
-    joblib.dump((model, args), path)
+    joblib.dump((model, args), model_save_file)
     print("Model saved!")
-    print("Model parameter file:", model_file_name)
+    print("Model parameter file:", model_save_file)
     return
 
 
@@ -98,11 +93,7 @@ def load_gnn_model(path, print_args=False):
     return model, args
 
 
-def load_kernel_model(path, ignore_subdir=False):
-    if ".joblib" not in path:
-        path = path + ".joblib"
-    if not ignore_subdir and _TRAINED_KERNELS_SAVE_DIR not in path:
-        path = _TRAINED_KERNELS_SAVE_DIR + "/" + path
+def load_kernel_model(path):
     model, args = joblib.load(path)
     return model, args
 
@@ -122,7 +113,7 @@ def load_gnn_model_and_setup(path, domain_file, problem_file):
 
 
 def load_kernel_model_and_setup(path, domain_file, problem_file):
-    model, args = load_kernel_model(path, ignore_subdir=True)
+    model, args = load_kernel_model(path)
     model.update_representation(domain_pddl=domain_file, problem_pddl=problem_file)
     # model.write_representation_to_file()
     model.eval()

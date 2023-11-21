@@ -47,9 +47,7 @@ void GooseKernel::initialise_model(const plugins::Options &opts) {
   std::string instance_file = opts.get<std::string>("instance_file");
   std::cout << "Trying to load model from file " << model_path << " ...\n";
   pybind11::module util_module = pybind11::module::import("util.save_load");
-  model = util_module.attr("load_kernel_model_and_setup")(
-    model_path, domain_file, instance_file
-  );
+  model = util_module.attr("load_kernel_model_and_setup")(model_path, domain_file, instance_file);
   std::cout << "Loaded model!" << std::endl;
 
   // use I/O similar to goose_linear_regression to get graph representation and WL data

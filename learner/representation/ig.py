@@ -18,11 +18,11 @@ ACTIVATED_POS_GOAL_COLOUR = 1
 ACTIVATED_NEG_GOAL_COLOUR = 2
 
 
-""" IG from GenPlan23 submission """
+""" ILG from GenPlan23 submission """
 
 
-class InstanceGraph(Representation, ABC):
-    name = "ig"
+class InstanceLearningGraph(Representation, ABC):
+    name = "ilg"
     n_node_features = ENC_FEAT_SIZE
     n_edge_labels = float("inf")  # unbounded because of var size; adapted from input (see below)
     directed = False

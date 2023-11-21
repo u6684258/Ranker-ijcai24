@@ -1,9 +1,9 @@
 import numpy as np
+import kernels
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.linear_model import Lasso, Ridge, LinearRegression, LogisticRegression
 from sklearn.svm import LinearSVR, SVR, LinearSVC, SVC
 from typing import Iterable, List, Optional, Dict
-import kernels
 from representation import CGraph, Representation, REPRESENTATIONS
 from planning import State
 from kernels.base_kernel import Histogram
@@ -28,7 +28,7 @@ class KernelModelWrapper:
         super().__init__()
         if args.model == "empty":
             return  # when there are no dead ends to learn
-        self._model_name = args.model
+        self.model_name = args.model
 
         self._kernel = kernels.GRAPH_FEATURE_GENERATORS[args.features](iterations=args.iterations, prune=args.prune)
 
@@ -62,7 +62,7 @@ class KernelModelWrapper:
                     early_stopping=True,
                     validation_fraction=0.15,
                 ),
-            }[self._model_name]
+            }[self.model_name]
         else:  # heuristic is regression
             self._model = {
                 None: None,
@@ -80,7 +80,7 @@ class KernelModelWrapper:
                     early_stopping=True,
                     validation_fraction=0.15,
                 ),
-            }[self._model_name]
+            }[self.model_name]
 
         self._train = True
         self._indices = None
@@ -231,7 +231,7 @@ class KernelModelWrapper:
     def get_matrix_representation(
         self, graphs: CGraph, histograms: Optional[Dict[CGraph, Histogram]]
     ) -> np.array:
-        if self._model_name == "svr":
+        if self.model_name == "svr":
             return self._kernel.get_k(graphs, histograms)
         else:
             return self._kernel.get_x(graphs, histograms)
