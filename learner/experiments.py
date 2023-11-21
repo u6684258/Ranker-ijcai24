@@ -56,23 +56,23 @@ def task(domain, layers, method):
     subprocess.call(cmd.split(" "), stdout=f)
 
     # elif method == "goose":
-    # cmd = f'python3 {exp_root}/train.py -m RGNN -r llg -d goose-{domain} ' \
-    #       f'--save-file goose-llg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
-    #       f'--fast-train --aggr max ' \
-    #       f'--method goose'
-    #
-    # f = open(f"{log_sub_dir}/train_goose_llg_{domain}_L{layers}.logs", "w")
-    # print(f"Experiment log: {f}")
-    # subprocess.call(cmd.split(" "), stdout=f)
-    #
-    # cmd = f'python3 {exp_root}/train.py -m RGNN -r slg -d goose-{domain} ' \
-    #       f'--save-file goose-slg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
-    #       f'--fast-train --aggr max ' \
-    #       f'--method goose'
-    #
-    # f = open(f"{log_sub_dir}/train_goose_slg_{domain}_L{layers}.logs", "w")
-    # print(f"Experiment log: {f}")
-    # subprocess.call(cmd.split(" "), stdout=f)
+    cmd = f'python3 {exp_root}/train.py -m RGNN -r llg -d goose-{domain} ' \
+          f'--save-file goose-llg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
+          f'--fast-train --aggr max ' \
+          f'--method goose'
+
+    f = open(f"{log_sub_dir}/train_goose_llg_{domain}_L{layers}.logs", "w")
+    print(f"Experiment log: {f}")
+    subprocess.call(cmd.split(" "), stdout=f)
+
+    cmd = f'python3 {exp_root}/train.py -m RGNN -r slg -d goose-{domain} ' \
+          f'--save-file goose-slg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
+          f'--fast-train --aggr max ' \
+          f'--method goose'
+
+    f = open(f"{log_sub_dir}/train_goose_slg_{domain}_L{layers}.logs", "w")
+    print(f"Experiment log: {f}")
+    subprocess.call(cmd.split(" "), stdout=f)
 
     # elif method == "hgn":
     # cmd = f'python3 {exp_root}/train_hgn.py -m HGNN -r hgn -d goose-{domain} ' \

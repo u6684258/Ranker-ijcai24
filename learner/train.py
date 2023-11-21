@@ -33,7 +33,7 @@ def create_parser():
     parser.add_argument('-L', '--nlayers', type=int, default=7)
     parser.add_argument('-H', '--nhid', type=int, default=64)
     parser.add_argument('--share-layers', action='store_true')
-    parser.add_argument('--aggr', type=str, default="mean")
+    parser.add_argument('--aggr', type=str, default="max")
     parser.add_argument('--pool', type=str, default="sum")
     parser.add_argument('--drop', type=float, default=0.0,
                         help="probability of an element to be zeroed")
