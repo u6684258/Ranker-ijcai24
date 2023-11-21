@@ -11,7 +11,7 @@ import kernels
 from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.metrics import confusion_matrix, log_loss, mean_squared_error
 from kernels.wrapper import MODELS
-from dataset.graphs_kernel import get_dataset_from_args, get_deadend_dataset_from_args
+from dataset.dataset_kernel import get_dataset_from_args, get_deadend_dataset_from_args
 from util.save_load import print_arguments, save_kernel_model
 from util.metrics import f1_macro
 from dataset.ipc2023_learning_domain_info import IPC2023_LEARNING_DOMAINS

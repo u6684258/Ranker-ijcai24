@@ -24,7 +24,7 @@ ACTIVATED_NEG_GOAL_COLOUR = 2
 class InstanceGraph(Representation, ABC):
     name = "ig"
     n_node_features = ENC_FEAT_SIZE
-    n_edge_labels = float("inf")  # unbounded because of var size
+    n_edge_labels = float("inf")  # unbounded because of var size; adapted from input (see below)
     directed = False
     lifted = True
 
@@ -57,7 +57,9 @@ class InstanceGraph(Representation, ABC):
         for pred in self.problem.predicates:
             largest_predicate = max(largest_predicate, len(pred.arguments))
             G.add_node(pred.name, x=self._feature(LLG_FEATURES.P))  # add predicate node
-
+        self.largest_predicate = largest_predicate
+        self.n_edge_labels = largest_predicate + 1  # add one for -1 edge labels
+    
         # goal (state gets dealt with in state_to_tensor)
         if len(self.problem.goal.parts) == 0:
             goals = [self.problem.goal]
@@ -117,7 +119,47 @@ class InstanceGraph(Representation, ABC):
         return state
 
     def state_to_tensor(self, state: List[Tuple[str, List[str]]]) -> TGraph:
-        raise NotImplementedError
+        """States are represented as a list of (pred, [args])"""
+        x = self.x.clone()
+        edge_indices = self.edge_indices.copy()
+        i = len(x)
+
+        to_add = sum(len(fact[1]) + 1 for fact in state)
+        x = torch.nn.functional.pad(x, (0, 0, 0, to_add), "constant", 0)
+        append_edge_index = {i:[] for i in range(-1, self.largest_predicate)}
+
+        for fact in state:
+            pred = fact[0]
+            args = fact[1]
+
+            if len(pred) == 0:
+                continue
+
+            node = (pred, tuple(args))
+
+            # activated proposition overlaps with a goal Atom or NegatedAtom
+            if node in self._node_to_i:
+                x[self._node_to_i[node]][LLG_FEATURES.S.value] = 1
+                continue
+
+            # activated proposition does not overlap with a goal
+            true_node_i = i
+            x[i][LLG_FEATURES.S.value] = 1
+            i += 1
+
+            # connect fact to predicate
+            append_edge_index[-1].append((true_node_i, self._node_to_i[pred]))
+            append_edge_index[-1].append((self._node_to_i[pred], true_node_i))
+
+            # connect fact to objects (different from LLG: node position nodes)
+            for k, arg in enumerate(args):
+                append_edge_index[k].append((true_node_i, self._node_to_i[arg]))
+                append_edge_index[k].append((self._node_to_i[arg], true_node_i))
+
+        for i, append_edges in append_edge_index.items():
+            edge_indices[i] = torch.hstack((edge_indices[i], torch.tensor(append_edges).T)).long()
+
+        return x, edge_indices
 
     def state_to_cgraph(self, state: List[Tuple[str, List[str]]]) -> CGraph:
         """States are represented as a list of (pred, [args])"""
