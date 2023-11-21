@@ -29,6 +29,7 @@ class KernelModelWrapper:
         if args.model == "empty":
             return  # when there are no dead ends to learn
         self.model_name = args.model
+        self.wl_name = args.features
 
         self._kernel = kernels.GRAPH_FEATURE_GENERATORS[args.features](iterations=args.iterations, prune=args.prune)
 

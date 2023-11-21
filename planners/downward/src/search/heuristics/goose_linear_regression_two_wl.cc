@@ -1,68 +1,43 @@
-#include "goose_kernel.h"
+#include "goose_linear_regression_two_wl.h"
 
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <map>
-#include <string>
-#include <regex>
-#include <cstdio>
 #include <algorithm>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <regex>
+#include <string>
+#include <vector>
 
 #include "../plugins/plugin.h"
 #include "../task_utils/task_properties.h"
 
 using std::string;
 
-namespace goose_kernel {
+namespace goose_linear_regression_two_wl {
 
-GooseKernel::GooseKernel(const plugins::Options &opts) : Heuristic(opts)
-{
+GooseLinearRegressionTwoWl::GooseLinearRegressionTwoWl(
+    const plugins::Options &opts)
+    : Heuristic(opts) {
   initialise_model(opts);
   initialise_facts();
 }
 
-void GooseKernel::initialise_model(const plugins::Options &opts) {
-  // Add GOOSE submodule to the python path
-  auto gnn_path = std::getenv("GOOSE");
-  if (!gnn_path) {
-      std::cout << "GOOSE env variable not found. Aborting." << std::endl;
-      exit(-1);
-  }
-  std::string path(gnn_path);
-  std::cout << "GOOSE path is " << path << std::endl;
-  if (access(path.c_str(), F_OK) == -1) {
-      std::cout << "GOOSE points to non-existent path. Aborting." << std::endl;
-      exit(-1);
-  }
+void GooseLinearRegressionTwoWl::initialise_model(
+    const plugins::Options &opts) {
+  std::string model_data_path = opts.get<string>("model_data");
+  std::string graph_data_path = opts.get<string>("graph_data");
 
-  // Append python module directory to the path
-  pybind11::module sys = pybind11::module::import("sys");
-  sys.attr("path").attr("append")(path);
+  std::cout << "Trying to load model data from files...\n";
 
-  // Force all output being printed to stdout. Otherwise INFO logging from
-  // python will be printed to stderr, even if it is not an error.
-  sys.attr("stderr") = sys.attr("stdout");
-
-  std::string model_path = opts.get<std::string>("model_data");
-  std::string domain_file = opts.get<std::string>("domain_file");
-  std::string instance_file = opts.get<std::string>("instance_file");
-  std::cout << "Trying to load model from file " << model_path << " ...\n";
-  pybind11::module util_module = pybind11::module::import("util.save_load");
-  model = util_module.attr("load_kernel_model_and_setup")(model_path, domain_file, instance_file);
-  std::cout << "Loaded model!" << std::endl;
-
-  // use I/O similar to goose_linear_regression to get graph representation and WL data
-  model.attr("write_model_data")(0);
-  model.attr("write_representation_to_file")();
-  std::string model_data_path = model.attr("get_model_data_path")().cast<std::string>();
-  std::string graph_data_path = model.attr("get_graph_file_path")().cast<std::string>();
+  // load graph data
   graph_ = CGraph(graph_data_path);
 
-  // load WL hash data
+  // load model data
   std::string line;
   std::ifstream infile(model_data_path);
-  int hash_cnt = 0, hash_size = 0;
+  int hash_cnt = 0, hash_size = 0, weight_cnt = 0, weight_size = 0;
+
   while (std::getline(infile, line)) {
     std::vector<std::string> toks;
     std::istringstream iss(line);
@@ -73,32 +48,44 @@ void GooseKernel::initialise_model(const plugins::Options &opts) {
     if (line.find("hash size") != std::string::npos) {
       hash_size = stoi(toks[0]);
       hash_cnt = 0;
-      feature_size_ = hash_size;
+      continue;
+    } else if (line.find("weights size") != std::string::npos) {
+      weight_size = stoi(toks[0]);
+      weight_cnt = 0;
+      continue;
+    } else if (line.find("bias") != std::string::npos) {
+      bias_ = stod(toks[0]);
       continue;
     } else if (line.find("iterations") != std::string::npos) {
       iterations_ = stoi(toks[0]);
       continue;
-    } 
+    }
 
     if (hash_cnt < hash_size) {
       hash_[toks[0]] = stoi(toks[1]);
       hash_cnt++;
       continue;
     }
+
+    if (weight_cnt < weight_size) {
+      weights_.push_back(stod(line));
+      weight_cnt++;
+      continue;
+    }
   }
 
   // remove file
-  char* char_array = new char[model_data_path.length() + 1];
+  char *char_array = new char[model_data_path.length() + 1];
   strcpy(char_array, model_data_path.c_str());
   remove(char_array);
 
-  std::cout << "Model initialised!" << std::endl;
+  feature_size_ = static_cast<int>(weights_.size());
 }
 
-void GooseKernel::initialise_facts() {
+void GooseLinearRegressionTwoWl::initialise_facts() {
   FactsProxy facts(*task);
   for (FactProxy fact : facts) {
-    std::string name = fact.get_name();
+    string name = fact.get_name();
 
     // Convert from FDR var-val pairs back to propositions
     if (name == "<none of those>") {
@@ -110,8 +97,7 @@ void GooseKernel::initialise_facts() {
         continue;
       } else {
         std::cout << "Substring of downward fact does not start with 'Atom ': "
-                  << "or 'NegatedAtom '"
-                  << name << std::endl;
+                  << "or 'NegatedAtom '" << name << std::endl;
         exit(-1);
       }
     }
@@ -143,13 +129,13 @@ void GooseKernel::initialise_facts() {
         args.push_back(s);
       }
     }
-    std::pair<std::string, std::vector<std::string>> lifted_fact(pred, args); 
+    std::pair<std::string, std::vector<std::string>> lifted_fact(pred, args);
 
     fact_to_lifted_input.insert({fact.get_pair(), lifted_fact});
   }
 }
 
-CGraph GooseKernel::state_to_graph(const State &state) { 
+CGraph GooseLinearRegressionTwoWl::state_to_graph(const State &state) {
   std::vector<std::vector<std::pair<int, int>>> edges = graph_.get_edges();
   std::vector<int> colours = graph_.get_colours();
   int cur_node_fact;
@@ -183,14 +169,16 @@ CGraph GooseKernel::state_to_graph(const State &state) {
     // add new node
     cur_node_fact = new_idx;
     new_idx++;
-    colours.push_back(0);  // TRUE_FACT
+    colours.push_back(0); // TRUE_FACT
     std::vector<std::pair<int, int>> new_edges_fact;
     edges.push_back(new_edges_fact);
 
     // connect fact to predicate
     int pred_node = graph_.get_node_index(pred);
-    edges[cur_node_fact].push_back(std::make_pair(pred_node, graph_.GROUND_EDGE_LABEL_));
-    edges[pred_node].push_back(std::make_pair(cur_node_fact, graph_.GROUND_EDGE_LABEL_));
+    edges[cur_node_fact].push_back(
+        std::make_pair(pred_node, graph_.GROUND_EDGE_LABEL_));
+    edges[pred_node].push_back(
+        std::make_pair(cur_node_fact, graph_.GROUND_EDGE_LABEL_));
 
     for (size_t k = 0; k < args.size(); k++) {
       // connect fact to object
@@ -203,29 +191,41 @@ CGraph GooseKernel::state_to_graph(const State &state) {
   return {edges, colours};
 }
 
-std::vector<int> GooseKernel::wl_feature(const CGraph &graph) {
+std::vector<int> GooseLinearRegressionTwoWl::wl_feature(const CGraph &graph) {
+  std::cout << "NOT IMPLEMENTED 2-WL YET" << std::endl;
+  exit(-1);
+  
   // feature to return is a histogram of colours seen during training
   std::vector<int> feature(feature_size_, 0);
 
   const size_t n_nodes = graph.n_nodes();
 
-  // role of colours_0 and colours_1 is switched every iteration for storing old and new colours
+  // role of colours_0 and colours_1 is switched every iteration for storing old
+  // and new colours
   std::vector<int> colours_0(n_nodes);
   std::vector<int> colours_1(n_nodes);
   std::vector<std::vector<std::pair<int, int>>> edges = graph.get_edges();
 
-  // determine size of neighbour colours from the start
-  std::vector<std::vector<std::pair<int, int>>> neighbours = edges;
+  std::vector<std::vector<int>> edge_type(n_nodes,
+                                          std::vector<int>(n_nodes, -1));
+
+  for (size_t u = 0; u < n_nodes; u++) {
+    for (const auto &[v, e] : edges[u]) {
+      edge_type[u][v] = e;
+    }
+  }
 
   int col = -1;
   std::string new_colour;
 
   // collect initial colours
   for (size_t u = 0; u < n_nodes; u++) {
-    // initial colours always in hash and hash value always within size
-    col = hash_[std::to_string(graph.colour(u))];
-    feature[col]++;
-    colours_0[u] = col;
+    for (size_t v = 0; v < n_nodes; v++) {
+      // initial colours should always be in hash and hash value always within size
+      col = hash_[std::to_string(graph.colour(u))];
+      feature[col]++;
+      colours_0[u] = col;
+    }
   }
 
   // main WL algorithm loop
@@ -252,7 +252,8 @@ std::vector<int> GooseKernel::wl_feature(const CGraph &graph) {
         // add current colour and sorted neighbours into sorted colour key
         new_colour = std::to_string(colours_0[u]);
         for (const auto &ne_pair : neighbours[u]) {
-          new_colour += "," + std::to_string(ne_pair.first) + "," + std::to_string(ne_pair.second);
+          new_colour += "," + std::to_string(ne_pair.first) + "," +
+                        std::to_string(ne_pair.second);
         }
 
         // hash seen colours
@@ -262,7 +263,7 @@ std::vector<int> GooseKernel::wl_feature(const CGraph &graph) {
         } else {
           col = -1;
         }
-end_of_loop0:
+      end_of_loop0:
         colours_1[u] = col;
       }
     } else {
@@ -285,7 +286,8 @@ end_of_loop0:
         // add current colour and sorted neighbours into sorted colour key
         new_colour = std::to_string(colours_1[u]);
         for (const auto &ne_pair : neighbours[u]) {
-          new_colour += "," + std::to_string(ne_pair.first) + "," + std::to_string(ne_pair.second);
+          new_colour += "," + std::to_string(ne_pair.first) + "," +
+                        std::to_string(ne_pair.second);
         }
 
         // hash seen colours
@@ -295,7 +297,7 @@ end_of_loop0:
         } else {
           col = -1;
         }
-end_of_loop1:
+      end_of_loop1:
         colours_0[u] = col;
       }
     }
@@ -304,14 +306,20 @@ end_of_loop1:
   return feature;
 }
 
-int GooseKernel::predict(const std::vector<int> &feature)
-{
-  // py::list py_feature;
-  int h = model.attr("svr_predict")(feature).cast<int>();
-  return h;
+int GooseLinearRegressionTwoWl::predict(const std::vector<int> &feature) {
+
+  // for (auto const f: feature) {
+  //   std::cout<<f<<", ";
+  // }std::cout<<std::endl; abort();
+
+  double ret = bias_;
+  for (int i = 0; i < feature_size_; i++) {
+    ret += feature[i] * weights_[i];
+  }
+  return static_cast<int>(round(ret));
 }
 
-int GooseKernel::compute_heuristic(const State &ancestor_state) {
+int GooseLinearRegressionTwoWl::compute_heuristic(const State &ancestor_state) {
   // step 1.
   CGraph graph = state_to_graph(ancestor_state);
   // step 2.
@@ -321,25 +329,21 @@ int GooseKernel::compute_heuristic(const State &ancestor_state) {
   return h;
 }
 
-class GooseKernelFeature : public plugins::TypedFeature<Evaluator, GooseKernel> {
- public:
-  GooseKernelFeature() : TypedFeature("kernel_one_wl") {
-    document_title("GOOSE optimised WL kernel heuristic");
+class GooseLinearRegressionTwoWlFeature
+    : public plugins::TypedFeature<Evaluator, GooseLinearRegressionTwoWl> {
+public:
+  GooseLinearRegressionTwoWlFeature()
+      : TypedFeature("linear_regression_two_wl") {
+    document_title("GOOSE optimised 2-WL linear regression heuristic");
     document_synopsis("TODO");
 
     // https://github.com/aibasel/downward/pull/170 for string options
     add_option<std::string>(
-      "model_data",
-      "path to trained model data in the form of a .joblib file",
-      "default_value");
-    add_option<std::string>(
-      "domain_file",
-      "Path to the domain file.",
-      "default_file");
-    add_option<std::string>(
-      "instance_file",
-      "Path to the instance file.",
-      "default_file");
+        "model_data", "path to trained model data in the form of a .model file",
+        "default_value");
+    add_option<std::string>("graph_data",
+                            "path to trained model graph representation data",
+                            "default_value");
 
     Heuristic::add_options_to_feature(*this);
 
@@ -354,6 +358,6 @@ class GooseKernelFeature : public plugins::TypedFeature<Evaluator, GooseKernel> 
   }
 };
 
-static plugins::FeaturePlugin<GooseKernelFeature> _plugin;
+static plugins::FeaturePlugin<GooseLinearRegressionTwoWlFeature> _plugin;
 
-}  // namespace goose_kernel
+} // namespace goose_linear_regression_two_wl

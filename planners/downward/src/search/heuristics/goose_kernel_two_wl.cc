@@ -1,4 +1,4 @@
-#include "goose_kernel.h"
+#include "goose_kernel_two_wl.h"
 
 #include <iostream>
 #include <fstream>
@@ -14,15 +14,15 @@
 
 using std::string;
 
-namespace goose_kernel {
+namespace goose_kernel_two_wl {
 
-GooseKernel::GooseKernel(const plugins::Options &opts) : Heuristic(opts)
+GooseKernelTwoWl::GooseKernelTwoWl(const plugins::Options &opts) : Heuristic(opts)
 {
   initialise_model(opts);
   initialise_facts();
 }
 
-void GooseKernel::initialise_model(const plugins::Options &opts) {
+void GooseKernelTwoWl::initialise_model(const plugins::Options &opts) {
   // Add GOOSE submodule to the python path
   auto gnn_path = std::getenv("GOOSE");
   if (!gnn_path) {
@@ -95,7 +95,7 @@ void GooseKernel::initialise_model(const plugins::Options &opts) {
   std::cout << "Model initialised!" << std::endl;
 }
 
-void GooseKernel::initialise_facts() {
+void GooseKernelTwoWl::initialise_facts() {
   FactsProxy facts(*task);
   for (FactProxy fact : facts) {
     std::string name = fact.get_name();
@@ -149,7 +149,7 @@ void GooseKernel::initialise_facts() {
   }
 }
 
-CGraph GooseKernel::state_to_graph(const State &state) { 
+CGraph GooseKernelTwoWl::state_to_graph(const State &state) { 
   std::vector<std::vector<std::pair<int, int>>> edges = graph_.get_edges();
   std::vector<int> colours = graph_.get_colours();
   int cur_node_fact;
@@ -203,7 +203,10 @@ CGraph GooseKernel::state_to_graph(const State &state) {
   return {edges, colours};
 }
 
-std::vector<int> GooseKernel::wl_feature(const CGraph &graph) {
+std::vector<int> GooseKernelTwoWl::wl_feature(const CGraph &graph) {
+  std::cout << "NOT IMPLEMENTED 2-WL YET" << std::endl;
+  exit(-1);
+
   // feature to return is a histogram of colours seen during training
   std::vector<int> feature(feature_size_, 0);
 
@@ -304,14 +307,14 @@ end_of_loop1:
   return feature;
 }
 
-int GooseKernel::predict(const std::vector<int> &feature)
+int GooseKernelTwoWl::predict(const std::vector<int> &feature)
 {
   // py::list py_feature;
   int h = model.attr("svr_predict")(feature).cast<int>();
   return h;
 }
 
-int GooseKernel::compute_heuristic(const State &ancestor_state) {
+int GooseKernelTwoWl::compute_heuristic(const State &ancestor_state) {
   // step 1.
   CGraph graph = state_to_graph(ancestor_state);
   // step 2.
@@ -321,9 +324,9 @@ int GooseKernel::compute_heuristic(const State &ancestor_state) {
   return h;
 }
 
-class GooseKernelFeature : public plugins::TypedFeature<Evaluator, GooseKernel> {
+class GooseKernelTwoWlFeature : public plugins::TypedFeature<Evaluator, GooseKernelTwoWl> {
  public:
-  GooseKernelFeature() : TypedFeature("kernel_one_wl") {
+  GooseKernelTwoWlFeature() : TypedFeature("kernel_two_wl") {
     document_title("GOOSE optimised WL kernel heuristic");
     document_synopsis("TODO");
 
@@ -354,6 +357,6 @@ class GooseKernelFeature : public plugins::TypedFeature<Evaluator, GooseKernel> 
   }
 };
 
-static plugins::FeaturePlugin<GooseKernelFeature> _plugin;
+static plugins::FeaturePlugin<GooseKernelTwoWlFeature> _plugin;
 
-}  // namespace goose_kernel
+}  // namespace goose_kernel_two_wl

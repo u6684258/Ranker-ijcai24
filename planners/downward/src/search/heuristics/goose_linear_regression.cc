@@ -308,13 +308,13 @@ int GooseLinearRegression::compute_heuristic(const State &ancestor_state) {
   // step 2.
   std::vector<int> feature = wl_feature(graph);
   // step 3.
-  double h = predict(feature);
+  int h = predict(feature);
   return h;
 }
 
 class GooseLinearRegressionFeature : public plugins::TypedFeature<Evaluator, GooseLinearRegression> {
  public:
-  GooseLinearRegressionFeature() : TypedFeature("linear_regression") {
+  GooseLinearRegressionFeature() : TypedFeature("linear_regression_one_wl") {
     document_title("GOOSE optimised WL linear regression heuristic");
     document_synopsis("TODO");
 
