@@ -203,6 +203,10 @@ class STRIPSProblem:
             return result
 
     def generate_extended_state_dataset(self, origin_state_pairs, step=1):
+        if step == 0:
+            return self.generate_optimal_pair_dataset(origin_state_pairs)
+        elif step == 1:
+            return self.generate_one_step_pair_dataset(origin_state_pairs)
         successor_set = {}
         by_index_state = {}
         new_pair_set = {}
@@ -219,9 +223,6 @@ class STRIPSProblem:
                 continue
             # append parent state
             new_pair_set[state] = [by_index_state[heu + 1]]
-            # final state, no successor
-            # if heu == 0:
-            #     continue
             # append parent's successors except this state
             for i in range(heu+1, min(max_heu+1, heu+1+step+1)):
                 new_pair_set[state] += successor_set[by_index_state[i]]
@@ -245,12 +246,27 @@ class STRIPSProblem:
                 continue
             # append parent state
             new_pair_set[state] = [by_index_state[heu + 1]]
-            # final state, no successor
-            if heu == 0:
-                continue
             # append parent's successors except this state
             new_pair_set[state] += successor_set[by_index_state[heu+1]]
             new_pair_set[state].remove(state)
+        return new_pair_set
+
+
+    def generate_optimal_pair_dataset(self, origin_state_pairs):
+        by_index_state = {}
+        new_pair_set = {}
+        max_heu = max(origin_state_pairs.values())
+
+        for state, heu in origin_state_pairs.items():
+            # state = self.to_partial_state(state)
+            by_index_state[heu] = state
+
+        for heu, state in by_index_state.items():
+            # init state, no worse state
+            if heu == max_heu:
+                continue
+            # append parent state
+            new_pair_set[state] = [by_index_state[heu + 1]]
         return new_pair_set
 
     def goose_state_to_pyperplan(self, state):

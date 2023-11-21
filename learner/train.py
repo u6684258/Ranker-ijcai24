@@ -132,7 +132,10 @@ def main():
             args.out_feat = 64
             args.in_feat = train_loader.dataset[0].x.shape[1]
         elif args.method == "batched_coord_ranker" or args.method == "pretrained":
+            start = time.time()
             train_loader, val_loader = get_by_train_val_dataloaders_from_args(args)
+            end = time.time()
+            print(f"dataloader time: {end - start}")
             args.out_feat = 64
             args.in_feat = train_loader.dataset[0].x.shape[1]
         elif args.method == "goose":

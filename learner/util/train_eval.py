@@ -1,3 +1,5 @@
+import time
+
 import torch
 import sys
 from torch.profiler import profile, record_function, ProfilerActivity
@@ -61,7 +63,7 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
     model.train()
     train_loss = 0
     task = 'h'
-
+    start = time.time()
     if not fast_train:
         y_true = torch.tensor([])
         y_pred = torch.tensor([])
@@ -108,6 +110,9 @@ def train_ranker(model, device, train_loader, criterion, optimiser, fast_train):
         stats["pred"] = y_pred
         stats["true"] = y_true
         stats["index"] = y_index.int()
+
+    end = time.time()
+    print(f"epoch train time: {end - start}")
     return stats
 
 
@@ -205,7 +210,7 @@ def evaluate_ranker(model, device, val_loader, criterion, fast_train, return_tru
     if val_loader is None:
         return 0
     task = 'h'
-
+    start = time.time()
     model.eval()
     val_loss = 0
 
@@ -253,7 +258,8 @@ def evaluate_ranker(model, device, val_loader, criterion, fast_train, return_tru
         assert not fast_train
         stats["y_true"] = y_true
         stats["y_pred"] = y_pred
-
+    end = time.time()
+    print(f"epoch val time: {end - start}")
     return stats
 
 

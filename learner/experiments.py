@@ -24,55 +24,55 @@ print(f"Selected domains: {args.domains}")
 def task(domain, layers, method):
 
     # if method == "ranker":
-    # cmd = f'python3 {exp_root}/train.py ' \
-    #       f'-m RGNNBATCOORDRANK ' \
-    #       f'-r llg ' \
-    #       f'-d goose-{domain} ' \
-    #       f'-L {layers} ' \
-    #       f'--log-root {log_root} ' \
-    #       f'--save-file rank-llg-{domain}-L{layers} ' \
-    #       f'--method batched_coord_ranker ' \
-    #       f'--fast-train'
-    #       # f'--test-only'
-    #
-    #
-    # f = open(f"{log_sub_dir}/train_rank_llg_{domain}_L{layers}.logs", "w")
-    # print(f"Experiment log: {f}")
-    # subprocess.call(cmd.split(" "), stdout=f)
+    cmd = f'python3 {exp_root}/train.py ' \
+          f'-m RGNNBATCOORDRANK ' \
+          f'-r llg ' \
+          f'-d goose-{domain} ' \
+          f'-L {layers} ' \
+          f'--log-root {log_root} ' \
+          f'--save-file rank-llg-{domain}-L{layers} ' \
+          f'--method batched_coord_ranker ' \
+          f'--fast-train'
+          # f'--test-only'
 
-    # cmd = f'python3 {exp_root}/train.py ' \
-    #       f'-m RGNNBATCOORDRANK ' \
-    #       f'-r slg ' \
-    #       f'-d goose-{domain} ' \
-    #       f'-L {layers} ' \
-    #       f'--log-root {log_root} ' \
-    #       f'--save-file rank-slg-{domain}-L{layers} ' \
-    #       f'--method batched_coord_ranker ' \
-    #       f'--fast-train'
-    # # f'--test-only'
-    #
-    # f = open(f"{log_sub_dir}/train_rank_slg_{domain}_L{layers}.logs", "w")
-    # print(f"Experiment log: {f}")
-    # subprocess.call(cmd.split(" "), stdout=f)
+
+    f = open(f"{log_sub_dir}/train_rank_llg_{domain}_L{layers}.logs", "w")
+    print(f"Experiment log: {f}")
+    subprocess.call(cmd.split(" "), stdout=f)
+
+    cmd = f'python3 {exp_root}/train.py ' \
+          f'-m RGNNBATCOORDRANK ' \
+          f'-r slg ' \
+          f'-d goose-{domain} ' \
+          f'-L {layers} ' \
+          f'--log-root {log_root} ' \
+          f'--save-file rank-slg-{domain}-L{layers} ' \
+          f'--method batched_coord_ranker ' \
+          f'--fast-train'
+    # f'--test-only'
+
+    f = open(f"{log_sub_dir}/train_rank_slg_{domain}_L{layers}.logs", "w")
+    print(f"Experiment log: {f}")
+    subprocess.call(cmd.split(" "), stdout=f)
 
     # elif method == "goose":
-    cmd = f'python3 {exp_root}/train.py -m RGNN -r llg -d goose-{domain} ' \
-          f'--save-file goose-llg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
-          f'--fast-train --aggr max ' \
-          f'--method goose'
-
-    f = open(f"{log_sub_dir}/train_goose_llg_{domain}_L{layers}.logs", "w")
-    print(f"Experiment log: {f}")
-    subprocess.call(cmd.split(" "), stdout=f)
-
-    cmd = f'python3 {exp_root}/train.py -m RGNN -r slg -d goose-{domain} ' \
-          f'--save-file goose-slg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
-          f'--fast-train --aggr max ' \
-          f'--method goose'
-
-    f = open(f"{log_sub_dir}/train_goose_slg_{domain}_L{layers}.logs", "w")
-    print(f"Experiment log: {f}")
-    subprocess.call(cmd.split(" "), stdout=f)
+    # cmd = f'python3 {exp_root}/train.py -m RGNN -r llg -d goose-{domain} ' \
+    #       f'--save-file goose-llg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
+    #       f'--fast-train --aggr max ' \
+    #       f'--method goose'
+    #
+    # f = open(f"{log_sub_dir}/train_goose_llg_{domain}_L{layers}.logs", "w")
+    # print(f"Experiment log: {f}")
+    # subprocess.call(cmd.split(" "), stdout=f)
+    #
+    # cmd = f'python3 {exp_root}/train.py -m RGNN -r slg -d goose-{domain} ' \
+    #       f'--save-file goose-slg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
+    #       f'--fast-train --aggr max ' \
+    #       f'--method goose'
+    #
+    # f = open(f"{log_sub_dir}/train_goose_slg_{domain}_L{layers}.logs", "w")
+    # print(f"Experiment log: {f}")
+    # subprocess.call(cmd.split(" "), stdout=f)
 
     # elif method == "hgn":
     # cmd = f'python3 {exp_root}/train_hgn.py -m HGNN -r hgn -d goose-{domain} ' \
