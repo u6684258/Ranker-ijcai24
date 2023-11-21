@@ -7,16 +7,6 @@ class ColourRefinement(WlAlgorithm):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
-    def get_hash(self) -> Dict[str, int]:
-        """Return hash dictionary with compact keys for cpp"""
-        ret = {}
-        for k in self._hash:  # Dict[str, int]
-            key = str(k)
-            for symbol in [")", "(", " "]:
-                key = key.replace(symbol, "")
-            ret[key] = self._hash[k]
-        return ret
-
     def compute_histograms(self, graphs: List[CGraph]) -> Dict[CGraph, Histogram]:
         """Read graphs and return histogram.
 

@@ -35,12 +35,18 @@ class WlAlgorithm(ABC):
         return
 
     @abstractmethod
-    def get_hash(self):
-        raise NotImplementedError
-
-    @abstractmethod
     def compute_histograms(self, graphs: List[CGraph]) -> Dict[CGraph, Histogram]:
         raise NotImplementedError
+
+    def get_hash(self) -> Dict[str, int]:
+        """Return hash dictionary with compact keys for cpp"""
+        ret = {}
+        for k in self._hash:
+            key = str(k)
+            for symbol in [")", "(", " "]:
+                key = key.replace(symbol, "")
+            ret[key] = self._hash[k]
+        return ret
 
     def _get_hash_value(self, colour) -> int:
         if isinstance(colour, tuple) and len(colour) == 1:

@@ -3,10 +3,10 @@ from itertools import product
 from tqdm import tqdm
 from .base_kernel import *
 
-""" 2-FWL algorithm, not 2-WL. Not actually used since slow. """
+""" 2-GWL """
 
 
-class WL2(WlAlgorithm):
+class GWL2(WlAlgorithm):
     def __init__(self, **kwargs) -> None:
         super().__init__(**kwargs)
 
@@ -32,6 +32,8 @@ class WL2(WlAlgorithm):
 
             n_nodes = len(G.nodes)
             assert set(G.nodes) == set(range(n_nodes))
+
+            raise NotImplementedError
 
             tuples = list(product(G.nodes, G.nodes))
 

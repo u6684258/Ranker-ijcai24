@@ -159,7 +159,7 @@ class KernelModelWrapper:
         pf = self._representation.problem_pddl
         t = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
         file_path = "_".join(["graph", df, pf, t])
-        file_path = file_path.replace("/", "-").replace(".pddl", "").replace(".", "")
+        file_path = repr(hash(file_path)).replace("-", "n")
         file_path = file_path + ".model"
 
         model_hash = self.get_hash()

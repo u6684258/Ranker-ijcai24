@@ -81,21 +81,21 @@ def fd_cmd(args, aux_file, plan_file):
 
     model = load_kernel_model_and_setup(m, df, pf)
     model_type = {
-        "linear-svr": "linear-regression",
-        "ridge": "linear-regression",
-        "lasso": "linear-regression",
+        "linear-svr": "linear_regression",
+        "ridge": "linear_regression",
+        "lasso": "linear_regression",
         "rbf-svr": "kernel",
         "quadratic-svr": "kernel",
         "cubic-svr": "kernel",
         "mlp": "kernel",
     }[model.model_name]
     wl_type = {
-        "wl": "one_wl",
+        "1wl": "one_wl",
         "2wl": "two_wl",
     }[model.wl_name]
     h = f"{model_type}_{wl_type}"
 
-    if model_type == "linear-regression":
+    if model_type == "linear_regression":
         model.write_model_data()
         model.write_representation_to_file()
         model_data = model.get_model_data_path()

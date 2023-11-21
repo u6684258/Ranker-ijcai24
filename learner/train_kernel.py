@@ -35,7 +35,12 @@ def parse_args():
 
     # ml model arguments
     parser.add_argument(
-        "-m", "--model", type=str, default=None, choices=[None] + MODELS, help="ML model"
+        "-m",
+        "--model",
+        type=str,
+        default=None,
+        choices=[None] + MODELS,
+        help="ML model. Use the default (None) when using the script to generate just the data and not training the models.",
     )
     parser.add_argument(
         "-a",
@@ -147,7 +152,7 @@ def parse_args():
 
         args.data_load_file = data_load_file
         args.data_save_file = None
-        
+
         args.model = model
         args.a = a
         args.C = C
