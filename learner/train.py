@@ -44,7 +44,7 @@ def create_parser():
     parser.add_argument('--loss', type=str, choices=["mse", "wmse", "pemse"], default="mse")
     parser.add_argument('--lr', type=float, default=0.001)
     parser.add_argument('--lr-limit', type=float, default=1e-5)
-    parser.add_argument('--patience', type=int, default=15)
+    parser.add_argument('--patience', type=int, default=10)
     parser.add_argument('--reduction', type=float, default=0.1)
     parser.add_argument('--batch-size', type=int, default=16)
     parser.add_argument('--epochs', type=int, default=1000)

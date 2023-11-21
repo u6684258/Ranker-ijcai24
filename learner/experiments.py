@@ -30,7 +30,7 @@ def task(domain, layers, method):
     #       f'-d goose-{domain} ' \
     #       f'-L {layers} ' \
     #       f'--log-root {log_root} ' \
-    #       f'--save-file rank-{domain}-L{layers}-coord ' \
+    #       f'--save-file rank-llg-{domain}-L{layers} ' \
     #       f'--method batched_coord_ranker ' \
     #       f'--fast-train'
     #       # f'--test-only'
@@ -40,25 +40,25 @@ def task(domain, layers, method):
     # print(f"Experiment log: {f}")
     # subprocess.call(cmd.split(" "), stdout=f)
 
-    cmd = f'python3 {exp_root}/train.py ' \
-          f'-m RGNNBATCOORDRANK ' \
-          f'-r slg ' \
-          f'-d goose-{domain} ' \
-          f'-L {layers} ' \
-          f'--log-root {log_root} ' \
-          f'--save-file rank-slg-{domain}-L{layers} ' \
-          f'--method batched_coord_ranker ' \
-          f'--fast-train'
-    # f'--test-only'
-
-    f = open(f"{log_sub_dir}/train_rank_slg_{domain}_L{layers}.logs", "w")
-    print(f"Experiment log: {f}")
-    subprocess.call(cmd.split(" "), stdout=f)
+    # cmd = f'python3 {exp_root}/train.py ' \
+    #       f'-m RGNNBATCOORDRANK ' \
+    #       f'-r slg ' \
+    #       f'-d goose-{domain} ' \
+    #       f'-L {layers} ' \
+    #       f'--log-root {log_root} ' \
+    #       f'--save-file rank-slg-{domain}-L{layers} ' \
+    #       f'--method batched_coord_ranker ' \
+    #       f'--fast-train'
+    # # f'--test-only'
+    #
+    # f = open(f"{log_sub_dir}/train_rank_slg_{domain}_L{layers}.logs", "w")
+    # print(f"Experiment log: {f}")
+    # subprocess.call(cmd.split(" "), stdout=f)
 
     # elif method == "goose":
     cmd = f'python3 {exp_root}/train.py -m RGNN -r llg -d goose-{domain} ' \
           f'--save-file goose-llg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
-          f'--fast-train ' \
+          f'--fast-train --aggr max ' \
           f'--method goose'
 
     f = open(f"{log_sub_dir}/train_goose_llg_{domain}_L{layers}.logs", "w")
@@ -67,7 +67,7 @@ def task(domain, layers, method):
 
     cmd = f'python3 {exp_root}/train.py -m RGNN -r slg -d goose-{domain} ' \
           f'--save-file goose-slg-{domain}-L{layers} -L {layers} --log-root {log_root} ' \
-          f'--fast-train ' \
+          f'--fast-train --aggr max ' \
           f'--method goose'
 
     f = open(f"{log_sub_dir}/train_goose_slg_{domain}_L{layers}.logs", "w")
@@ -97,7 +97,7 @@ def task(domain, layers, method):
 
 jobs = []
 for domain in args.domains:
-    for layer in [4, 7, 10]:
+    for layer in [4]:
         jobs.append((domain, layer, args.method))
 
 count = 1

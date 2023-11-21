@@ -1,0 +1,48 @@
+import test
+
+domains = ["blocks",
+            "blocks",
+            "gripper",
+            "gripper",
+            "sokoban",
+            "sokoban",
+            "spanner",
+            "spanner",
+            "spanner",
+            "visitall",
+            "visitsome",
+            "visitsome",
+            "visitall",
+            "visitall",
+            "visitsome",
+           ]
+models = ["rank-blocks-L4-coord.dt",
+            "rank-blocks-L7-coord.dt",
+            "rank-gripper-L4-coord.dt",
+            "rank-gripper-L7-coord.dt",
+            "rank-sokoban-L10-coord.dt",
+            "rank-sokoban-L7-coord.dt",
+            "rank-spanner-L10-coord.dt",
+            "rank-spanner-L4-coord.dt",
+            "rank-spanner-L7-coord.dt",
+            "rank-visitall-L4-coord.dt",
+            "rank-visitsome-L10-coord.dt",
+          ]
+arg_roots = ["rank-slg-blocks-L4-coord-2023-11-16T04:36:26.862544",
+             "rank-slg-blocks-L7-coord-2023-11-17T18:17:15.968315",
+            "rank-slg-gripper-L4-coord-2023-11-06T20:12:42.023653",
+            "rank-slg-gripper-L7-coord-2023-11-07T02:31:16.883877",
+            "rank-slg-sokoban-L10-coord-2023-11-12T03:17:43.866389",
+            "rank-slg-sokoban-L7-coord-2023-11-09T19:57:12.215709",
+            "rank-slg-spanner-L10-coord-2023-11-11T00:18:10.213756",
+            "rank-slg-spanner-L4-coord-2023-11-07T18:17:13.096904",
+            "rank-slg-spanner-L7-coord-2023-11-09T11:38:52.058077",
+            "rank-slg-visitall-L4-coord-2023-11-14T20:52:56.048288",
+            "rank-slg-visitsome-L10-coord-2023-11-11T00:22:44.829289",
+            "rank-slg-visitsome-L4-coord-2023-11-07T10:12:41.212489",
+            "rank-visitall-L10-coord-2023-11-04T00:13:02.414365",
+            "rank-visitall-L7-coord-2023-11-03T11:57:38.128990",
+            "rank-visitsome-L10-coord-2023-11-05T05:16:50.129932",]
+
+
+test.domain_test(domain, "test", model, "test", log_root=arg_root)

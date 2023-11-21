@@ -173,7 +173,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
             Linear(self.model.nhid, self.model.nhid),
             torch.nn.LeakyReLU(),
         )
-        self.model.last_layer = Linear(self.model.nhid, self.model.out_feat)
+        self.model.last_layer = torch.nn.Linear(params["out_feat"], params["out_feat"])
         self.model.ranker = torch.nn.Linear(params["out_feat"], 1, bias=False)
         self.model.ranker_act = torch.nn.Sigmoid()
         self.model.is_ranker = True
@@ -234,7 +234,7 @@ class ELMPNNBatchedRankerPredictor(BasePredictor):
         # print(hs)
         return hs
 
-    def shift_heu(self, h, scale=1e2, shift=1e4):
+    def shift_heu(self, h, scale=1e3, shift=1e5):
         result = h + shift
         # print(f"result: {result}")
         assert (2147483647 > result).all() and (
