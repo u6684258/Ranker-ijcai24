@@ -13,19 +13,16 @@
 #include <string>
 #include <fstream>
 
-#include "../heuristic.h"
+#include "goose_wl_heuristic.h"
 #include "../goose/coloured_graph.h"
 
 
-/* Optimised kernel evaluation. 
-  TODO: use OOP to reduce copied code with goose_linear_regression
-*/
+/* Kernel model which calls python sklearn for evaluation */
 
 namespace goose_kernel {
 
-class GooseKernel : public Heuristic {
+class GooseKernel : public goose_wl::WLGooseHeuristic {
   void initialise_model(const plugins::Options &opts);
-  void initialise_facts();
 
   // Required for pybind. Once this goes out of scope python interaction is no
   // longer possible.
@@ -39,17 +36,12 @@ class GooseKernel : public Heuristic {
   // Python object which computes the heuristic
   pybind11::object model;
 
-  // map facts to a better data structure for heuristic computation
-  std::map<FactPair, std::pair<std::string, std::vector<std::string>>> fact_to_lifted_input;
-
   /* Heuristic computation consists of three steps */
 
   // 1. convert state to CGraph (IG representation)
-  CGraph state_to_graph(const State &state);
-
+  // see goose_wl::WLGooseHeuristic
   // 2. perform WL on CGraph
-  std::vector<int> wl_feature(const CGraph &graph);
-
+  // see goose_wl::WLGooseHeuristic
   // 3. make a prediction with explicit feature
   int predict(const std::vector<int> &feature);
 
@@ -58,12 +50,6 @@ class GooseKernel : public Heuristic {
   
  public:
   explicit GooseKernel(const plugins::Options &opts);
-
- private:
-  CGraph graph_;
-  std::map<std::string, int> hash_;
-  int feature_size_;
-  size_t iterations_;
 };
 
 }  // namespace goose_kernel

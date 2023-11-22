@@ -501,22 +501,24 @@ fast_downward_plugin(
     HELP "The GOOSE heuristic"
     SOURCES
         heuristics/goose_heuristic
+    DEPENDENCY_ONLY
 )
 
 fast_downward_plugin(
-    NAME GOOSE_ONE_WL_KERNEL_HEURISTIC
-    HELP "The GOOSE heuristic with 1-WL kernel"
+    NAME GOOSE_WL_HEURISTIC
+    HELP "The GOOSE heuristic"
     SOURCES
-        heuristics/goose_kernel
-    DEPENDS CGRAPH
+        heuristics/goose_wl_heuristic
+    DEPENDS GOOSE_HEURISTIC
+    DEPENDENCY_ONLY
 )
 
 fast_downward_plugin(
-    NAME GOOSE_TWO_WL_KERNEL_HEURISTIC
-    HELP "The GOOSE heuristic with 2-WL kernel"
+    NAME GOOSE_GNN_HEURISTIC
+    HELP "The GOOSE heuristic"
     SOURCES
-        heuristics/goose_kernel_two_wl
-    DEPENDS CGRAPH
+        heuristics/goose_gnn_heuristic
+    DEPENDS GOOSE_HEURISTIC
 )
 
 fast_downward_plugin(
@@ -524,16 +526,32 @@ fast_downward_plugin(
     HELP "The GOOSE heuristic with 1-WL linear regression"
     SOURCES
         heuristics/goose_linear_regression
-    DEPENDS CGRAPH
+    DEPENDS CGRAPH GOOSE_WL_HEURISTIC
 )
 
 fast_downward_plugin(
-    NAME GOOSE_TWO_WL_LINEAR_REGRESSION
-    HELP "The GOOSE heuristic with 2-WL linear regression"
+    NAME GOOSE_ONE_WL_KERNEL_HEURISTIC
+    HELP "The GOOSE heuristic with 1-WL kernel"
     SOURCES
-        heuristics/goose_linear_regression_two_wl
-    DEPENDS CGRAPH
+        heuristics/goose_kernel
+    DEPENDS CGRAPH GOOSE_WL_HEURISTIC
 )
+
+# fast_downward_plugin(
+#     NAME GOOSE_TWO_WL_LINEAR_REGRESSION
+#     HELP "The GOOSE heuristic with 2-WL linear regression"
+#     SOURCES
+#         heuristics/goose_linear_regression_two_wl
+#     DEPENDS CGRAPH GOOSE_HEURISTIC
+# )
+
+# fast_downward_plugin(
+#     NAME GOOSE_TWO_WL_KERNEL_HEURISTIC
+#     HELP "The GOOSE heuristic with 2-WL kernel"
+#     SOURCES
+#         heuristics/goose_kernel_two_wl
+#     DEPENDS CGRAPH GOOSE_HEURISTIC
+# )
 
 fast_downward_plugin(
     NAME LP_SOLVER

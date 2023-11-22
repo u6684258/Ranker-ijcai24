@@ -206,105 +206,118 @@ CGraph GooseKernelTwoWl::state_to_graph(const State &state) {
 std::vector<int> GooseKernelTwoWl::wl_feature(const CGraph &graph) {
   std::cout << "NOT IMPLEMENTED 2-WL YET" << std::endl;
   exit(-1);
+  std::vector<int> lime;
+  return lime;
+  
+  // // feature to return is a histogram of colours seen during training
+  // std::vector<int> feature(feature_size_, 0);
 
-  // feature to return is a histogram of colours seen during training
-  std::vector<int> feature(feature_size_, 0);
+  // const size_t n_nodes = graph.n_nodes();
 
-  const size_t n_nodes = graph.n_nodes();
+  // // role of colours_0 and colours_1 is switched every iteration for storing old
+  // // and new colours
+  // std::vector<int> colours_0(n_nodes);
+  // std::vector<int> colours_1(n_nodes);
+  // std::vector<std::vector<std::pair<int, int>>> edges = graph.get_edges();
 
-  // role of colours_0 and colours_1 is switched every iteration for storing old and new colours
-  std::vector<int> colours_0(n_nodes);
-  std::vector<int> colours_1(n_nodes);
-  std::vector<std::vector<std::pair<int, int>>> edges = graph.get_edges();
+  // std::vector<std::vector<int>> edge_type(n_nodes,
+  //                                         std::vector<int>(n_nodes, -1));
 
-  // determine size of neighbour colours from the start
-  std::vector<std::vector<std::pair<int, int>>> neighbours = edges;
+  // for (size_t u = 0; u < n_nodes; u++) {
+  //   for (const auto &[v, e] : edges[u]) {
+  //     edge_type[u][v] = e;
+  //   }
+  // }
 
-  int col = -1;
-  std::string new_colour;
+  // int col = -1;
+  // std::string new_colour;
 
-  // collect initial colours
-  for (size_t u = 0; u < n_nodes; u++) {
-    // initial colours always in hash and hash value always within size
-    col = hash_[std::to_string(graph.colour(u))];
-    feature[col]++;
-    colours_0[u] = col;
-  }
+  // // collect initial colours
+  // for (size_t u = 0; u < n_nodes; u++) {
+  //   for (size_t v = 0; v < n_nodes; v++) {
+  //     // initial colours should always be in hash and hash value always within size
+  //     col = hash_[std::to_string(graph.colour(u))];
+  //     feature[col]++;
+  //     colours_0[u] = col;
+  //   }
+  // }
 
-  // main WL algorithm loop
-  for (size_t itr = 0; itr < iterations_; itr++) {
-    // instead of assigning colours_0 = colours_1 at the end of every loop
-    // we just switch the roles of colours_0 and colours_1 every loop
-    if (itr % 2 == 0) {
-      for (size_t u = 0; u < n_nodes; u++) {
-        // we ignore colours we have not seen during training
-        if (colours_0[u] == -1) {
-          goto end_of_loop0;
-        }
+  // // main WL algorithm loop
+  // for (size_t itr = 0; itr < iterations_; itr++) {
+  //   // instead of assigning colours_0 = colours_1 at the end of every loop
+  //   // we just switch the roles of colours_0 and colours_1 every loop
+  //   if (itr % 2 == 0) {
+  //     for (size_t u = 0; u < n_nodes; u++) {
+  //       // we ignore colours we have not seen during training
+  //       if (colours_0[u] == -1) {
+  //         goto end_of_loop0;
+  //       }
 
-        // collect colours from neighbours and sort
-        for (size_t i = 0; i < edges[u].size(); i++) {
-          col = colours_0[edges[u][i].first];
-          if (col == -1) {
-            goto end_of_loop0;
-          }
-          neighbours[u][i] = std::make_pair(col, edges[u][i].second);
-        }
-        sort(neighbours[u].begin(), neighbours[u].end());
+  //       // collect colours from neighbours and sort
+  //       for (size_t i = 0; i < edges[u].size(); i++) {
+  //         col = colours_0[edges[u][i].first];
+  //         if (col == -1) {
+  //           goto end_of_loop0;
+  //         }
+  //         neighbours[u][i] = std::make_pair(col, edges[u][i].second);
+  //       }
+  //       sort(neighbours[u].begin(), neighbours[u].end());
 
-        // add current colour and sorted neighbours into sorted colour key
-        new_colour = std::to_string(colours_0[u]);
-        for (const auto &ne_pair : neighbours[u]) {
-          new_colour += "," + std::to_string(ne_pair.first) + "," + std::to_string(ne_pair.second);
-        }
+  //       // add current colour and sorted neighbours into sorted colour key
+  //       new_colour = std::to_string(colours_0[u]);
+  //       for (const auto &ne_pair : neighbours[u]) {
+  //         new_colour += "," + std::to_string(ne_pair.first) + "," +
+  //                       std::to_string(ne_pair.second);
+  //       }
 
-        // hash seen colours
-        if (hash_.count(new_colour)) {
-          col = hash_[new_colour];
-          feature[col]++;
-        } else {
-          col = -1;
-        }
-end_of_loop0:
-        colours_1[u] = col;
-      }
-    } else {
-      for (size_t u = 0; u < n_nodes; u++) {
-        // we ignore colours we have not seen during training
-        if (colours_1[u] == -1) {
-          goto end_of_loop1;
-        }
+  //       // hash seen colours
+  //       if (hash_.count(new_colour)) {
+  //         col = hash_[new_colour];
+  //         feature[col]++;
+  //       } else {
+  //         col = -1;
+  //       }
+  //     end_of_loop0:
+  //       colours_1[u] = col;
+  //     }
+  //   } else {
+  //     for (size_t u = 0; u < n_nodes; u++) {
+  //       // we ignore colours we have not seen during training
+  //       if (colours_1[u] == -1) {
+  //         goto end_of_loop1;
+  //       }
 
-        // collect colours from neighbours and sort
-        for (size_t i = 0; i < edges[u].size(); i++) {
-          col = colours_1[edges[u][i].first];
-          if (col == -1) {
-            goto end_of_loop1;
-          }
-          neighbours[u][i] = std::make_pair(col, edges[u][i].second);
-        }
-        sort(neighbours[u].begin(), neighbours[u].end());
+  //       // collect colours from neighbours and sort
+  //       for (size_t i = 0; i < edges[u].size(); i++) {
+  //         col = colours_1[edges[u][i].first];
+  //         if (col == -1) {
+  //           goto end_of_loop1;
+  //         }
+  //         neighbours[u][i] = std::make_pair(col, edges[u][i].second);
+  //       }
+  //       sort(neighbours[u].begin(), neighbours[u].end());
 
-        // add current colour and sorted neighbours into sorted colour key
-        new_colour = std::to_string(colours_1[u]);
-        for (const auto &ne_pair : neighbours[u]) {
-          new_colour += "," + std::to_string(ne_pair.first) + "," + std::to_string(ne_pair.second);
-        }
+  //       // add current colour and sorted neighbours into sorted colour key
+  //       new_colour = std::to_string(colours_1[u]);
+  //       for (const auto &ne_pair : neighbours[u]) {
+  //         new_colour += "," + std::to_string(ne_pair.first) + "," +
+  //                       std::to_string(ne_pair.second);
+  //       }
 
-        // hash seen colours
-        if (hash_.count(new_colour)) {
-          col = hash_[new_colour];
-          feature[col]++;
-        } else {
-          col = -1;
-        }
-end_of_loop1:
-        colours_0[u] = col;
-      }
-    }
-  }
+  //       // hash seen colours
+  //       if (hash_.count(new_colour)) {
+  //         col = hash_[new_colour];
+  //         feature[col]++;
+  //       } else {
+  //         col = -1;
+  //       }
+  //     end_of_loop1:
+  //       colours_0[u] = col;
+  //     }
+  //   }
+  // }
 
-  return feature;
+  // return feature;
 }
 
 int GooseKernelTwoWl::predict(const std::vector<int> &feature)

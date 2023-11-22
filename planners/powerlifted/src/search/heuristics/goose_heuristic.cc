@@ -1,4 +1,4 @@
-#include "goose_heuristic.h"
+#include "goose_gnn_heuristic.h"
 
 namespace py = pybind11;
 

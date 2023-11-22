@@ -1,54 +1,42 @@
 #ifndef GOOSE_LINEAR_REGRESSION_H
 #define GOOSE_LINEAR_REGRESSION_H
 
+#include <fstream>
 #include <map>
 #include <set>
-#include <vector>
-#include <utility>
 #include <string>
-#include <fstream>
+#include <utility>
+#include <vector>
 
-#include "../heuristic.h"
 #include "../goose/coloured_graph.h"
+#include "goose_wl_heuristic.h"
 
-
-/* Optimised linear regression evaluation. 
-  TODO: use OOP to reduce copied code with goose_kernel 
-*/
+/* Optimised linear regression model all in c++ with no pybind */
 
 namespace goose_linear_regression {
 
-class GooseLinearRegression : public Heuristic {
+class GooseLinearRegression : public goose_wl::WLGooseHeuristic {
   void initialise_model(const plugins::Options &opts);
-  void initialise_facts();
-
-  // map facts to a better data structure for heuristic computation
-  std::map<FactPair, std::pair<std::string, std::vector<std::string>>> fact_to_lifted_input;
 
   /* Heuristic computation consists of three steps */
 
   // 1. convert state to CGraph (IG representation)
-  CGraph state_to_graph(const State &state);
-
+  // see goose_wl::WLGooseHeuristic
   // 2. perform WL on CGraph
-  std::vector<int> wl_feature(const CGraph &graph);
-
+  // see goose_wl::WLGooseHeuristic
   // 3. make a prediction with explicit feature
   int predict(const std::vector<int> &feature);
 
  protected:
   int compute_heuristic(const State &ancestor_state) override;
-  
+
  public:
   explicit GooseLinearRegression(const plugins::Options &opts);
 
  private:
-  CGraph graph_;
-  std::map<std::string, int> hash_;
-  std::vector<double> weights_;
-  double bias_;
-  int feature_size_;
-  size_t iterations_;
+  // A linear model of the form ax + b
+  std::vector<double> weights_;  // a
+  double bias_;                  // b
 };
 
 }  // namespace goose_linear_regression
