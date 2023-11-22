@@ -112,7 +112,7 @@ int GooseKernel::compute_heuristic(const State &ancestor_state) {
 
 class GooseKernelFeature : public plugins::TypedFeature<Evaluator, GooseKernel> {
  public:
-  GooseKernelFeature() : TypedFeature("kernel_one_wl") {
+  GooseKernelFeature() : TypedFeature("kernel_model") {
     document_title("GOOSE optimised WL kernel heuristic");
     document_synopsis("TODO");
 

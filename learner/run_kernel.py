@@ -81,32 +81,27 @@ def fd_cmd(args, aux_file, plan_file):
 
     model = load_kernel_model_and_setup(m, df, pf)
     model_type = {
-        "linear-svr": "linear_regression",
-        "ridge": "linear_regression",
-        "lasso": "linear_regression",
-        "rbf-svr": "kernel",
-        "quadratic-svr": "kernel",
-        "cubic-svr": "kernel",
-        "mlp": "kernel",
+        "linear-svr": "linear_model",
+        "ridge": "linear_model",
+        "lasso": "linear_model",
+        "rbf-svr": "kernel_model",
+        "quadratic-svr": "kernel_model",
+        "cubic-svr": "kernel_model",
+        "mlp": "kernel_model",
     }[model.model_name]
-    wl_type = {
-        "1wl": "one_wl",
-        "2wl": "two_wl",
-    }[model.wl_name]
-    h = f"{model_type}_{wl_type}"
 
-    if model_type == "linear_regression":
+    if model_type == "linear_model":
         model.write_model_data()
         model.write_representation_to_file()
         model_data = model.get_model_data_path()
         graph_data = model.get_graph_file_path()
 
-        fd_h = f'{h}(model_data="{model_data}", graph_data="{graph_data}")'
-    elif model_type == "kernel":
+        fd_h = f'{model_type}(model_data="{model_data}", graph_data="{graph_data}")'
+    elif model_type == "kernel_model":
         model_data = None
         graph_data = None
 
-        fd_h = f'{h}(model_data="{m}", domain_file="{df}", instance_file="{pf}")'
+        fd_h = f'{model_type}(model_data="{m}", domain_file="{df}", instance_file="{pf}")'
     else:
         raise ValueError(model_type)
 
