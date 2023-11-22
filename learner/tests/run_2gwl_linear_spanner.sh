@@ -1,6 +1,6 @@
 MODEL=linear-svr
 REPRESENTATION=ilg
-DOMAIN=ferry
+DOMAIN=spanner
 WL=2gwl
 ITERATIONS=1
 

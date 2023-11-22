@@ -4,7 +4,7 @@ DOMAIN=ferry
 WL=1wl
 ITERATIONS=1
 
-SAVEFILE=tests/${WL}_${MODEL}_${DOMAIN}.joblib
+SAVEFILE=tests/${WL}_${ITERATIONS}_${MODEL}_${DOMAIN}.joblib
 
 DOMAINFILE=../benchmarks/ipc2023-learning-benchmarks/$DOMAIN/domain.pddl
 PROBLEMFILE=../benchmarks/ipc2023-learning-benchmarks/$DOMAIN/testing/easy/p10.pddl

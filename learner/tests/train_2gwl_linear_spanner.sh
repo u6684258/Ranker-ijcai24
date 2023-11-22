@@ -1,7 +1,7 @@
-MODEL=cubic-svr
+MODEL=linear-svr
 REPRESENTATION=ilg
-DOMAIN=ferry
-WL=1wl
+DOMAIN=spanner
+WL=2gwl
 ITERATIONS=1
 
 SAVEFILE=tests/${WL}_${ITERATIONS}_${MODEL}_${DOMAIN}.joblib
