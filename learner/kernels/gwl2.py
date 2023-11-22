@@ -66,13 +66,14 @@ class GWL2(WlAlgorithm):
                     # k-wl does not care about graph structure after initial colours
                     neighbour_colours = []
                     for w in G.nodes:
-                        if w in subset:
+                        if w in subset:  # we want exactly the k-subsets
                             continue
-                        subset1 = tuple(sorted((u, w)))
+                        subset1 = tuple(sorted((u, w)))  # tuple(sorted(.)) is a hashable
                         subset2 = tuple(sorted((v, w)))
-                        neighbour_colours.append((cur_colours[subset1], cur_colours[subset2]))
+                        colour = tuple(sorted((cur_colours[subset1], cur_colours[subset2])))
+                        neighbour_colours.append(colour)
 
-                    # equation-wise, neighbour colours is a multiset of tuple colours
+                    # equation-wise, neighbour colours is a multiset of colours
                     neighbour_colours = sorted(neighbour_colours)
                     colour = tuple([cur_colours[subset]] + neighbour_colours)
                     new_colours[subset] = self._get_hash_value(colour)

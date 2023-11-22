@@ -78,6 +78,9 @@ void GooseKernel::initialise_model(const plugins::Options &opts) {
     } else if (line.find("iterations") != std::string::npos) {
       iterations_ = stoi(toks[0]);
       continue;
+    } else if (line.find("wl_algorithm") != std::string::npos) {
+      wl_algorithm_ = toks[0];
+      continue;
     }
 
     if (hash_cnt < hash_size) {

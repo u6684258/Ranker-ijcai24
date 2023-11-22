@@ -1,13 +1,13 @@
 #include "goose_wl_heuristic.h"
 
-#include <iostream>
-#include <fstream>
-#include <vector>
-#include <map>
-#include <string>
-#include <regex>
-#include <cstdio>
 #include <algorithm>
+#include <cstdio>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <regex>
+#include <string>
+#include <vector>
 
 #include "../plugins/plugin.h"
 #include "../task_utils/task_properties.h"
@@ -18,7 +18,7 @@ namespace goose_wl {
 
 WLGooseHeuristic::WLGooseHeuristic(const plugins::Options &opts)
     : goose_heuristic::GooseHeuristic(opts) {}
-  
+
 CGraph WLGooseHeuristic::state_to_graph(const State &state) {
   std::vector<std::vector<std::pair<int, int>>> edges = graph_.get_edges();
   std::vector<int> colours = graph_.get_colours();
@@ -74,6 +74,16 @@ CGraph WLGooseHeuristic::state_to_graph(const State &state) {
 }
 
 std::vector<int> WLGooseHeuristic::wl_feature(const CGraph &graph) {
+  if (wl_algorithm_ == "1wl") {
+    return wl1_feature(graph);
+  } else {
+    std::cout << "error: encountered invalid WL algorithm " << wl_algorithm_ << std::endl;
+    exit(-1);
+  }
+  return std::vector<int>();
+}
+
+std::vector<int> WLGooseHeuristic::wl1_feature(const CGraph &graph) {
   // feature to return is a histogram of colours seen during training
   std::vector<int> feature(feature_size_, 0);
 
@@ -132,7 +142,7 @@ std::vector<int> WLGooseHeuristic::wl_feature(const CGraph &graph) {
         } else {
           col = -1;
         }
-end_of_loop0:
+      end_of_loop0:
         colours_1[u] = col;
       }
     } else {
@@ -165,7 +175,7 @@ end_of_loop0:
         } else {
           col = -1;
         }
-end_of_loop1:
+      end_of_loop1:
         colours_0[u] = col;
       }
     }
@@ -175,4 +185,3 @@ end_of_loop1:
 }
 
 }  // namespace goose_wl
-

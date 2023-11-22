@@ -22,13 +22,17 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
   // convert state to CGraph (ILG representation)
   CGraph state_to_graph(const State &state);
 
-  // perform 1-WL on CGraph and return a feature vector of colour counts
+  // perform the wl algorithm specified by wl_algorithm_ to 
+  // return a feature vector of colour counts
   std::vector<int> wl_feature(const CGraph &graph);
+
+  std::vector<int> wl1_feature(const CGraph &graph);
 
  public:
   explicit WLGooseHeuristic(const plugins::Options &opts);
 
  protected:
+  std::string wl_algorithm_;
   CGraph graph_;
   std::map<std::string, int> hash_;
   int feature_size_;  // size of hash and feature vectors = number of unique training colours

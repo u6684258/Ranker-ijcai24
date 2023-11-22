@@ -194,6 +194,7 @@ class KernelModelWrapper:
 
         # write data
         with open(file_path, "w") as f:
+            f.write(f"{self.wl_name} wl_algorithm\n")
             f.write(f"{iterations} iterations\n")
             f.write(f"{len(model_hash)} hash size\n")
             for k in model_hash:
