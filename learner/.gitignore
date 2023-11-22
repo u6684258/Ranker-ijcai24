@@ -11,6 +11,7 @@ lifted
 plans
 plots
 aux/
+icaps24_logs/
 
 *.sh.e*
 *.sh.o*
