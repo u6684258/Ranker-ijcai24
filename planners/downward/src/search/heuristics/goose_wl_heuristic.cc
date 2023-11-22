@@ -221,7 +221,8 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
   for (int u = 0; u < n_nodes; u++) {
     for (const auto &[v, edge_label] : edges[u]) {
       if (u < v) {
-        edge_to_label[pair_to_index_map(n_subsets, u, v)] = edge_label;
+            // std::cout << pair_to_index_map(n_nodes, u, v)<<" "<< n_subsets<<std::endl;
+        edge_to_label[pair_to_index_map(n_nodes, u, v)] = edge_label;
       }
     }
   }
@@ -235,7 +236,7 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
       // initial colours always in hash and hash value always within size
       std::string u_col = std::to_string(graph.colour(u));
       std::string v_col = std::to_string(graph.colour(v));
-      std::string e_col = std::to_string(edge_to_label[pair_to_index_map(n_subsets, u, v)]);
+      std::string e_col = std::to_string(edge_to_label[pair_to_index_map(n_nodes, u, v)]);
       new_colour = u_col + "," + v_col + "," + e_col;
       // not sure but maybe some colours are not seen in training?
       if (hash_.count(new_colour)) {
@@ -249,7 +250,7 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
     }
   }
 
-  // main WL algorithm loop
+  // main WL algorithm loop  TODO(DZC)
   for (size_t itr = 0; itr < iterations_; itr++) {
     // instead of assigning colours_0 = colours_1 at the end of every loop
     // we just switch the roles of colours_0 and colours_1 every loop
@@ -281,8 +282,10 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
         if (hash_.count(new_colour)) {
           col = hash_[new_colour];
           feature[col]++;
+          cnt_seen_colours++;
         } else {
           col = -1;
+          cnt_unseen_colours++;
         }
       end_of_loop0:
         colours_1[u] = col;
@@ -315,8 +318,10 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
         if (hash_.count(new_colour)) {
           col = hash_[new_colour];
           feature[col]++;
+          cnt_seen_colours++;
         } else {
           col = -1;
+          cnt_unseen_colours++;
         }
       end_of_loop1:
         colours_0[u] = col;
