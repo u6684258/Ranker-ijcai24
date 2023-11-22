@@ -1,5 +1,19 @@
 #include "perfect.h"
 
+#include <algorithm>
+#include <cassert>
+#include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <memory>
+#include <optional>
+#include <set>
+#include <sstream>
+#include <string>
+#include <typeinfo>
+#include <map>
+#include <vector>
+
 #include "../evaluation_context.h"
 #include "../evaluator.h"
 #include "../open_list_factory.h"
@@ -10,41 +24,25 @@
 #include "../task_utils/successor_generator.h"
 #include "../utils/logging.h"
 
-#include <cassert>
-#include <cstdlib>
-#include <memory>
-#include <map>
-#include <optional>
-#include <set>
-#include <typeinfo>
-#include <algorithm>
-#include <fstream>
-#include <iostream>
-#include <vector>
-#include <sstream>
-
 using namespace std;
 
 namespace perfect {
-Perfect::Perfect(const plugins::Options &opts)
-    : SearchAlgorithm(opts)
-     {
-}
+Perfect::Perfect(const plugins::Options &opts) : SearchAlgorithm(opts) {}
 
 void Perfect::initialize() {
-    initialise_grounded_facts();
-    State initial_state = state_registry.get_initial_state();
+  initialise_grounded_facts();
+  State initial_state = state_registry.get_initial_state();
 }
 
 void Perfect::print_statistics() const {
-    statistics.print_detailed_statistics();
-    search_space.print_statistics();
+  statistics.print_detailed_statistics();
+  search_space.print_statistics();
 }
 
 void Perfect::initialise_grounded_facts() {
   FactsProxy facts(*task);
   for (FactProxy fact : facts) {
-    // TODO this is an artifact of FD-Hypernet/STRIPS-HGN code
+    // TODO(DZC) this is an artifact of FD-Hypernet/STRIPS-HGN code
     // we can remove this conversion in both the code here and in python
     string name = fact.get_name();
 
@@ -58,17 +56,16 @@ void Perfect::initialise_grounded_facts() {
         continue;
       } else {
         std::cout << "Substring of downward fact does not start with 'Atom ': "
-                  << "or 'NegatedAtom '"
-                  << name << std::endl;
+                  << "or 'NegatedAtom '" << name << std::endl;
         exit(-1);
       }
     }
-    
+
     fact_to_string.insert({fact.get_pair(), name});
   }
 }
 
-void Perfect::write_state_to_file(const State& s, std::ofstream &plan_file) {
+void Perfect::write_state_to_file(const State &s, std::ofstream &plan_file) {
   State state = task_proxy.convert_ancestor_state(s);
   for (FactProxy fact : state) {
     std::string str = fact_to_string[fact.get_pair()];
@@ -92,11 +89,11 @@ void Perfect::write_state_to_file(const State& s, std::ofstream &plan_file) {
 }
 
 inline bool is_goal_state(TaskProxy task, const State &state) {
-    for (FactProxy goal : task.get_goals()) {
-        if (state[goal.get_variable()] != goal)
-            return false;
-    }
-    return true;
+  for (FactProxy goal : task.get_goals()) {
+    if (state[goal.get_variable()] != goal)
+      return false;
+  }
+  return true;
 }
 
 SearchStatus Perfect::step() {
@@ -114,43 +111,41 @@ SearchStatus Perfect::step() {
   std::string line;
   ifstream file(std::getenv("PLAN_INPUT_PATH"));
   if (file.is_open()) {
-      while (getline(file, line)) {
-          if (line[0] == ';') {  // finished parsing
-              break;
-          }
-
-          line = line.substr(1, line.size()-2);
-
-          if (name_to_op_id.count(line)) {
-              size_t op_id = name_to_op_id[line];
-              OperatorProxy op = task_proxy.get_operators()[op_id];
-              s = state_registry.get_successor_state(s, op);
-              write_state_to_file(s, output_file);
-          } else {
-            std::cout << "invalid plan because cannot find action " << line << std::endl;
-            return FAILED;
-          }
+    while (getline(file, line)) {
+      if (line[0] == ';') {  // finished parsing
+        break;
       }
 
-      file.close();
-      if (!is_goal_state(task_proxy, s)) {
-          std::cout << "invalid plan because final state is not a goal state" << std::endl;
-          return FAILED;
+      line = line.substr(1, line.size() - 2);
+
+      if (name_to_op_id.count(line)) {
+        size_t op_id = name_to_op_id[line];
+        OperatorProxy op = task_proxy.get_operators()[op_id];
+        s = state_registry.get_successor_state(s, op);
+        write_state_to_file(s, output_file);
+      } else {
+        std::cout << "invalid plan because cannot find action " << line << std::endl;
+        return FAILED;
       }
-  } else {
-      cout << "Unable to open file";
+    }
+
+    file.close();
+    if (!is_goal_state(task_proxy, s)) {
+      std::cout << "invalid plan because final state is not a goal state" << std::endl;
       return FAILED;
+    }
+  } else {
+    cout << "Unable to open file";
+    return FAILED;
   }
   output_file << "; GOOD";
   return SOLVED;
 }
 
-void Perfect::dump_search_space() const {
-    search_space.dump(task_proxy);
-}
+void Perfect::dump_search_space() const { search_space.dump(task_proxy); }
 
 void add_options_to_feature(plugins::Feature &feature) {
-    SearchAlgorithm::add_pruning_option(feature);
-    SearchAlgorithm::add_options_to_feature(feature);
+  SearchAlgorithm::add_pruning_option(feature);
+  SearchAlgorithm::add_options_to_feature(feature);
 }
-}
+}  // namespace perfect

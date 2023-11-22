@@ -11,6 +11,7 @@ from representation import CGraph
 
 
 Histogram = Dict[int, int]
+NO_EDGE = -2
 
 """ Base class for graph kernels """
 

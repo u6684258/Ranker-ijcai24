@@ -1,13 +1,15 @@
 #ifndef GOOSE_GNN_HEURISTIC_H
 #define GOOSE_GNN_HEURISTIC_H
 
+#include <string>
+#include <vector>
+
 #include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 #include <pybind11/stl_bind.h>
-#include <pybind11/pybind11.h>
 
-#include "../heuristic.h"
-
+#include "goose_heuristic.h"
 
 /*
   Modified from Florian's FD-Hypernet c++ code
@@ -17,11 +19,8 @@
 */
 
 namespace goose_gnn_heuristic {
-class GooseHeuristic : public Heuristic {
+class GooseHeuristic : public goose_heuristic::GooseHeuristic {
   void initialise_model(const plugins::Options &opts);
-  void initialise_grounded_facts();
-  void initialise_lifted_facts();
-  void initialise_facts();
 
   // Required for pybind. Once this goes out of scope python interaction is no
   // longer possible.
@@ -35,21 +34,11 @@ class GooseHeuristic : public Heuristic {
   // Python object which computes the heuristic
   pybind11::object model;
 
-  // Dictionary that maps FD proposition strings to (pred o_1 ... o_n) 
-  // proposition strings in the case of grounded GOOSE, or (pred, args) tuples. 
-  // We only want to do this translation once, 
-  // hence we store it here. This could be ignored if we change the format of
-  // propositions in GOOSE.
-  std::map<FactPair, std::string> fact_to_grounded_input;
-  std::map<FactPair, std::pair<std::string, std::vector<std::string>>> fact_to_lifted_input;
-
-  bool lifted_goose;
-
   pybind11::list list_to_goose_state(const State &ancestor_state);
 
  protected:
   virtual int compute_heuristic(const State &ancestor_state) override;
-  
+
  public:
   explicit GooseHeuristic(const plugins::Options &opts);
 };
@@ -57,4 +46,3 @@ class GooseHeuristic : public Heuristic {
 }  // namespace goose_gnn_heuristic
 
 #endif
-

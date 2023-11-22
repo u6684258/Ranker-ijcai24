@@ -62,6 +62,9 @@ void GooseLinear::initialise_model(const plugins::Options &opts) {
     } else if (line.find("wl_algorithm") != std::string::npos) {
       wl_algorithm_ = toks[0];
       continue;
+    } else if (line.find("NO_EDGE") != std::string::npos) {
+      NO_EDGE_ = stoi(toks[0]);
+      continue;
     }
 
     if (hash_cnt < hash_size) {

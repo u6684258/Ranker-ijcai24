@@ -6,7 +6,7 @@ from sklearn.svm import LinearSVR, SVR, LinearSVC, SVC
 from typing import Iterable, List, Optional, Dict
 from representation import CGraph, Representation, REPRESENTATIONS
 from planning import State
-from kernels.base_kernel import Histogram
+from kernels.base_kernel import Histogram, NO_EDGE
 
 
 MODELS = [
@@ -194,6 +194,7 @@ class KernelModelWrapper:
 
         # write data
         with open(file_path, "w") as f:
+            f.write(f"{NO_EDGE} NO_EDGE\n")
             f.write(f"{self.wl_name} wl_algorithm\n")
             f.write(f"{iterations} iterations\n")
             f.write(f"{len(model_hash)} hash size\n")

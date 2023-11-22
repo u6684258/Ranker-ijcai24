@@ -48,8 +48,9 @@ class GWL2(WlAlgorithm):
                 is_edge = (edge in G.edges)
                 if is_edge:
                     edge_colour = G.edges[edge]["edge_label"]
+                    assert edge_colour != NO_EDGE
                 else:
-                    edge_colour = '_'  # no edge
+                    edge_colour = NO_EDGE  # no edge
                 # the more general k-wl algorithm colours by looking at colour-isomorphism
                 colour = (c_u, c_v, edge_colour)
 

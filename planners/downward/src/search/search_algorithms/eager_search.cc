@@ -104,6 +104,7 @@ void EagerSearch::initialize() {
 void EagerSearch::print_statistics() const {
     statistics.print_detailed_statistics();
     search_space.print_statistics();
+    open_list->print_statistics();
     pruning_method->print_statistics();
 }
 
@@ -168,8 +169,6 @@ SearchStatus EagerSearch::step() {
     }
 
     const State &s = node->get_state();
-    if (check_goal_and_set_plan(s))
-        return SOLVED;
 
     vector<OperatorID> applicable_ops;
     successor_generator.generate_applicable_ops(s, applicable_ops);
@@ -196,6 +195,12 @@ SearchStatus EagerSearch::step() {
 
         State succ_state = state_registry.get_successor_state(s, op);
         statistics.inc_generated();
+
+        // we really only use GBFS so can check goal once generated
+        // for A* this will be a problem...
+        if (check_goal_and_set_plan(succ_state))
+            return SOLVED;
+
         bool is_preferred = preferred_operators.contains(op_id);
 
         SearchNode succ_node = search_space.get_node(succ_state);

@@ -52,7 +52,7 @@ void GooseHeuristic::initialise_grounded_facts() {
 
     // Add parentheses around string
     name = "(" + name + ")";
-    fact_to_grounded_input.insert({fact.get_pair(), name});
+    fact_to_g_input.insert({fact.get_pair(), name});
   }
 }
 
@@ -105,7 +105,7 @@ void GooseHeuristic::initialise_lifted_facts() {
     }
     std::pair<std::string, std::vector<std::string>> lifted_fact(pred, args);
 
-    fact_to_lifted_input.insert({fact.get_pair(), lifted_fact});
+    fact_to_l_input.insert({fact.get_pair(), lifted_fact});
   }
 }
 

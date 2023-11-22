@@ -39,6 +39,10 @@ public:
         EvaluationContext &eval_context) const override;
     virtual bool is_reliable_dead_end(
         EvaluationContext &eval_context) const override;
+
+    void print_statistics() const override {
+      evaluator->print_statistics();
+    }
 };
 
 

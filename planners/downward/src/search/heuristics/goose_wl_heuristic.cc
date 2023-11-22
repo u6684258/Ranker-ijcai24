@@ -4,9 +4,9 @@
 #include <cstdio>
 #include <fstream>
 #include <iostream>
-#include <map>
 #include <regex>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 #include "../plugins/plugin.h"
@@ -17,7 +17,15 @@ using std::string;
 namespace goose_wl {
 
 WLGooseHeuristic::WLGooseHeuristic(const plugins::Options &opts)
-    : goose_heuristic::GooseHeuristic(opts) {}
+    : goose_heuristic::GooseHeuristic(opts) {
+      cnt_seen_colours = 0;
+      cnt_unseen_colours = 0;
+    }
+
+void WLGooseHeuristic::print_statistics() const {
+  log << "Number of seen " << wl_algorithm_ << " colours: " << cnt_seen_colours << std::endl;
+  log << "Number of unseen " << wl_algorithm_ << " colours: " << cnt_unseen_colours << std::endl;
+}
 
 CGraph WLGooseHeuristic::state_to_graph(const State &state) {
   std::vector<std::vector<std::pair<int, int>>> edges = graph_.get_edges();
@@ -29,7 +37,7 @@ CGraph WLGooseHeuristic::state_to_graph(const State &state) {
   std::string pred, node_name;
   std::vector<std::string> args;
   for (const FactProxy &fact : convert_ancestor_state(state)) {
-    pred_args = fact_to_lifted_input[fact.get_pair()];
+    pred_args = fact_to_l_input[fact.get_pair()];
     pred = pred_args.first;
     args = pred_args.second;
     if (pred.size() == 0) {
@@ -76,6 +84,8 @@ CGraph WLGooseHeuristic::state_to_graph(const State &state) {
 std::vector<int> WLGooseHeuristic::wl_feature(const CGraph &graph) {
   if (wl_algorithm_ == "1wl") {
     return wl1_feature(graph);
+  } else if (wl_algorithm_ == "2gwl") {
+    return gwl2_feature(graph);
   } else {
     std::cout << "error: encountered invalid WL algorithm " << wl_algorithm_ << std::endl;
     exit(-1);
@@ -106,6 +116,7 @@ std::vector<int> WLGooseHeuristic::wl1_feature(const CGraph &graph) {
     col = hash_[std::to_string(graph.colour(u))];
     feature[col]++;
     colours_0[u] = col;
+    cnt_seen_colours++;
   }
 
   // main WL algorithm loop
@@ -139,8 +150,10 @@ std::vector<int> WLGooseHeuristic::wl1_feature(const CGraph &graph) {
         if (hash_.count(new_colour)) {
           col = hash_[new_colour];
           feature[col]++;
+          cnt_seen_colours++;
         } else {
           col = -1;
+          cnt_unseen_colours++;
         }
       end_of_loop0:
         colours_1[u] = col;
@@ -167,6 +180,136 @@ std::vector<int> WLGooseHeuristic::wl1_feature(const CGraph &graph) {
         for (const auto &ne_pair : neighbours[u]) {
           new_colour += "," + std::to_string(ne_pair.first) + "," + std::to_string(ne_pair.second);
         }
+
+        // hash seen colours
+        if (hash_.count(new_colour)) {
+          col = hash_[new_colour];
+          feature[col]++;
+          cnt_seen_colours++;
+        } else {
+          col = -1;
+          cnt_unseen_colours++;
+        }
+      end_of_loop1:
+        colours_0[u] = col;
+      }
+    }
+  }
+
+  return feature;
+}
+
+inline int pair_to_index_map(int n, int i, int j) {
+  // map pair where 0 <= i < j < n to vec index
+  return j - i - 1 + i * n - (i * (i + 1)) / 2;
+}
+
+std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
+  // feature to return is a histogram of colours seen during training
+  std::vector<int> feature(feature_size_, 0);
+
+  const int n_nodes = static_cast<int>(graph.n_nodes());
+  const int n_subsets = static_cast<int>((n_nodes * (n_nodes - 1)) / 2);
+
+  // role of colours_0 and colours_1 is switched every iteration for storing old and new colours
+  std::vector<int> colours_0(n_subsets);
+  std::vector<int> colours_1(n_subsets);
+  std::vector<std::vector<std::pair<int, int>>> edges = graph.get_edges();
+
+  // get edge labels between all pairs of nodes
+  std::vector<int> edge_to_label(n_subsets, NO_EDGE_);
+  for (int u = 0; u < n_nodes; u++) {
+    for (const auto &[v, edge_label] : edges[u]) {
+      if (u < v) {
+        edge_to_label[pair_to_index_map(n_subsets, u, v)] = edge_label;
+      }
+    }
+  }
+
+  int col = -1;
+  std::string new_colour;
+
+  // collect initial colours
+  for (int u = 0; u < n_nodes; u++) {
+    for (int v = u + 1; v < n_nodes; v++) {
+      // initial colours always in hash and hash value always within size
+      std::string u_col = std::to_string(graph.colour(u));
+      std::string v_col = std::to_string(graph.colour(v));
+      std::string e_col = std::to_string(edge_to_label[pair_to_index_map(n_subsets, u, v)]);
+      new_colour = u_col + "," + v_col + "," + e_col;
+      // not sure but maybe some colours are not seen in training?
+      if (hash_.count(new_colour)) {
+        col = hash_[new_colour];
+        feature[col]++;
+        colours_0[u] = col;
+        cnt_seen_colours++;
+      } else {
+        cnt_unseen_colours++;
+      }
+    }
+  }
+
+  // main WL algorithm loop
+  for (size_t itr = 0; itr < iterations_; itr++) {
+    // instead of assigning colours_0 = colours_1 at the end of every loop
+    // we just switch the roles of colours_0 and colours_1 every loop
+    if (itr % 2 == 0) {
+      for (int u = 0; u < n_nodes; u++) {
+        // we ignore colours we have not seen during training
+        if (colours_0[u] == -1) {
+          goto end_of_loop0;
+        }
+
+        // // collect colours from neighbours and sort
+        // for (size_t i = 0; i < edges[u].size(); i++) {
+        //   col = colours_0[edges[u][i].first];
+        //   if (col == -1) {
+        //     goto end_of_loop0;
+        //   }
+        //   neighbours[u][i] = std::make_pair(col, edges[u][i].second);
+        // }
+        // sort(neighbours[u].begin(), neighbours[u].end());
+
+        // // add current colour and sorted neighbours into sorted colour key
+        // new_colour = std::to_string(colours_0[u]);
+        // for (const auto &ne_pair : neighbours[u]) {
+        //   new_colour += "," + std::to_string(ne_pair.first) + "," +
+        //   std::to_string(ne_pair.second);
+        // }
+
+        // hash seen colours
+        if (hash_.count(new_colour)) {
+          col = hash_[new_colour];
+          feature[col]++;
+        } else {
+          col = -1;
+        }
+      end_of_loop0:
+        colours_1[u] = col;
+      }
+    } else {
+      for (int u = 0; u < n_nodes; u++) {
+        // we ignore colours we have not seen during training
+        if (colours_1[u] == -1) {
+          goto end_of_loop1;
+        }
+
+        // // collect colours from neighbours and sort
+        // for (size_t i = 0; i < edges[u].size(); i++) {
+        //   col = colours_1[edges[u][i].first];
+        //   if (col == -1) {
+        //     goto end_of_loop1;
+        //   }
+        //   neighbours[u][i] = std::make_pair(col, edges[u][i].second);
+        // }
+        // sort(neighbours[u].begin(), neighbours[u].end());
+
+        // // add current colour and sorted neighbours into sorted colour key
+        // new_colour = std::to_string(colours_1[u]);
+        // for (const auto &ne_pair : neighbours[u]) {
+        //   new_colour += "," + std::to_string(ne_pair.first) + "," +
+        //   std::to_string(ne_pair.second);
+        // }
 
         // hash seen colours
         if (hash_.count(new_colour)) {

@@ -2,9 +2,26 @@
 #define GOOSE_HEURISTIC_H
 
 #include <map>
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "../heuristic.h"
 
 namespace goose_heuristic {
+
+struct FactPairHasher {
+  size_t operator()(const FactPair &a) const { return std::hash<int>{}(31 * a.var + a.value); }
+};
+
+struct FactPairEquals {
+  bool operator()(const FactPair &a, const FactPair &b) const {
+    return 31 * a.var + a.value == 31 * b.var + b.value;
+  }
+};
+
+typedef std::string GroundedInput;
+typedef std::pair<std::string, std::vector<std::string>> LiftedInput;
 
 class GooseHeuristic : public Heuristic {
  protected:
@@ -17,8 +34,10 @@ class GooseHeuristic : public Heuristic {
   // We only want to do this translation once,
   // hence we store it here. This could be ignored if we change the format of
   // propositions in GOOSE.
-  std::map<FactPair, std::string> fact_to_grounded_input;
-  std::map<FactPair, std::pair<std::string, std::vector<std::string>>> fact_to_lifted_input;
+  std::map<FactPair, GroundedInput> fact_to_g_input;
+  std::map<FactPair, LiftedInput> fact_to_l_input;
+  // std::unordered_map<FactPair, GroundedInput, FactPairHasher, FactPairEquals> fact_to_g_input;
+  // std::unordered_map<FactPair, LiftedInput, FactPairHasher, FactPairEquals> fact_to_l_input;
 
   bool lifted_goose;
 

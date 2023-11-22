@@ -1,32 +1,28 @@
 #ifndef COLOURED_GRAPH_H
 #define COLOURED_GRAPH_H
 
-#include <map>
-#include <set>
-#include <vector>
-#include <utility>
-#include <string>
 #include <fstream>
-
 #include <iostream>
+#include <set>
+#include <string>
+#include <unordered_map>
+#include <utility>
+#include <vector>
 
 class CGraph {  // mainly assumes GOOSE LLG
- public: 
+ public:
   CGraph();
 
   // construct graph from file
   explicit CGraph(const std::string &path);
 
   // construct graph from edges and colours;
-  CGraph(const std::vector<std::vector<std::pair<int, int>>> &edges, const std::vector<int> &colour);
+  CGraph(const std::vector<std::vector<std::pair<int, int>>> &edges,
+         const std::vector<int> &colour);
 
-  int colour(const int node) const {
-    return colour_[node];
-  }
+  int colour(const int node) const { return colour_[node]; }
 
-  size_t n_nodes() const {
-    return edges_.size();
-  }
+  size_t n_nodes() const { return edges_.size(); }
 
   bool is_pos_goal_node(const std::string &node_name) const {
     return pos_goal_nodes_.count(node_name);
@@ -36,17 +32,11 @@ class CGraph {  // mainly assumes GOOSE LLG
     return neg_goal_nodes_.count(node_name);
   }
 
-  int get_node_index(const std::string &node_name) {
-    return node_index_[node_name];
-  }
+  int get_node_index(const std::string &node_name) { return node_index_[node_name]; }
 
-  const std::vector<std::vector<std::pair<int, int>>> get_edges() const {
-    return edges_;
-  }
+  const std::vector<std::vector<std::pair<int, int>>> get_edges() const { return edges_; }
 
-  std::vector<int> get_colours() const {
-    return colour_;
-  }
+  std::vector<int> get_colours() const { return colour_; }
 
   void dump() {
     for (size_t u = 0; u < edges_.size(); u++) {
@@ -54,7 +44,7 @@ class CGraph {  // mainly assumes GOOSE LLG
       for (auto edge : edges_[u]) {
         std::cout << " " << edge.first << " " << edge.second;
       }
-      std::cout  <<  std::endl;
+      std::cout << std::endl;
     }
   }
 
@@ -77,7 +67,7 @@ class CGraph {  // mainly assumes GOOSE LLG
   std::vector<std::vector<std::pair<int, int>>> edges_;
 
   // map node names to node index
-  std::map<std::string, int> node_index_;
+  std::unordered_map<std::string, int> node_index_;
 
   // map node index to colour
   std::vector<int> colour_;

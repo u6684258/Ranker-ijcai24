@@ -86,6 +86,8 @@ public:
     void report_value_for_initial_state(const EvaluationResult &result) const;
     void report_new_minimum_value(const EvaluationResult &result) const;
 
+    virtual void print_statistics() const {};
+
     const std::string &get_description() const;
     bool is_used_for_reporting_minima() const;
     bool is_used_for_boosting() const;

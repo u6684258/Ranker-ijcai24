@@ -28,6 +28,8 @@ public:
     explicit OpenList(bool preferred_only = false);
     virtual ~OpenList() = default;
 
+    virtual void print_statistics() const {};
+
     /*
       Insert an entry into the open list.
 

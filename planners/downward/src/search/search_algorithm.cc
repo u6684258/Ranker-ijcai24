@@ -182,6 +182,15 @@ void print_initial_evaluator_values(
         );
 }
 
+void print_evaluator_statistics(
+    const EvaluationContext &eval_context) {
+    eval_context.get_cache().for_each_evaluator_result(
+        [] (const Evaluator *eval, __attribute__((unused))  const EvaluationResult &result) {
+            eval->print_statistics();
+        }
+        );
+}
+
 static class SearchAlgorithmCategoryPlugin : public plugins::TypedCategoryPlugin<SearchAlgorithm> {
 public:
     SearchAlgorithmCategoryPlugin() : TypedCategoryPlugin("SearchAlgorithm") {
