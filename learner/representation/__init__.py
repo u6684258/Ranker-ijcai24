@@ -3,7 +3,7 @@ from .slg import StripsLearningGraph
 from .dlg import DeleteLearningGraph
 from .flg import FdrLearningGraph
 from .llg import LiftedLearningGraph
-from .ig import InstanceLearningGraph
+from .ilg import InstanceLearningGraph
 from .glg import GroundedLearningGraph
 
 

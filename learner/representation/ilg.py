@@ -2,15 +2,14 @@ from .base_class import *
 from planning.translate.pddl import Atom, NegatedAtom, Truth
 
 
-class LLG_FEATURES(Enum):
-    P = 0  # is predicate
-    G = 1  # is positive goal (grounded)
-    N = 2  # is negative goal (grounded)
-    O = 3  # is object
-    S = 4  # is activated (grounded)
+class ILG_FEATURES(Enum):
+    G = 0  # is positive goal (grounded)
+    N = 1  # is negative goal (grounded)
+    O = 2  # is object
+    S = 3  # is activated (grounded)
 
 
-ENC_FEAT_SIZE = len(LLG_FEATURES)
+ENC_FEAT_SIZE = len(ILG_FEATURES)
 
 # additional hard coded colours
 ACTIVATED_COLOUR = 0
@@ -31,11 +30,6 @@ class InstanceLearningGraph(Representation, ABC):
     def __init__(self, domain_pddl: str, problem_pddl: str):
         super().__init__(domain_pddl, problem_pddl)
 
-    def _feature(self, node_type: LLG_FEATURES) -> Tensor:
-        ret = torch.zeros(self.n_node_features)
-        ret[node_type.value] = 1
-        return ret
-
     def _get_to_coloured_graphs_init_colours(self):
         return {
             ACTIVATED_COLOUR: ACTIVATED_COLOUR,
@@ -48,18 +42,26 @@ class InstanceLearningGraph(Representation, ABC):
 
         G = self._create_graph()
 
+        self.n_predicates = len(self.problem.predicates) - 1  # fd has an =(x, y) predicate
+
+        # TODO(DZC) option to change n_node_features depending on whether we want to refine
+        # predicate colour/encoding or not
+        self.n_node_features = ENC_FEAT_SIZE + self.n_predicates
+
         # objects
         for i, obj in enumerate(self.problem.objects):
-            G.add_node(obj.name, x=self._feature(LLG_FEATURES.O))  # add object node
+            G.add_node(obj.name, x=self._one_hot_node(ILG_FEATURES.O.value))  # add object node
 
         # predicates
         largest_predicate = 0
-        for pred in self.problem.predicates:
+        for i, pred in enumerate(self.problem.predicates):
+            if pred.name[0] == "=":
+                continue
             largest_predicate = max(largest_predicate, len(pred.arguments))
-            G.add_node(pred.name, x=self._feature(LLG_FEATURES.P))  # add predicate node
+            G.add_node(pred.name, x=self._one_hot_node(ENC_FEAT_SIZE + i))  # add predicate node
         self.largest_predicate = largest_predicate
         self.n_edge_labels = largest_predicate + 1  # add one for -1 edge labels
-    
+
         # goal (state gets dealt with in state_to_tensor)
         if len(self.problem.goal.parts) == 0:
             goals = [self.problem.goal]
@@ -76,10 +78,10 @@ class InstanceLearningGraph(Representation, ABC):
             goal_node = (pred, args)
 
             if is_negated:
-                x = self._feature(LLG_FEATURES.N)
+                x = self._one_hot_node(ILG_FEATURES.N.value)
                 self._neg_goal_nodes.add(goal_node)
             else:
-                x = self._feature(LLG_FEATURES.G)
+                x = self._one_hot_node(ILG_FEATURES.G.value)
                 self._pos_goal_nodes.add(goal_node)
             G.add_node(goal_node, x=x)  # add fact node
 
@@ -139,19 +141,19 @@ class InstanceLearningGraph(Representation, ABC):
 
             # activated proposition overlaps with a goal Atom or NegatedAtom
             if node in self._node_to_i:
-                x[self._node_to_i[node]][LLG_FEATURES.S.value] = 1
+                x[self._node_to_i[node]][ILG_FEATURES.S.value] = 1
                 continue
 
             # activated proposition does not overlap with a goal
             true_node_i = i
-            x[i][LLG_FEATURES.S.value] = 1
+            x[i][ILG_FEATURES.S.value] = 1
             i += 1
 
             # connect fact to predicate
             append_edge_index[-1].append((true_node_i, self._node_to_i[pred]))
             append_edge_index[-1].append((self._node_to_i[pred], true_node_i))
 
-            # connect fact to objects (different from LLG: node position nodes)
+            # connect fact to objects (different from ILG: node position nodes)
             for k, arg in enumerate(args):
                 append_edge_index[k].append((true_node_i, self._node_to_i[arg]))
                 append_edge_index[k].append((self._node_to_i[arg], true_node_i))
