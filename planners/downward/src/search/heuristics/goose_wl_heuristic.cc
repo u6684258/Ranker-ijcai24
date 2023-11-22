@@ -240,16 +240,17 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
   // collect initial colours
   for (int u = 0; u < n_nodes; u++) {
     for (int v = u + 1; v < n_nodes; v++) {
+      int index = pair_to_index_map(n_nodes, u, v);
       // initial colours always in hash and hash value always within size
       std::string u_col = std::to_string(graph.colour(u));
       std::string v_col = std::to_string(graph.colour(v));
-      std::string e_col = std::to_string(edge_to_label[pair_to_index_map(n_nodes, u, v)]);
+      std::string e_col = std::to_string(edge_to_label[index]);
       new_colour = u_col + "," + v_col + "," + e_col;
       // not sure but maybe some pairs are not seen in training?
       if (hash_.count(new_colour)) {
         col = hash_[new_colour];
         feature[col]++;
-        colours_0[u] = col;
+        colours_0[index] = col;
         cnt_seen_colours++;
       } else {
         cnt_unseen_colours++;
@@ -259,7 +260,7 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
 
   // main 2-GWL algorithm loop
   std::vector<std::pair<int, int>> neighbour_colours(n_nodes - 2);
-  int subset1, subset2;
+  int subset1, subset2, cs1, cs2;
   for (size_t itr = 0; itr < iterations_; itr++) {
     // instead of assigning colours_0 = colours_1 at the end of every loop
     // we just switch the roles of colours_0 and colours_1 every loop
@@ -278,32 +279,35 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
           for (int w = 0; w < u; w++) {  // (w, u) (w, v)
             subset1 = pair_to_index_map(n_nodes, w, u);
             subset2 = pair_to_index_map(n_nodes, w, v);
-            if (colours_0[subset1] == -1 || colours_0[subset2] == -1) {
+            cs1 = colours_0[subset1];
+            cs2 = colours_0[subset2];
+            if (cs1 == -1 || cs2 == -1) {
               col = -1;
               goto end_of_loop0;
             }
-            neighbour_colours[w] =
-                std::make_pair(std::min(subset1, subset2), std::max(subset1, subset2));
+            neighbour_colours[w] = std::make_pair(std::min(cs1, cs2), std::max(cs1, cs2));
           }
           for (int w = u + 1; w < v; w++) {  // (u, w) (w, v)
             subset1 = pair_to_index_map(n_nodes, u, w);
             subset2 = pair_to_index_map(n_nodes, w, v);
-            if (colours_0[subset1] == -1 || colours_0[subset2] == -1) {
+            cs1 = colours_0[subset1];
+            cs2 = colours_0[subset2];
+            if (cs1 == -1 || cs2 == -1) {
               col = -1;
               goto end_of_loop0;
             }
-            neighbour_colours[w - 1] =
-                std::make_pair(std::min(subset1, subset2), std::max(subset1, subset2));
+            neighbour_colours[w - 1] = std::make_pair(std::min(cs1, cs2), std::max(cs1, cs2));
           }
           for (int w = v + 1; w < n_nodes; w++) {  // (u, w) (v, w)
             subset1 = pair_to_index_map(n_nodes, u, w);
             subset2 = pair_to_index_map(n_nodes, v, w);
-            if (colours_0[subset1] == -1 || colours_0[subset2] == -1) {
+            cs1 = colours_0[subset1];
+            cs2 = colours_0[subset2];
+            if (cs1 == -1 || cs2 == -1) {
               col = -1;
               goto end_of_loop0;
             }
-            neighbour_colours[w - 2] =
-                std::make_pair(std::min(subset1, subset2), std::max(subset1, subset2));
+            neighbour_colours[w - 2] = std::make_pair(std::min(cs1, cs2), std::max(cs1, cs2));
           }
 
           sort(neighbour_colours.begin(), neighbour_colours.end());
@@ -346,32 +350,35 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
           for (int w = 0; w < u; w++) {  // (w, u) (w, v)
             subset1 = pair_to_index_map(n_nodes, w, u);
             subset2 = pair_to_index_map(n_nodes, w, v);
-            if (colours_1[subset1] == -1 || colours_1[subset2] == -1) {
+            cs1 = colours_1[subset1];
+            cs2 = colours_1[subset2];
+            if (cs1 == -1 || cs2 == -1) {
               col = -1;
               goto end_of_loop1;
             }
-            neighbour_colours[w] =
-                std::make_pair(std::min(subset1, subset2), std::max(subset1, subset2));
+            neighbour_colours[w] = std::make_pair(std::min(cs1, cs2), std::max(cs1, cs2));
           }
           for (int w = u + 1; w < v; w++) {  // (u, w) (w, v)
             subset1 = pair_to_index_map(n_nodes, u, w);
             subset2 = pair_to_index_map(n_nodes, w, v);
-            if (colours_1[subset1] == -1 || colours_1[subset2] == -1) {
+            cs1 = colours_1[subset1];
+            cs2 = colours_1[subset2];
+            if (cs1 == -1 || cs2 == -1) {
               col = -1;
               goto end_of_loop1;
             }
-            neighbour_colours[w - 1] =
-                std::make_pair(std::min(subset1, subset2), std::max(subset1, subset2));
+            neighbour_colours[w - 1] = std::make_pair(std::min(cs1, cs2), std::max(cs1, cs2));
           }
           for (int w = v + 1; w < n_nodes; w++) {  // (u, w) (v, w)
             subset1 = pair_to_index_map(n_nodes, u, w);
             subset2 = pair_to_index_map(n_nodes, v, w);
-            if (colours_1[subset1] == -1 || colours_1[subset2] == -1) {
+            cs1 = colours_1[subset1];
+            cs2 = colours_1[subset2];
+            if (cs1 == -1 || cs2 == -1) {
               col = -1;
               goto end_of_loop1;
             }
-            neighbour_colours[w - 2] =
-                std::make_pair(std::min(subset1, subset2), std::max(subset1, subset2));
+            neighbour_colours[w - 2] = std::make_pair(std::min(cs1, cs2), std::max(cs1, cs2));
           }
 
           sort(neighbour_colours.begin(), neighbour_colours.end());

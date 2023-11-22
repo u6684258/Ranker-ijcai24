@@ -99,7 +99,7 @@ def get_graphs_from_plans(args):
     tasks_dir = args.tasks_dir
     plans_dir = args.plans_dir
 
-    for plan_file in tqdm(list(os.listdir(plans_dir))):
+    for plan_file in tqdm(sorted(list(os.listdir(plans_dir)))):
         problem_pddl = f"{tasks_dir}/{plan_file.replace('.plan', '.pddl')}"
         assert os.path.exists(problem_pddl), problem_pddl
         plan_file = f"{plans_dir}/{plan_file}"

@@ -212,6 +212,12 @@ def main():
             graphs, y_true, test_size=0.33, random_state=2023
         )
 
+        # ## uncomment this and breakpoint at EOF to test correctness of cpp implementation
+        # graphs_train = graphs
+        # graphs_val = graphs
+        # y_train = y_true
+        # y_val = y_true
+
         print(f"Setting up training data...")
         t = time.time()
         train_histograms = model.compute_histograms(graphs_train)
@@ -287,6 +293,8 @@ def main():
         print(f"zero_weights: {n_zero_weights}/{n_weights} = {n_zero_weights/n_weights:.2f}")
     except Exception as e:  # not possible for true kernel methods
         pass
+
+    # breakpoint()
 
 
 if __name__ == "__main__":
