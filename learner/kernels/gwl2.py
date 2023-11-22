@@ -1,9 +1,10 @@
 from typing import Optional, Dict
-from itertools import product
+from itertools import combinations
 from tqdm import tqdm
 from .base_kernel import *
 
 """ 2-GWL """
+# this class can be easily changed into k-GWL
 
 
 class GWL2(WlAlgorithm):
@@ -33,13 +34,11 @@ class GWL2(WlAlgorithm):
             n_nodes = len(G.nodes)
             assert set(G.nodes) == set(range(n_nodes))
 
-            raise NotImplementedError
-
-            tuples = list(product(G.nodes, G.nodes))
+            subsets = list(combinations(G.nodes, 2))
 
             # collect initial colours
-            for tup in tuples:
-                u, v = tup
+            for subset in subsets:
+                u, v = subset
 
                 # initial colour is feature of the node
                 c_u = G.nodes[u]["colour"]
@@ -54,25 +53,29 @@ class GWL2(WlAlgorithm):
                 # the more general k-wl algorithm colours by looking at colour-isomorphism
                 colour = (c_u, c_v, edge_colour)
 
-                cur_colours[tup] = self._get_hash_value(colour)
+                cur_colours[subset] = self._get_hash_value(colour)
                 assert colour in self._hash, colour
                 store_colour(colour)
 
             # WL iterations
             for itr in range(self.iterations):
                 new_colours = {}
-                for tup in tuples:
-                    u, v = tup
+                for subset in subsets:
+                    u, v = subset
 
                     # k-wl does not care about graph structure after initial colours
                     neighbour_colours = []
                     for w in G.nodes:
-                        neighbour_colours.append((cur_colours[(u, w)], cur_colours[(w, v)]))
+                        if w in subset:
+                            continue
+                        subset1 = tuple(sorted((u, w)))
+                        subset2 = tuple(sorted((v, w)))
+                        neighbour_colours.append((cur_colours[subset1], cur_colours[subset2]))
 
                     # equation-wise, neighbour colours is a multiset of tuple colours
                     neighbour_colours = sorted(neighbour_colours)
-                    colour = tuple([cur_colours[tup]] + neighbour_colours)
-                    new_colours[tup] = self._get_hash_value(colour)
+                    colour = tuple([cur_colours[subset]] + neighbour_colours)
+                    new_colours[subset] = self._get_hash_value(colour)
                     store_colour(colour)
 
                 cur_colours = new_colours
