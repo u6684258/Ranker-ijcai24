@@ -195,15 +195,9 @@ SearchStatus EagerSearch::step() {
 
         State succ_state = state_registry.get_successor_state(s, op);
         statistics.inc_generated();
-
-        // we really only use GBFS so can check goal once generated
-        // for A* this will be a problem...
-        if (check_goal_and_set_plan(succ_state))
-            return SOLVED;
+        SearchNode succ_node = search_space.get_node(succ_state);
 
         bool is_preferred = preferred_operators.contains(op_id);
-
-        SearchNode succ_node = search_space.get_node(succ_state);
 
         for (Evaluator *evaluator : path_dependent_evaluators) {
             evaluator->notify_state_transition(s, op_id, succ_state);
@@ -281,6 +275,12 @@ SearchStatus EagerSearch::step() {
                 succ_node.update_parent(*node, op, get_adjusted_cost(op));
             }
         }
+
+        // we really only use GBFS so can check goal once generated
+        // implication is A* no longer works
+        // this is put here and not higher because behind the hood we need to generate plan
+        if (check_goal_and_set_plan(succ_state))
+            return SOLVED;
     }
 
     return IN_PROGRESS;
