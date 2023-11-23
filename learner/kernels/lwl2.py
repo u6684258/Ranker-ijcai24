@@ -1,9 +1,10 @@
 from typing import Optional, Dict
-from itertools import product
+from itertools import combinations
 from tqdm import tqdm
 from .base_kernel import *
 
 """ 2-LWL """
+# this class can be easily changed into k-LWL
 
 
 class LWL2(WlAlgorithm):
@@ -33,13 +34,11 @@ class LWL2(WlAlgorithm):
             n_nodes = len(G.nodes)
             assert set(G.nodes) == set(range(n_nodes))
 
-            raise NotImplementedError
-
-            tuples = list(product(G.nodes, G.nodes))
+            subsets = list(combinations(G.nodes, 2))
 
             # collect initial colours
-            for tup in tuples:
-                u, v = tup
+            for subset in subsets:
+                u, v = subset
 
                 # initial colour is feature of the node
                 c_u = G.nodes[u]["colour"]
@@ -49,30 +48,35 @@ class LWL2(WlAlgorithm):
                 is_edge = (edge in G.edges)
                 if is_edge:
                     edge_colour = G.edges[edge]["edge_label"]
+                    assert edge_colour != NO_EDGE
                 else:
-                    edge_colour = '_'  # no edge
+                    edge_colour = NO_EDGE  # no edge
                 # the more general k-wl algorithm colours by looking at colour-isomorphism
                 colour = (c_u, c_v, edge_colour)
 
-                cur_colours[tup] = self._get_hash_value(colour)
+                cur_colours[subset] = self._get_hash_value(colour)
                 assert colour in self._hash, colour
                 store_colour(colour)
 
             # WL iterations
             for itr in range(self.iterations):
                 new_colours = {}
-                for tup in tuples:
-                    u, v = tup
+                for subset in subsets:
+                    u, v = subset
 
                     # k-wl does not care about graph structure after initial colours
+                    neighbour_nodes = set(G[u]).union(set(G[v])).difference({u, v})
                     neighbour_colours = []
-                    for w in G.nodes:
-                        neighbour_colours.append((cur_colours[(u, w)], cur_colours[(w, v)]))
+                    for w in neighbour_nodes:
+                        subset1 = tuple(sorted((u, w)))  # tuple(sorted(.)) is a hashable
+                        subset2 = tuple(sorted((v, w)))
+                        colour = tuple(sorted((cur_colours[subset1], cur_colours[subset2])))
+                        neighbour_colours.append(colour)
 
-                    # equation-wise, neighbour colours is a multiset of tuple colours
+                    # equation-wise, neighbour colours is a multiset of colours
                     neighbour_colours = sorted(neighbour_colours)
-                    colour = tuple([cur_colours[tup]] + neighbour_colours)
-                    new_colours[tup] = self._get_hash_value(colour)
+                    colour = tuple([cur_colours[subset]] + neighbour_colours)
+                    new_colours[subset] = self._get_hash_value(colour)
                     store_colour(colour)
 
                 cur_colours = new_colours

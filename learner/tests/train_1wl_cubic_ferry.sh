@@ -2,8 +2,6 @@ MODEL=cubic-svr
 REPRESENTATION=ilg
 DOMAIN=ferry
 WL=1wl
-ITERATIONS=1
+ITERATIONS=3
 
-SAVEFILE=tests/${WL}_${ITERATIONS}_${MODEL}_${DOMAIN}.joblib
-
-python3 train_kernel.py -m $MODEL -r $REPRESENTATION -d $DOMAIN -k $WL -l $ITERATIONS --model-save-file $SAVEFILE
+python3 tests/custom.py -m $MODEL -r $REPRESENTATION -d $DOMAIN -k $WL -l $ITERATIONS --train
