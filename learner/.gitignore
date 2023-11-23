@@ -12,6 +12,8 @@ plans
 plots
 aux/
 icaps24_logs/
+icaps24_train_logs/
+icaps24_wl_models/
 
 *.sh.e*
 *.sh.o*
