@@ -26,6 +26,8 @@ if __name__ == "__main__":
 
     save_file = f"tests/" + "_".join([wl, iterations, model, domain]) + ".joblib"
 
+    os.system(f"cd ../planners/downward && python3 build.py")
+
     if args.train:
         os.system(f"python3 train_kernel.py -m {model} -r {representation} -d {domain} -k {wl} -l {iterations} --model-save-file {save_file}")
 

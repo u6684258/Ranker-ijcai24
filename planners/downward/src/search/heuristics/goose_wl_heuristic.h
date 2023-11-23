@@ -29,6 +29,7 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
 
   std::vector<int> wl1_feature(const CGraph &graph);
   std::vector<int> gwl2_feature(const CGraph &graph);
+  std::vector<int> lwl2_feature(const CGraph &graph);
 
  public:
   explicit WLGooseHeuristic(const plugins::Options &opts);
@@ -37,7 +38,7 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
 
  protected:
   // counters to keep track of number of seen and unseen colours
-  // TODO(DZC) check if long overflows (max val=9,223,372,036,854,775,807)
+  // hopefully should not overflow (max val=9,223,372,036,854,775,807)
   long cnt_seen_colours;
   long cnt_unseen_colours;
 
