@@ -10,6 +10,7 @@ data
 lifted
 plans
 plots
+plots_old/
 aux/
 icaps24_logs/
 icaps24_train_logs/

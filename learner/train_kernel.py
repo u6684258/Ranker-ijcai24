@@ -80,6 +80,7 @@ def parse_args():
         "-r",
         "--rep",
         type=str,
+        default="ilg",
         choices=representation.REPRESENTATIONS,
         help="graph representation to use",
     )
@@ -125,6 +126,10 @@ def parse_args():
     )
 
     args = parser.parse_args()
+
+    if args.data_save_file is None and args.model is None:
+        print("error: -m/--model is required when training")
+        exit(-1)
 
     domain = args.domain
     args.domain_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"

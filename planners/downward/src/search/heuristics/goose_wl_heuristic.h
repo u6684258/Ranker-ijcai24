@@ -30,6 +30,7 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
   std::vector<int> wl1_feature(const CGraph &graph);
   std::vector<int> gwl2_feature(const CGraph &graph);
   std::vector<int> lwl2_feature(const CGraph &graph);
+  std::vector<int> lwl3_feature(const CGraph &graph);
 
  public:
   explicit WLGooseHeuristic(const plugins::Options &opts);

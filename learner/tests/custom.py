@@ -26,12 +26,11 @@ if __name__ == "__main__":
 
     save_file = f"tests/" + "_".join([wl, iterations, model, domain]) + ".joblib"
 
-    os.system(f"cd ../planners/downward && python3 build.py")
-
     if args.train:
         os.system(f"python3 train_kernel.py -m {model} -r {representation} -d {domain} -k {wl} -l {iterations} --model-save-file {save_file}")
 
     if args.run:
+        os.system(f"cd ../planners/downward && python3 build.py")
         domain_file=f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
         problem_file=f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/{difficulty}/{problem}.pddl"
         assert os.path.exists(problem_file), problem_file
