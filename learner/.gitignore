@@ -15,6 +15,7 @@ aux/
 icaps24_logs/
 icaps24_train_logs/
 icaps24_wl_models/
+1wl_trained_kernel_models/
 
 *.sh.e*
 *.sh.o*
