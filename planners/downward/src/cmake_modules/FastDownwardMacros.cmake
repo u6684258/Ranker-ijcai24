@@ -15,7 +15,7 @@ macro(fast_downward_set_compiler_flags)
     # If we change the required CMake version from 2.8.3 to 3.0 or greater,
     # we have to fix this.
     if(CMAKE_COMPILER_IS_GNUCXX OR ${CMAKE_CXX_COMPILER_ID} STREQUAL "Clang")
-        check_and_set_compiler_flag( "-std=c++20" )
+        check_and_set_compiler_flag( "-std=c++17" )
 
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -g")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -pedantic -Wnon-virtual-dtor -Wfloat-conversion")
@@ -36,7 +36,7 @@ macro(fast_downward_set_compiler_flags)
         endif()
         set(CMAKE_CXX_FLAGS_PROFILE "-O3 -pg")
     elseif(MSVC)
-        check_and_set_compiler_flag( "/std:c++20" )
+        check_and_set_compiler_flag( "/std:c++17" )
 
         # Enable exceptions.
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /EHsc")

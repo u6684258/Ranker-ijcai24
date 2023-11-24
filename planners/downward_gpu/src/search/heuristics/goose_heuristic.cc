@@ -46,7 +46,7 @@ void GooseHeuristic::initialise_model(const plugins::Options &opts) {
   // Throw everything into Python code depending on model type
   std::cout << "Trying to load model from file " << model_path << " ...\n";
   py::module util_module = py::module::import("util.save_load");
-  model = util_module.attr("load_and_setup_gnn_model")(model_path, domain_file, instance_file);
+  model = util_module.attr("load_gnn_model_and_setup")(model_path, domain_file, instance_file);
   std::cout << "Loaded model!" << std::endl;
   model.attr("dump_model_stats")();
 

@@ -11,7 +11,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import re
 import argparse
 import numpy as np
-from dataset.goose_domain_info import GOOSE_DOMAINS
+from dataset.ipc2023_learning_domain_info import IPC2023_LEARNING_DOMAINS
 from representation import REPRESENTATIONS
 from util.scrape_log import scrape_search_log, scrape_train_log, search_finished_correctly
 
@@ -71,7 +71,7 @@ if __name__ == "__main__":
     parser.add_argument("-a", "--aggregation", required=True, choices=["mean", "max"])
     parser.add_argument("-l", "--layers", required=True, type=int, choices=[4, 8])
     parser.add_argument("-r", "--representation", required=True, choices=["ilg", "llg"])
-    parser.add_argument("-d", "--domain", required=True, choices=GOOSE_DOMAINS)
+    parser.add_argument("-d", "--domain", required=True, choices=IPC2023_LEARNING_DOMAINS)
     args = parser.parse_args()
 
     rep = args.representation
@@ -90,7 +90,7 @@ if __name__ == "__main__":
     ))
 
     ###############################################################################################
-    for repeat in REPEATS:
+    for repeat in range(REPEATS):
         ###############################################################################################
         """train"""
         os.system("date")
