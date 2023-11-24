@@ -120,3 +120,29 @@ def scrape_train_log(file):
             stats["best_avg_loss"] = float(toks[1])
 
     return stats
+
+def scrape_kernel_train_log(log_file):
+    assert os.path.exists(log_file), log_file
+    stats = {}
+    lines = list(open(log_file, 'r').readlines())
+    for line in lines:
+      toks = line.split()
+      if "train_mse" in line:
+        stats["train_mse"] = float(toks[-1])
+      elif "train_f1_macro" in line:
+        stats["train_f1"] = float(toks[-1])
+      elif "val_mse" in line:
+        stats["val_mse"] = float(toks[-1])
+      elif "val_f1_macro" in line:
+        stats["val_f1"] = float(toks[-1])
+      elif "zero_weights" in line:
+        weights = int(toks[1].split('/')[1])
+        zeros = int(toks[1].split('/')[0])
+        stats["nonzero_weights"] = weights - zeros
+      elif "Model training completed in " in line:
+        stats["time"] = float(toks[-1].replace("s", ""))
+    
+    if "nonzero_weights" not in stats:
+      stats["nonzero_weights"] = "na"
+    
+    return stats

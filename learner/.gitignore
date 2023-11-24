@@ -29,6 +29,7 @@ icaps24_wl_models/
 *.npz
 *.pkl
 *.joblib
+*.zip
 
 slg
 flg
