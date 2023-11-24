@@ -16,6 +16,9 @@ IPC2023_LEARNING_DOMAINS = [  # 90 test instances each
     "transport",
 ]
 
+DIFFICULTIES = ["easy", "medium", "hard"]
+PROBLEM_INDICES = [f"p0{i}" for i in range(1, 10)] + [f"p{i}" for i in range(10, 31)]
+
 
 def sorted_nicely(l):
     """Sort the given iterable in the way that humans expect."""
