@@ -83,7 +83,7 @@ if __name__ == "__main__":
     L = args.layers
 
     df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"  # domain file
-    test_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/"
+    test_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing"
     test_configs = list(itertools.product(
         ["easy", "medium", "hard"],
         [f"p0{i}" for i in range(1, 10)] + [f"p{i}" for i in range(10, 31)],
