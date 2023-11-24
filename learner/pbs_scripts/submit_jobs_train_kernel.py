@@ -4,17 +4,21 @@ from itertools import product
 
 """
 2 SU per CPU/4GB per hour
-~> 30 minute + 8GB job = 2 SU
++~> 30 minute + 4GB job = 1 SU
+ ~> 30 minute + 8GB job = 2 SU
++~> 30 minute + 16GB job = 4 SU
++960 SU for 16GB and 240 configs
 """
 
 _TIMEOUT = "00:10:00"
+_TIMEOUT = "00:30:00"
 
 _CONFIGS = product(
-    ["wl", "2wl"],  # wl algorithms
-    [1, 2, 4, 8, 16],  # iterations
-    [0, 1, 2, 4, 8, 16],  # count prunes
-    ["ig"],  # representation
-    [
+    ["1wl", "2gwl", "2lwl"],  # wl algorithms
+    [1, 2, 3, 4, 5, 6, 7, 8],  # iterations
+    [0],  # prunes
+    ["ilg"],  # representation  
+    [  # domains
         "ferry",
         "blocksworld",
         "childsnack",
@@ -25,14 +29,20 @@ _CONFIGS = product(
         "sokoban",
         "spanner",
         "transport",
-    ],  # domains
-    ["linear-svr", "quadratic-svr", "cubic-svr", "rbf-svr", "lasso", "ridge"],  # ml models
+    ],
+    [  # ml models
+        "linear-svr", 
+        # "quadratic-svr", 
+        # "cubic-svr", 
+        # "rbf-svr", 
+        # "lasso", 
+        # "ridge"
+    ],
 )
 
-_LOG_DIR = "logs_training_kernels"
-_DATA_DIR = "kernel_training_data"
+_LOG_DIR = "icaps24_train_logs"
+_MODEL_DIR = "icaps24_wl_models"
 _LOCK_DIR = "lock"
-_MODEL_DIR = "trained_kernel_models"
 
 os.makedirs(_LOG_DIR, exist_ok=True)
 os.makedirs(_LOCK_DIR, exist_ok=True)
@@ -50,10 +60,7 @@ def main():
     e = args.e
 
     for wl, iterations, prune, rep, domain, model in _CONFIGS:
-        data_desc = "_".join([wl, str(iterations), str(prune), rep, domain, "H"])
-        load_save_file = f"{_DATA_DIR}/{data_desc}.pkl"
-
-        desc = "_".join([model, wl, str(iterations), str(prune), rep, domain, "H"])
+        desc = "_".join([domain, rep, wl, str(iterations), str(prune), model, "H"])
         lock_file = f"{_LOCK_DIR}/{desc}.lock"
         log_file = f"{_LOG_DIR}/{desc}.log"
         model_save_file = f"{_MODEL_DIR}/{desc}.joblib"
@@ -64,14 +71,12 @@ def main():
 
         if submitted >= e:
             to_go += 1
-            return
+            continue
 
         with open(lock_file, "w") as f:
             pass
 
-        cmd = f"python3 train_kernel.py -m {model} --data-load-file {load_save_file} --model-save-file {model_save_file}"
-        print(cmd)
-        breakpoint()
+        cmd = f"python3 train_kernel.py -m {model} -r {rep} -d {domain} -k {wl} -l {iterations} -p {prune} --model-save-file {model_save_file}"
 
         cmd = (
             f"qsub -o {log_file} -j oe -l walltime={_TIMEOUT} -v "

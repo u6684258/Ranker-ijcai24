@@ -2,8 +2,8 @@
  
 #PBS -P xb83
 #PBS -q normal
-#PBS -l ncpus=4
-#PBS -l mem=16GB
+#PBS -l ncpus=1
+#PBS -l mem=8GB
 #PBS -l jobfs=20GB
 #PBS -l wd
 #PBS -M dongbang4204@gmail.com

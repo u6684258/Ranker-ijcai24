@@ -1,9 +1,8 @@
 import os
-from itertools import product
-from tqdm import tqdm
 from util.scrape_log import scrape_kernel_train_log
 
 _MODELS = "icaps24_wl_models"
+_SELECTED_MODELS = "icaps24_selected_wl_models"
 _TRAIN_LOGS = "icaps24_train_logs"
 
 ITERATIONS = [1, 2, 3, 4, 5, 6, 7, 8]
@@ -25,6 +24,8 @@ PRUNE = 0
 MODEL = "linear-svr"
 
 IMPROVEMENT_REQUIREMENT = 0.25
+
+os.makedirs(_SELECTED_MODELS, exist_ok=True)
 
 # deadend_configs = [("H", "?"), ("D", "--deadends")]
 # deadend_configs = [("D", "--deadends")]
@@ -51,3 +52,10 @@ for domain in DOMAINS:
             best_val_loss = min(best_val_loss, cur_val_loss)
 
         print(domain, wl, best_model_iteration)
+        if best_model_iteration > 0:
+            best_model_path = f"{_MODELS}/{domain}_{REP}_{wl}_{best_model_iteration}_{PRUNE}_{MODEL}_H.joblib"
+            target_path = f"{_SELECTED_MODELS}/{domain}_{REP}_{wl}_{MODEL}_H.joblib"
+            assert os.path.exists(best_model_path), best_model_path
+            os.system(f"cp {best_model_path} {target_path}")
+
+
