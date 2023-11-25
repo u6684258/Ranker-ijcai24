@@ -1,5 +1,6 @@
 import os 
 import time
+from itertools import product
 
 DOMAINS = [
     "blocksworld",
@@ -14,33 +15,33 @@ DOMAINS = [
     "transport",
 ]
 
-REP = "ilg"
-LAYERS = 4
-AGGR = "mean"
-
-rep = REP
-layers = LAYERS
-aggr = AGGR
+REPS = ["ilg"]
+# LAYERS = [1, 4]
+LAYERS = [4]
+AGGRS = ["mean", "max"]
 
 SLURM_SCRIPT="slurm/cluster1_job_gpusrv5_a6000"
+
+CONFIGS = list(product(DOMAINS, LAYERS, AGGRS, REPS))
 
 def main():
     while True:
         os.system("date")
-        queue_status = list(os.popen('squeue -u u6942650 -o "%30j %5t %10M %R"').readlines())
+        queue_status = list(os.popen('squeue -u u6942650 -o "%10i %30j %5t %10M %R"').readlines())
         queued_running_or_finished_configs = set()
+        jobs_total = 0
 
         for line in queue_status:
             print(line.replace("\n", ""))
-            queued_running_or_finished_configs.add(line.split()[0])
+            queued_running_or_finished_configs.add(line.split()[1])
+            if "gpusrv-3" in line or "gpusrv-5" in line or "QOSMaxJobsPerUserLimit" in line:
+                jobs_total += 1
 
         for f in os.listdir("icaps24_slurm"):
             queued_running_or_finished_configs.add(f.replace(".log", ""))
 
-        jobs_total = len(queue_status) - 1
-
         submit = 0
-        for domain in DOMAINS:
+        for domain, layers, aggr, rep in CONFIGS:
             desc = f"{rep}_{layers}_{aggr}_{domain}"
             if desc in queued_running_or_finished_configs:
                 continue

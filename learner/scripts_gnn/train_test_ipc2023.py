@@ -29,7 +29,18 @@ _PLAN_DIR = "plans"
 os.makedirs(_AUX_DIR, exist_ok=True)
 os.makedirs(_PLAN_DIR, exist_ok=True)
 
-IPC2023_FAIL_LIMIT = 30
+IPC2023_FAIL_LIMIT = {
+    "blocksworld": 15,
+    "childsnack": 15,
+    "ferry": 15,
+    "floortile": 3,
+    "miconic": 15,
+    "rovers": 15,
+    "satellite": 15,
+    "sokoban": 15,
+    "spanner": 15,
+    "transport": 15,
+}
 
 REPEATS = 1
 
@@ -146,9 +157,11 @@ if __name__ == "__main__":
             log = open(test_log_file, "r").read()
             solved = "Solution found." in log
             if solved:
+                print("solved")
                 failed = 0
             else:
+                print("failed")
                 failed += 1
-            if failed >= IPC2023_FAIL_LIMIT:
+            if failed >= IPC2023_FAIL_LIMIT[domain]:
                 break
     ###############################################################################################

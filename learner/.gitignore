@@ -32,6 +32,7 @@ icaps24*/
 *.pkl
 *.joblib
 *.zip
+*.tar.gz
 
 slg
 flg
