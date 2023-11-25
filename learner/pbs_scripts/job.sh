@@ -13,4 +13,4 @@ source /scratch/xb83/dc6693/venv_goose/bin/activate
 
 $CMD
 
-rm $LOCK_FILE
+# rm $LOCK_FILE

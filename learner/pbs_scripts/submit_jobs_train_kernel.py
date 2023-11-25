@@ -10,7 +10,6 @@ from itertools import product
 +960 SU for 16GB and 240 configs
 """
 
-_TIMEOUT = "00:10:00"
 _TIMEOUT = "00:30:00"
 
 _CONFIGS = product(
@@ -39,6 +38,12 @@ _CONFIGS = product(
         # "ridge"
     ],
 )
+
+# _CONFIGS = [
+#     ("2lwl", 1, 0, "ilg", "rovers", "linear-svr"),
+#     ("2gwl", 1, 0, "ilg", "rovers", "linear-svr"),
+#     ("2gwl", 1, 0, "ilg", "sokoban", "linear-svr"),
+# ]
 
 _LOG_DIR = "icaps24_train_logs"
 _MODEL_DIR = "icaps24_wl_models"

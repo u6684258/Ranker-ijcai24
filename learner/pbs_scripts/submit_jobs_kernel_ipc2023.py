@@ -12,33 +12,34 @@ _PBS_TIMEOUT = "00:31:30"
 # 900 all problems / 300 per difficulty
 # 1.8 KSU all problems / 0.6 KSU per difficulty
 _DOMAINS = [
-    # "blocksworld",
-    # "childsnack",
+    "blocksworld",
+    "childsnack",
     "ferry",
-    # "floortile",
-    # "miconic",
-    # "rovers",
-    # "satellite",
-    # "sokoban",
-    # "spanner",
-    # "transport",
+    "floortile",
+    "miconic",
+    "rovers",
+    "satellite",
+    "sokoban",
+    "spanner",
+    "transport",
 ]
 _DIFFICULTIES = [
-    # "easy",
-    # "medium",
-    "hard",
+    "easy",
+    "medium",
+    # "hard",
 ]
 
 _LEARNING_MODELS = ["linear-svr"]
 _REPRESENTATIONS = ["ilg"]
 _WLS = ["1wl", "2gwl", "2lwl"]
+_ITERATIONS = [1, 4]
 
 # inaccurate fd timer, rely on pbs script and postprocessing for timing out
 _TIMEOUT = 360000  
 
 _LOG_DIR = "icaps24_test_logs"
 _LOCK_DIR = "lock"
-_MODEL_DIR = "icaps24_selected_wl_models"
+_MODEL_DIR = "icaps24_wl_models"
 
 os.makedirs(_LOG_DIR, exist_ok=True)
 os.makedirs(_LOCK_DIR, exist_ok=True)
@@ -60,22 +61,26 @@ def main():
             _LEARNING_MODELS,
             _REPRESENTATIONS,
             _WLS,
+            _ITERATIONS,
             _DOMAINS,
             _DIFFICULTIES,
         )
     )
 
+    missing_models = set()
+
     for config in CONFIGS:
-        learning_model, rep, wl, domain, difficulty = config
-        mf = f"{_MODEL_DIR}/{domain}_{rep}_{wl}_{learning_model}_H.joblib"
+        learning_model, rep, wl, iterations, domain, difficulty = config
+        mf = f"{_MODEL_DIR}/{domain}_{rep}_{wl}_{iterations}_0_{learning_model}_H.joblib"
 
         df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
         problem_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/{difficulty}"
 
-        for file in sorted(os.listdir(problem_dir)):
+        for file in os.listdir(problem_dir):
         
             if not os.path.exists(mf):
                 model_missing += 1
+                missing_models.add(mf)
                 continue
 
             pf = f"{problem_dir}/{file}"
@@ -83,7 +88,7 @@ def main():
             problem = os.path.basename(pf).replace(".pddl", "")
 
             # check whether to skip
-            desc = f'{domain}_{difficulty}_{problem}_{rep}_{wl}_{learning_model}_H'
+            desc = f'{domain}_{difficulty}_{problem}_{rep}_{wl}_{iterations}_{learning_model}_H'
             log_file = f"{_LOG_DIR}/{desc}.log"
             lock_file = f"{_LOCK_DIR}/{desc}.lock"
 
@@ -109,6 +114,10 @@ def main():
             )
             os.system(cmd)
             submitted += 1
+
+    print("missing models:")
+    for m in sorted(missing_models):
+        print(m)
             
     print("submitted:", submitted)
     print("skipped:", skipped)
