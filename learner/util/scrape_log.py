@@ -31,6 +31,7 @@ def scrape_search_log(file):
         "evaluated": -1,
         "seen_colours": -1,  # for the wl methods only
         "unseen_colours": -1,
+        "ratio_seen_colours": -1,
     }
 
     if not os.path.exists(file):
@@ -59,9 +60,12 @@ def scrape_search_log(file):
         elif "Number of unseen" in line:
             stats["unseen_colours"] = int(toks[-1])
 
+    if stats["seen_colours"] != -1 and stats["unseen_colours"] != -1:
+        stats["ratio_seen_colours"] = stats["seen_colours"] / (stats["seen_colours"] + stats["unseen_colours"])
+
     if stats["time"] > 1800:  # assume timeout is 1800
         stats["solved"] = 0
-        
+
     return stats
 
 
