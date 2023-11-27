@@ -54,7 +54,7 @@ class GooseBayes : public goose_wl::WLGooseHeuristic {
   void print_statistics() const override;
 
  private:
-  std::set<std::pair<double, double>> std_ratio_pairs;
+  std::set<std::tuple<double, double, double>> std_ratio_pairs;
 };
 
 }  // namespace goose_bayes

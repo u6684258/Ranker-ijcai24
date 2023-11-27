@@ -103,8 +103,8 @@ void GooseBayes::initialise_model(const plugins::Options &opts) {
 void GooseBayes::print_statistics() const {
   log << "Number of seen " << wl_algorithm_ << " colours: " << cnt_seen_colours << std::endl;
   log << "Number of unseen " << wl_algorithm_ << " colours: " << cnt_unseen_colours << std::endl;
-  for (auto const &[r, s] : std_ratio_pairs) {
-    std::cout << r << " " << s << std::endl;
+  for (auto const &[r, s, h] : std_ratio_pairs) {
+    std::cout << r << " " << s << " " << h << std::endl;
   }
 }
 
@@ -124,9 +124,10 @@ int GooseBayes::compute_heuristic(const State &ancestor_state) {
 
   cur_seen_colours = cnt_seen_colours - cur_seen_colours;
   cur_unseen_colours = cnt_unseen_colours - cur_unseen_colours;
-  double ratio_seen_colours = static_cast<double>(cur_seen_colours) / (cur_unseen_colours + cur_seen_colours);
+  double ratio_seen_colours =
+      static_cast<double>(cur_seen_colours) / (cur_unseen_colours + cur_seen_colours);
 
-  std_ratio_pairs.insert(std::make_pair(ratio_seen_colours, std));
+  std_ratio_pairs.insert(std::make_tuple(ratio_seen_colours, std, h));
 
   return h;
 }
