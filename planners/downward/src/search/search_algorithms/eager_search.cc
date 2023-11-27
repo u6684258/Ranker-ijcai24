@@ -279,14 +279,14 @@ SearchStatus EagerSearch::step() {
       return SOLVED;
   }
 
-  if ((std::chrono::high_resolution_clock::now().time_since_epoch().count() - hack_timer) /
-          1000000000 >=
-      600) {
-    std::cout << "stopping after 600 seconds to print seen count ratios and GP std predictions"
-              << std::endl;
-    open_list->print_statistics();
-    exit(-1);
-  }
+  // if ((std::chrono::high_resolution_clock::now().time_since_epoch().count() - hack_timer) /
+  //         1000000000 >=
+  //     600) {
+  //   std::cout << "stopping after 600 seconds to print seen count ratios and GP std predictions"
+  //             << std::endl;
+  //   open_list->print_statistics();
+  //   exit(-1);
+  // }
 
   return IN_PROGRESS;
 }

@@ -103,14 +103,14 @@ void GooseBayes::initialise_model(const plugins::Options &opts) {
 void GooseBayes::print_statistics() const {
   log << "Number of seen " << wl_algorithm_ << " colours: " << cnt_seen_colours << std::endl;
   log << "Number of unseen " << wl_algorithm_ << " colours: " << cnt_unseen_colours << std::endl;
-  for (auto const &[r, s, h] : std_ratio_pairs) {
-    std::cout << r << " " << s << " " << h << std::endl;
-  }
+  // for (auto const &[r, s, h] : std_ratio_pairs) {
+  //   std::cout << r << " " << s << " " << h << std::endl;
+  // }
 }
 
 int GooseBayes::compute_heuristic(const State &ancestor_state) {
-  int cur_seen_colours = cnt_seen_colours;
-  int cur_unseen_colours = cnt_unseen_colours;
+  // int cur_seen_colours = cnt_seen_colours;
+  // int cur_unseen_colours = cnt_unseen_colours;
 
   // step 1.
   CGraph graph = state_to_graph(ancestor_state);
@@ -122,12 +122,12 @@ int GooseBayes::compute_heuristic(const State &ancestor_state) {
   int h = static_cast<int>(round(h_std_pair.first));
   double std = h_std_pair.second;
 
-  cur_seen_colours = cnt_seen_colours - cur_seen_colours;
-  cur_unseen_colours = cnt_unseen_colours - cur_unseen_colours;
-  double ratio_seen_colours =
-      static_cast<double>(cur_seen_colours) / (cur_unseen_colours + cur_seen_colours);
+  // cur_seen_colours = cnt_seen_colours - cur_seen_colours;
+  // cur_unseen_colours = cnt_unseen_colours - cur_unseen_colours;
+  // double ratio_seen_colours =
+  //     static_cast<double>(cur_seen_colours) / (cur_unseen_colours + cur_seen_colours);
 
-  std_ratio_pairs.insert(std::make_tuple(ratio_seen_colours, std, h));
+  // std_ratio_pairs.insert(std::make_tuple(ratio_seen_colours, std, h));
 
   return h;
 }
