@@ -95,9 +95,10 @@ def get_graphs_from_plans(args):
     graphs = []
 
     representation = args.rep
-    domain_pddl = args.domain_pddl
-    tasks_dir = args.tasks_dir
-    plans_dir = args.plans_dir
+    domain = args.domain
+    domain_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
+    tasks_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy"
+    plans_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training_plans"
 
     for plan_file in tqdm(sorted(list(os.listdir(plans_dir)))):
         problem_pddl = f"{tasks_dir}/{plan_file.replace('.plan', '.pddl')}"
@@ -141,7 +142,11 @@ def get_deadend_dataset_from_args(args):
     planner = args.planner
     small_train = args.small_train
 
-    deadend_data = deadend_states(args.domain_pddl, args.tasks_dir)
+    domain = args.domain
+    domain_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
+    tasks_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy"
+
+    deadend_data = deadend_states(domain_pddl, tasks_dir)
     unsolvable_states = deadend_data["unsolvable_states"]
     solvable_states = deadend_data["solvable_states"]
     max_solvable_h = deadend_data["max_solvable_h"]

@@ -33,7 +33,7 @@ class GooseLinear : public goose_wl::WLGooseHeuristic {
 
  public:
   explicit GooseLinear(const plugins::Options &opts);
-  
+
   void print_statistics() const override;
 
  private:
@@ -41,9 +41,9 @@ class GooseLinear : public goose_wl::WLGooseHeuristic {
   std::vector<double> weights_;  // a
   double bias_;                  // b
 
-  // colour seen ratio
-  std::set<double> worst_seen_ratios;
-  std::map<int, double> h_to_worst_ratio;
+  // // colour seen ratio
+  // std::set<double> worst_seen_ratios;
+  // std::map<int, double> h_to_worst_ratio;
 };
 
 }  // namespace goose_linear

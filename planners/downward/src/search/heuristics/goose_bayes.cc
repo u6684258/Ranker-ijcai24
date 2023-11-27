@@ -1,4 +1,4 @@
-#include "goose_kernel.h"
+#include "goose_bayes.h"
 
 #include <algorithm>
 #include <cstdio>
@@ -14,15 +14,14 @@
 
 using std::string;
 
-namespace goose_kernel {
+namespace goose_bayes {
 
-GooseKernel::GooseKernel(const plugins::Options &opts)
-    : goose_wl::WLGooseHeuristic(opts) {
+GooseBayes::GooseBayes(const plugins::Options &opts) : goose_wl::WLGooseHeuristic(opts) {
   initialise_model(opts);
   initialise_lifted_facts();
 }
 
-void GooseKernel::initialise_model(const plugins::Options &opts) {
+void GooseBayes::initialise_model(const plugins::Options &opts) {
   // Add GOOSE submodule to the python path
   auto gnn_path = std::getenv("GOOSE");
   if (!gnn_path) {
@@ -101,25 +100,41 @@ void GooseKernel::initialise_model(const plugins::Options &opts) {
   std::cout << "Model initialised!" << std::endl;
 }
 
-int GooseKernel::predict(const std::vector<int> &feature) {
-  int h = model.attr("predict_h")(feature).cast<int>();
-  return h;
+void GooseBayes::print_statistics() const {
+  log << "Number of seen " << wl_algorithm_ << " colours: " << cnt_seen_colours << std::endl;
+  log << "Number of unseen " << wl_algorithm_ << " colours: " << cnt_unseen_colours << std::endl;
+  for (auto const &[r, s] : std_ratio_pairs) {
+    std::cout << r << " " << s << std::endl;
+  }
 }
 
-int GooseKernel::compute_heuristic(const State &ancestor_state) {
+int GooseBayes::compute_heuristic(const State &ancestor_state) {
+  int cur_seen_colours = cnt_seen_colours;
+  int cur_unseen_colours = cnt_unseen_colours;
+
   // step 1.
   CGraph graph = state_to_graph(ancestor_state);
   // step 2.
   std::vector<int> feature = wl_feature(graph);
   // step 3.
-  int h = predict(feature);
+  std::pair<double, double> h_std_pair =
+      model.attr("predict_h_with_std")(feature).cast<std::pair<double, double>>();
+  int h = static_cast<int>(round(h_std_pair.first));
+  double std = h_std_pair.second;
+
+  cur_seen_colours = cnt_seen_colours - cur_seen_colours;
+  cur_unseen_colours = cnt_unseen_colours - cur_unseen_colours;
+  double ratio_seen_colours = static_cast<double>(cur_seen_colours) / (cur_unseen_colours + cur_seen_colours);
+
+  std_ratio_pairs.insert(std::make_pair(ratio_seen_colours, std));
+
   return h;
 }
 
-class GooseKernelFeature : public plugins::TypedFeature<Evaluator, GooseKernel> {
+class GooseBayesFeature : public plugins::TypedFeature<Evaluator, GooseBayes> {
  public:
-  GooseKernelFeature() : TypedFeature("kernel_model") {
-    document_title("GOOSE optimised WL kernel heuristic");
+  GooseBayesFeature() : TypedFeature("bayes_model") {
+    document_title("GOOSE optimised WL bayes heuristic");
     document_synopsis("TODO");
 
     // https://github.com/aibasel/downward/pull/170 for string options
@@ -141,6 +156,6 @@ class GooseKernelFeature : public plugins::TypedFeature<Evaluator, GooseKernel> 
   }
 };
 
-static plugins::FeaturePlugin<GooseKernelFeature> _plugin;
+static plugins::FeaturePlugin<GooseBayesFeature> _plugin;
 
-}  // namespace goose_kernel
+}  // namespace goose_bayes

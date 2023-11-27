@@ -3,7 +3,7 @@ import argparse
 import os
 from util.save_load import load_kernel_model_and_setup
 
-TIMEOUT = 1800
+TIMEOUT = 1800000
 
 """ Main search driver. """
 
@@ -88,6 +88,8 @@ def fd_cmd(args, aux_file, plan_file):
         "quadratic-svr": "kernel_model",
         "cubic-svr": "kernel_model",
         "mlp": "kernel_model",
+        "blr": "bayes_model",
+        "gp": "bayes_model",
     }[model.model_name]
 
     if model_type == "linear_model":
@@ -97,7 +99,7 @@ def fd_cmd(args, aux_file, plan_file):
         graph_data = model.get_graph_file_path()
 
         fd_h = f'{model_type}(model_data="{model_data}", graph_data="{graph_data}")'
-    elif model_type == "kernel_model":
+    elif model_type in {"kernel_model", "bayes_model"}:
         model_data = None
         graph_data = None
 

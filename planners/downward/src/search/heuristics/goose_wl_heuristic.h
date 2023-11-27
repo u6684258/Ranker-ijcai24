@@ -2,6 +2,7 @@
 #define GOOSE_WL_HEURISTIC_H
 
 #include <fstream>
+#include <map>
 #include <set>
 #include <string>
 #include <unordered_map>

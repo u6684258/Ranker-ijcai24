@@ -1,12 +1,13 @@
 import numpy as np
+from sklearn.gaussian_process import GaussianProcessRegressor
 import kernels
 from sklearn.neural_network import MLPClassifier, MLPRegressor
-from sklearn.linear_model import Lasso, Ridge, LinearRegression, LogisticRegression
+from sklearn.linear_model import BayesianRidge, Lasso, Ridge, LinearRegression, LogisticRegression
 from sklearn.svm import LinearSVR, SVR, LinearSVC, SVC
-from typing import Iterable, List, Optional, Dict
+from typing import Iterable, List, Optional, Dict, Tuple, Union
 from representation import CGraph, Representation, REPRESENTATIONS
 from planning import State
-from kernels.base_kernel import Histogram, NO_EDGE
+from kernels.base_kernel import Histogram, NO_EDGE, WlAlgorithm
 
 
 MODELS = [
@@ -20,7 +21,15 @@ MODELS = [
     "mlp",
 ]
 
+BAYESIAN_MODELS = [
+    "blr",  # bayesian linear regression
+    "gp",  # gaussian process with rbf kernel
+]
+
 _MAX_MODEL_ITER = 1000000
+_C = 1.0
+_ALPHA = 1.0
+_EPSILON = 0.1
 
 
 class KernelModelWrapper:
@@ -31,7 +40,7 @@ class KernelModelWrapper:
         self.model_name = args.model
         self.wl_name = args.features
 
-        self._kernel = kernels.GRAPH_FEATURE_GENERATORS[args.features](iterations=args.iterations, prune=args.prune)
+        self._kernel : WlAlgorithm = kernels.GRAPH_FEATURE_GENERATORS[args.features](iterations=args.iterations, prune=args.prune)
 
         self._iterations = args.iterations
         self._prune = args.prune
@@ -48,14 +57,14 @@ class KernelModelWrapper:
             self._model = {
                 None: None,
                 "linear-regression": LogisticRegression(penalty=None),
-                "linear-svr": LinearSVC(dual="auto", C=args.C, **kwargs),
+                "linear-svr": LinearSVC(dual="auto", C=_C, **kwargs),
                 "lasso": LogisticRegression(  # l1 only works with liblinear and saga
-                    penalty="l1", C=1 / args.a, solver="liblinear", **kwargs
+                    penalty="l1", C=1 / _ALPHA, solver="liblinear", **kwargs
                 ),
-                "ridge": LogisticRegression(penalty="l2", C=1 / args.a, **kwargs),
-                "rbf-svr": SVC(kernel="rbf", C=args.C, **kwargs),
-                "quadratic-svr": SVC(kernel="poly", degree=2, C=args.C, **kwargs),
-                "cubic-svr": SVC(kernel="poly", degree=3, C=args.C, **kwargs),
+                "ridge": LogisticRegression(penalty="l2", C=1 / _ALPHA, **kwargs),
+                "rbf-svr": SVC(kernel="rbf", C=_C, **kwargs),
+                "quadratic-svr": SVC(kernel="poly", degree=2, C=_C, **kwargs),
+                "cubic-svr": SVC(kernel="poly", degree=3, C=_C, **kwargs),
                 "mlp": MLPClassifier(
                     hidden_layer_sizes=(64,),
                     batch_size=16,
@@ -68,12 +77,12 @@ class KernelModelWrapper:
             self._model = {
                 None: None,
                 "linear-regression": LinearRegression(),
-                "linear-svr": LinearSVR(dual="auto", epsilon=args.e, C=args.C, **kwargs),
-                "lasso": Lasso(alpha=args.a, **kwargs),
-                "ridge": Ridge(alpha=args.a, **kwargs),
-                "rbf-svr": SVR(kernel="rbf", epsilon=args.e, C=args.C, **kwargs),
-                "quadratic-svr": SVR(kernel="poly", degree=2, epsilon=args.e, C=args.C, **kwargs),
-                "cubic-svr": SVR(kernel="poly", degree=3, epsilon=args.e, C=args.C, **kwargs),
+                "linear-svr": LinearSVR(dual="auto", epsilon=_EPSILON, C=_C, **kwargs),
+                "lasso": Lasso(alpha=_ALPHA, **kwargs),
+                "ridge": Ridge(alpha=_ALPHA, **kwargs),
+                "rbf-svr": SVR(kernel="rbf", epsilon=_EPSILON, C=_C, **kwargs),
+                "quadratic-svr": SVR(kernel="poly", degree=2, epsilon=_EPSILON, C=_C, **kwargs),
+                "cubic-svr": SVR(kernel="poly", degree=3, epsilon=_EPSILON, C=_C, **kwargs),
                 "mlp": MLPRegressor(
                     hidden_layer_sizes=(64,),
                     batch_size=16,
@@ -81,6 +90,8 @@ class KernelModelWrapper:
                     early_stopping=True,
                     validation_fraction=0.15,
                 ),
+                "blr": BayesianRidge(**kwargs),
+                "gp": GaussianProcessRegressor(),  # overfitting, need param tuning
             }[self.model_name]
 
         self._train = True
@@ -105,6 +116,10 @@ class KernelModelWrapper:
 
     def predict(self, X) -> np.array:
         return self._model.predict(X)
+
+    def predict_with_std(self, X) -> Tuple[np.array, np.array]:
+        """ for Bayesian models only """
+        return self._model.predict(X, return_std=True)
 
     def get_learning_model(self):
         return self._model
@@ -228,16 +243,13 @@ class KernelModelWrapper:
     def get_hash(self) -> Dict[str, int]:
         return self._kernel.get_hash()
 
-    def compute_histograms(self, graphs: CGraph):
-        return self._kernel.compute_histograms(graphs)
+    def compute_histograms(self, graphs: CGraph, return_ratio_seen_counts: bool = False) -> Union[List[Histogram], Tuple[List[Histogram], List[float]]]:
+        return self._kernel.compute_histograms(graphs, return_ratio_seen_counts)
 
     def get_matrix_representation(
-        self, graphs: CGraph, histograms: Optional[Dict[CGraph, Histogram]]
+        self, graphs: CGraph, histograms: Optional[List[Histogram]]
     ) -> np.array:
-        if self.model_name == "svr":
-            return self._kernel.get_k(graphs, histograms)
-        else:
-            return self._kernel.get_x(graphs, histograms)
+        return self._kernel.get_x(graphs, histograms)
 
     def h(self, state: State) -> float:
         h = self.h_batch([state])[0]
@@ -250,10 +262,14 @@ class KernelModelWrapper:
         hs = np.rint(y).astype(int).tolist()
         return hs
 
-    def svr_predict(self, x: Iterable[float]) -> float:
+    def predict_h(self, x: Iterable[float]) -> float:
         """predict for single row x"""
         y = self.predict([x])
         return y
+    
+    def predict_h_with_std(self, x: Iterable[float]) -> Tuple[float, float]:
+        y, std = self.predict_with_std([x])
+        return (y, std)
 
     @property
     def n_colours_(self) -> int:

@@ -538,6 +538,14 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME GOOSE_WL_BAYES_HEURISTIC
+    HELP "The GOOSE heuristic with WL features Bayesian model"
+    SOURCES
+        heuristics/goose_bayes
+    DEPENDS CGRAPH GOOSE_WL_HEURISTIC
+)
+
+fast_downward_plugin(
     NAME LP_SOLVER
     HELP "Interface to an LP solver"
     SOURCES

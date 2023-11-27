@@ -43,24 +43,6 @@ def parse_args():
         help="ML model. Use the default (None) when using the script to generate just the data and not training the models.",
     )
     parser.add_argument(
-        "-a",
-        type=float,
-        default=1,
-        help="L1 and L2 regularisation parameter of linear regression; strength is proportional to a",
-    )
-    parser.add_argument(
-        "-C",
-        type=float,
-        default=1,
-        help="regularisation parameter of SVR; strength is inversely proportional to C",
-    )
-    parser.add_argument(
-        "-e",
-        type=float,
-        default=0.1,
-        help="epsilon parameter in epsilon insensitive loss function of SVR",
-    )
-    parser.add_argument(
         "--model-save-file", type=str, default=None, help="save file of model weights"
     )
 
@@ -89,7 +71,7 @@ def parse_args():
         "--features",
         type=str,
         choices=kernels.GRAPH_FEATURE_GENERATORS,
-        help="graph representation to use",
+        help="wl algorithm to use",
     )
     parser.add_argument(
         "-l",

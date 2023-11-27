@@ -6,7 +6,8 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import numpy as np
 import networkx as nx
 from abc import ABC, abstractmethod
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Tuple, Union
+from tqdm import tqdm
 from representation import CGraph
 
 
@@ -35,8 +36,48 @@ class WlAlgorithm(ABC):
 
         return
 
+    def compute_histograms(
+        self, graphs: List[CGraph], return_ratio_seen_counts: bool
+    ) -> Union[List[Histogram], Tuple[List[Histogram], List[float]]]:
+        """Read graphs and return histograms and maybe ratio of seen counts.
+
+        self._train value determines if new colours are stored or not
+        """
+
+        histograms = []
+        ratio_seen_counts = []
+
+        # compute colours and hashmap from training data
+        for G in tqdm(graphs):
+            G_seen_count = self._hit_colours
+            G_unseen_count = self._missed_colours
+
+            histogram = self.compute_histograms_helper(G)
+            histograms.append(histogram)
+            
+            if not return_ratio_seen_counts:
+                continue
+
+            # ratio seen counts
+            G_seen_count = self._hit_colours - G_seen_count
+            G_unseen_count = self._missed_colours - G_unseen_count
+            all_cnts = G_seen_count + G_unseen_count
+            if all_cnts == 0:  # occurs during training
+                ratio = 1
+            else:
+                ratio = G_seen_count / all_cnts
+            ratio_seen_counts.append(ratio)
+
+        if self._train and self._prune > 0:
+            histograms = self._prune_hash(histograms)
+
+        if return_ratio_seen_counts:
+            return histograms, ratio_seen_counts
+        else:
+            return histograms
+    
     @abstractmethod
-    def compute_histograms(self, graphs: List[CGraph]) -> Dict[CGraph, Histogram]:
+    def compute_histograms_helper(self, G: CGraph) -> Histogram:
         raise NotImplementedError
 
     def get_hash(self) -> Dict[str, int]:
@@ -89,14 +130,14 @@ class WlAlgorithm(ABC):
         self._hash = new_hash
 
         # prune from train set
-        ret_histograms = {}
-        for G, histogram in histograms.items():
+        ret_histograms = []
+        for histogram in histograms:
             new_histogram = {}
             for old_col_hash, cnt in histogram.items():
                 if old_col_hash not in old_colour_hash_to_new_hash:
                     continue  # total count too small
                 new_histogram[old_colour_hash_to_new_hash[old_col_hash]] = cnt
-            ret_histograms[G] = new_histogram
+            ret_histograms.append(histogram)
 
         return ret_histograms
 
@@ -110,12 +151,12 @@ class WlAlgorithm(ABC):
 
     def get_hit_colours(self) -> int:
         return self._hit_colours
-    
+
     def get_missed_colours(self) -> int:
         return self._missed_colours
 
     def get_x(
-        self, graphs: CGraph, histograms: Optional[Dict[CGraph, Histogram]] = None
+        self, graphs: List[CGraph], histograms: Optional[List[Histogram]] = None
     ) -> np.array:
         """Explicit feature representation
         O(nd) time; n x d output
@@ -126,19 +167,16 @@ class WlAlgorithm(ABC):
         X = np.zeros((n, d))
 
         if histograms is None:
-            histograms = self.compute_histograms(graphs)
-        else:
-            histograms = histograms
+            histograms = self.compute_histograms(graphs, return_ratio_seen_counts=False)
 
-        for i, G in enumerate(graphs):
-            histogram = histograms[G]
+        for i, histogram in enumerate(histograms):
             for j in histogram:
                 if 0 <= j and j < d:
                     X[i][j] = histogram[j]
 
         return X
 
-    def get_k(self, graphs: CGraph, histograms: Dict[CGraph, Histogram]) -> np.array:
+    def get_k(self, graphs: List[CGraph], histograms: List[Histogram]) -> np.array:
         """Implicit feature representation
         O(n^2d) time; n x n output
         """
@@ -149,8 +187,8 @@ class WlAlgorithm(ABC):
             for j in range(i, n):
                 k = 0
 
-                histogram_i = histograms[graphs[i]]
-                histogram_j = histograms[graphs[j]]
+                histogram_i = histograms[i]
+                histogram_j = histograms[j]
 
                 common_colours = set(histogram_i.keys()).intersection(set(histogram_j.keys()))
                 for c in common_colours:

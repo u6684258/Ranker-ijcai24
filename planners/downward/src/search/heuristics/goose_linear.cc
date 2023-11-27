@@ -108,7 +108,7 @@ int GooseLinear::compute_heuristic(const State &ancestor_state) {
 
   // cur_seen_colours = cnt_seen_colours - cur_seen_colours;
   // cur_unseen_colours = cnt_unseen_colours - cur_unseen_colours;
-  // double ratio_seen_colours = static_cast<double>(cur_seen_colours) / cur_unseen_colours;
+  // double ratio_seen_colours = static_cast<double>(cur_seen_colours) / (cur_unseen_colours + cur_seen_colours);
 
   // worst_seen_ratios.insert(ratio_seen_colours);
 

@@ -2,6 +2,28 @@ import os
 from itertools import product
 from tqdm import tqdm
 
+DOMAINS = [  # domains
+    "blocksworld",
+    "childsnack",
+    "ferry",
+    "floortile",
+    "miconic",
+    "rovers",
+    "satellite",
+    "sokoban",
+    "spanner",
+    "transport",
+]
+
+save_dir = "icaps24_blr_models"
+log_dir = "icaps24_train_logs"
+os.makedirs(save_dir, exist_ok=True)
+os.makedirs(log_dir, exist_ok=True)
+
+for domain in DOMAINS:
+    os.system(f"python3 train_bayes.py -d {domain} --model-save-file {save_dir}/{domain}.joblib | tee {log_dir}/{domain}.log")
+assert 0
+
 SAVE_DIR = "icaps24_wl_models"
 LOG_DIR = "icaps24_train_logs"
 
@@ -12,18 +34,6 @@ configs = product(
     [1],  # iterations
     [0],  # prunes
     ["ilg"],  # representation
-    [  # domains
-        "blocksworld",
-        "childsnack",
-        "ferry",
-        "floortile",
-        "miconic",
-        "rovers",
-        "satellite",
-        "sokoban",
-        "spanner",
-        "transport",
-    ],
     [  # models
         "linear-svr",
         # "lasso",
