@@ -15,13 +15,13 @@ DOMAINS = [  # domains
     "transport",
 ]
 
-save_dir = "icaps24_blr_models"
-log_dir = "icaps24_train_logs"
+save_dir = "icaps24_gp_models"
+log_dir = "icaps24_gp_train_logs"
 os.makedirs(save_dir, exist_ok=True)
 os.makedirs(log_dir, exist_ok=True)
 
 for domain in DOMAINS:
-    os.system(f"python3 train_bayes.py -d {domain} --model-save-file {save_dir}/{domain}.joblib | tee {log_dir}/{domain}.log")
+    os.system(f"python3 train_bayes.py -d {domain} -m gp --model-save-file {save_dir}/{domain}_gp.joblib | tee {log_dir}/{domain}_gp.log")
 assert 0
 
 SAVE_DIR = "icaps24_wl_models"

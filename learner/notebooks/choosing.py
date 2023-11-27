@@ -25,7 +25,7 @@ if __name__ == "__main__":
         print("x:", x_values)
         print("y:", y_values)
 
-        plt.plot(x_values, y_values)
+        plt.scatter(x_values, y_values)
         plt.show()
             
     except Exception as e:

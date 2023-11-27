@@ -283,6 +283,11 @@ SearchStatus EagerSearch::step() {
             return SOLVED;
     }
 
+    if (statistics.get_expanded() >= 10000) {
+      open_list->print_statistics();
+      exit(-1);
+    }
+
     return IN_PROGRESS;
 }
 

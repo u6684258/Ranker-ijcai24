@@ -4,6 +4,7 @@ import kernels
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.linear_model import BayesianRidge, Lasso, Ridge, LinearRegression, LogisticRegression
 from sklearn.svm import LinearSVR, SVR, LinearSVC, SVC
+from sklearn.gaussian_process.kernels import DotProduct
 from typing import Iterable, List, Optional, Dict, Tuple, Union
 from representation import CGraph, Representation, REPRESENTATIONS
 from planning import State
@@ -23,7 +24,7 @@ MODELS = [
 
 BAYESIAN_MODELS = [
     "blr",  # bayesian linear regression
-    "gp",  # gaussian process with rbf kernel
+    "gp",  # gaussian process with dot product kernel
 ]
 
 _MAX_MODEL_ITER = 1000000
@@ -91,7 +92,7 @@ class KernelModelWrapper:
                     validation_fraction=0.15,
                 ),
                 "blr": BayesianRidge(**kwargs),
-                "gp": GaussianProcessRegressor(),  # overfitting, need param tuning
+                "gp": GaussianProcessRegressor(kernel=DotProduct()),  
             }[self.model_name]
 
         self._train = True
