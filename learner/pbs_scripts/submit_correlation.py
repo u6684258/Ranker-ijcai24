@@ -7,43 +7,39 @@ from itertools import product
 ~> 30 minute + 8GB job = 2 SU
 """
 
-_PBS_TIMEOUT = "00:31:30"
+_PBS_TIMEOUT = "00:12:30"  # 10 mins + 2.30 for overhead
 
 # 900 all problems / 300 per difficulty
 # 1.8 KSU all problems / 0.6 KSU per difficulty
 _DOMAINS = [
-    # "blocksworld",
-    # "childsnack",
+    "blocksworld",
+    "childsnack",
     "ferry",
-    # "floortile",
-    # "miconic",
-    # "rovers",
+    "floortile",
+    "miconic",
+    "rovers",
     "satellite",
-    "sokoban",
-    # "spanner",
+    # "sokoban",  # no model trained
+    "spanner",
     "transport",
 ]
 _DIFFICULTIES = [
-    # "easy",
-    # "medium",
+    "easy",
+    "medium",
     "hard",
 ]
 
-_LEARNING_MODELS = ["linear-svr"]
-_REPRESENTATIONS = ["ilg"]
-_WLS = [
-    "1wl", 
-    # "2gwl", 
-    "2lwl",
-]
-_ITERATIONS = [1, 4]
+rep = "ilg"
+wl = "1wl"
+iterations = "4"
+learning_model = "gp"
 
 # inaccurate fd timer, rely on pbs script and postprocessing for timing out
 _TIMEOUT = 360000  
 
-_LOG_DIR = "icaps24_test_logs"
+_LOG_DIR = "icaps24_gp_correlation_logs"
 _LOCK_DIR = "lock"
-_MODEL_DIR = "icaps24_wl_models"
+_MODEL_DIR = "icaps24_gp_models"
 
 os.makedirs(_LOG_DIR, exist_ok=True)
 os.makedirs(_LOCK_DIR, exist_ok=True)
@@ -62,10 +58,6 @@ def main():
 
     CONFIGS = list(
         product(
-            _LEARNING_MODELS,
-            _REPRESENTATIONS,
-            _WLS,
-            _ITERATIONS,
             _DOMAINS,
             _DIFFICULTIES,
         )
@@ -73,9 +65,9 @@ def main():
 
     missing_models = set()
 
-    for config in CONFIGS:
-        learning_model, rep, wl, iterations, domain, difficulty = config
-        mf = f"{_MODEL_DIR}/{domain}_{rep}_{wl}_{iterations}_0_{learning_model}_H.joblib"
+    for domain, difficulty in CONFIGS:
+        mf = f"{_MODEL_DIR}/{domain}_{learning_model}.joblib"
+        assert os.path.exists(mf), mf
 
         df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
         problem_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/{difficulty}"
@@ -92,7 +84,8 @@ def main():
             problem = os.path.basename(pf).replace(".pddl", "")
 
             # check whether to skip
-            desc = f'{domain}_{difficulty}_{problem}_{rep}_{wl}_{iterations}_{learning_model}_H'
+            desc = f'{domain}_{difficulty}_{problem}_{learning_model}'
+
             log_file = f"{_LOG_DIR}/{desc}.log"
             lock_file = f"{_LOCK_DIR}/{desc}.lock"
 
@@ -108,13 +101,13 @@ def main():
             with open(lock_file, "w") as f:
                 pass
 
-            cmd = f"python3 run_kernel.py {df} {pf} {mf}  --timeout {_TIMEOUT}"
+            cmd = f"python3 run_kernel.py {df} {pf} {mf} --timeout {_TIMEOUT}"
 
             cmd = (
                 f"qsub -o {log_file} -j oe -l walltime={_PBS_TIMEOUT} -v "
                 + f'CMD="{cmd}",'
                 + f'LOCK_FILE="{lock_file}" '
-                + f"pbs_scripts/job.sh"
+                + f"pbs_scripts/job_4gb.sh"
             )
             os.system(cmd)
             submitted += 1
