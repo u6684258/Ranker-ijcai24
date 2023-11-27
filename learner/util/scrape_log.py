@@ -32,6 +32,7 @@ def scrape_search_log(file):
         "seen_colours": -1,  # for the wl methods only
         "unseen_colours": -1,
         "ratio_seen_colours": -1,
+        "tried": 0,
     }
 
     if not os.path.exists(file):
@@ -65,6 +66,9 @@ def scrape_search_log(file):
 
     if stats["time"] > 1800:  # assume timeout is 1800
         stats["solved"] = 0
+        stats["time"] = 1800
+
+    stats["tried"] = 1
 
     return stats
 

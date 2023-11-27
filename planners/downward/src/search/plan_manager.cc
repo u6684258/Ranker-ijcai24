@@ -56,8 +56,9 @@ void PlanManager::save_plan(
         utils::exit_with(utils::ExitCode::SEARCH_INPUT_ERROR);
     }
     OperatorsProxy operators = task_proxy.get_operators();
+    // write_plan here
     for (OperatorID op_id : plan) {
-        cout << operators[op_id].get_name() << " (" << operators[op_id].get_cost() << ")" << endl;
+        // cout << operators[op_id].get_name() << " (" << operators[op_id].get_cost() << ")" << endl;
         outfile << "(" << operators[op_id].get_name() << ")" << endl;
     }
     int plan_cost = calculate_plan_cost(plan, task_proxy);

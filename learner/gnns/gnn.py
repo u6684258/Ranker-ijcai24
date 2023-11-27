@@ -22,9 +22,10 @@ from torch_geometric.nn.inits import glorot, zeros
 #     FastRGCNConv,
 # )  # (slow and/or mem inefficient)
 
-""" This file contains two classes:
-    1. a class for an actual GNN object
-    2. a class which acts a heuristic function object and contains a GNN and Representation object.
+""" This file contains three variants of classes:
+    1. GNN layer module classes which are stacked within a GNN class
+    1. GNN classes themselves
+    2. a class which acts as an interface containing a GNN and Representation object
 """
 
 
@@ -34,6 +35,44 @@ def construct_mlp(in_features: int, out_features: int, n_hid: int) -> torch.nn.M
         ReLU(),
         Linear(n_hid, out_features),
     )
+
+class PPGNLayer(Module):
+  """
+  PPGN layer:
+  input = X || A || I
+  
+  See middle column https://haggaim.github.io/projects/powerful_graph/Provably_Powerful_Graph_Networks___Poster.pdf
+  """
+
+  def __init__(self, in_features, out_features, n_hid):
+    super(PPGNLayer, self).__init__()
+    kernel_size = 1
+    pad = 0
+    bias = False
+    self.mlp1 = Sequential(
+      torch.nn.Conv2d(in_features, out_features, kernel_size=kernel_size, padding=pad, bias=bias), 
+      ReLU(), 
+    )
+    self.mlp2 = Sequential(
+      torch.nn.Conv2d(in_features, out_features, kernel_size=kernel_size, padding=pad, bias=bias), 
+      ReLU(), 
+    )
+    self.mlp3 = Sequential(
+      torch.nn.Conv2d(in_features+n_hid, out_features, kernel_size=kernel_size, padding=pad, bias=bias), 
+      ReLU(), 
+    )
+
+  def forward(self, H):
+    """
+        input: B x F_1 x N x N 
+        output: B x F_2 x N x N 
+    """
+
+    mlp1 = self.mlp1(H)
+    mlp2 = self.mlp2(H)
+    mult = torch.matmul(mlp1, mlp2)
+    mlp3 = self.mlp3(torch.cat((mult, H), dim=1))
+    return mlp3
 
 
 class RGNNLayer(Module):

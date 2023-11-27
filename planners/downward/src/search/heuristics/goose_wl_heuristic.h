@@ -19,7 +19,6 @@ namespace goose_wl {
 
 class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
  protected:
-
   // convert state to CGraph (ILG representation)
   CGraph state_to_graph(const State &state);
 
