@@ -1,14 +1,6 @@
 #ifndef GOOSE_LINEAR_ONLINE_H
 #define GOOSE_LINEAR_ONLINE_H
 
-#include <fstream>
-#include <map>
-#include <queue>
-#include <set>
-#include <string>
-#include <utility>
-#include <vector>
-
 #include "../goose/coloured_graph.h"
 #include "goose_linear.h"
 
@@ -29,12 +21,15 @@ struct SearchNodeStats {
 
 struct BackwardsSearchNode {
   PartialState state;
-  int h;
   int y;
-  std::vector<double> ratio;
+  // int h;
+  // std::vector<double> ratio;
 
-  BackwardsSearchNode(const PartialState &state, int y, const SearchNodeStats &stats)
-      : state(state), h(stats.h), y(y), ratio(stats.ratio){};
+  BackwardsSearchNode(const PartialState &state, int y)
+      : state(state), y(y) {};
+
+  // BackwardsSearchNode(const PartialState &state, int y, const SearchNodeStats &stats)
+  //     : state(state), h(stats.h), y(y), ratio(stats.ratio){};
 };
 
 class GooseLinearOnline : public goose_linear::GooseLinear {

@@ -1,7 +1,16 @@
 #include "goose_linear_online.h"
 
+#include <algorithm>
+#include <fstream>
+#include <map>
+#include <queue>
 #include <random>
+#include <set>
+#include <string>
+#include <unordered_map>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include "../plugins/plugin.h"
 #include "../task_utils/task_properties.h"
@@ -47,11 +56,10 @@ inline bool regressable(const PartialState &state, const OperatorProxy &op) {
     // (i) effect and partial state non empty
     if (g_v == eff_v) {
       non_empty = true;
-      break;
     }
 
     // (ii) effect leads into the partial state
-    if (g_v != -1 && g_v != eff_v) {
+    if (g_v != -1 && eff_v != g_v) {
       return false;
     }
   }
@@ -60,7 +68,7 @@ inline bool regressable(const PartialState &state, const OperatorProxy &op) {
     return false;
   }
 
-  for (const FactProxy& fact : op.get_preconditions()) {
+  for (const FactProxy &fact : op.get_preconditions()) {
     fact_pair = fact.get_pair();  // assume no conditional effects
     int var = fact_pair.var;
     int g_v = state[var];
@@ -73,6 +81,35 @@ inline bool regressable(const PartialState &state, const OperatorProxy &op) {
   }
 
   return true;
+}
+
+inline PartialState regress(const PartialState &state, const OperatorProxy &op) {
+  // (g \ eff_a) \cup pre_a
+  PartialState ret = state;
+
+  FactPair fact_pair;
+  int var, val;
+  for (const EffectProxy &eff : op.get_effects()) {
+    fact_pair = eff.get_fact().get_pair();  // assume no conditional effects
+    var = fact_pair.var;
+    val = fact_pair.value;
+
+    // delete the effect
+    if (state[var] == val) {  // equivalently state[var] != -1 because of regressable
+      ret[var] = -1;
+    }
+  }
+
+  for (const FactProxy &fact : op.get_preconditions()) {
+    fact_pair = fact.get_pair();  // assume no conditional effects
+    var = fact_pair.var;
+    val = fact_pair.value;
+
+    // add the precondition
+    ret[var] = val;
+  }
+
+  return ret;
 }
 
 void GooseLinearOnline::train() {
@@ -91,29 +128,51 @@ void GooseLinearOnline::train() {
     goal_condition[var_to_ind[goal.get_variable()]] = goal.get_value();
   }
 
-  std::cout << goal_condition << std::endl;
-
   FullState full_state = assign_random_state(goal_condition);
   int y = 0;
-  SearchNodeStats stats = compute_heuristic_vector_state(full_state);
+  // SearchNodeStats stats = compute_heuristic_vector_state(full_state);
 
-  BackwardsSearchNode node(goal_condition, y, stats);
+  BackwardsSearchNode node(goal_condition, y);
 
   std::set<PartialState> seen;
   std::queue<BackwardsSearchNode> q;
+  std::unordered_map<int, std::vector<PartialState>> y_to_states;
+  int max_y = 0;
 
+  std::cout << "performing BFS regression" << std::endl;
+  seen.insert(goal_condition);
   q.push(node);
-  while (!q.empty() && seen.size() < 10000) {
+  while (!q.empty() && seen.size() < 100000) {
     BackwardsSearchNode node = q.front();
     q.pop();
     PartialState partial_state = node.state;
     int y = node.y;
 
     for (const auto &op : task_proxy.get_operators()) {
-      if (regressable(partial_state, op))
-        std::cout << op.get_name() << std::endl;
+      if (regressable(partial_state, op)) {
+        PartialState succ_state = regress(partial_state, op);
+        if (seen.count(succ_state)) {
+          continue;
+        }
+        seen.insert(succ_state);
+        int succ_y = y + 1;
+        q.push(BackwardsSearchNode(succ_state, succ_y));
+
+        // store non goal regression training states
+        if (!y_to_states.count(succ_y)) {
+          y_to_states[succ_y] = std::vector<PartialState>();
+        }
+        y_to_states[succ_y].push_back(succ_state);
+        max_y = std::max(max_y, succ_y);
+      }
+    }
+
+    if (q.empty()) {
+      std::cout << "queue empty " << std::endl;
     }
   }
+
+  std::cout << max_y << " " << y_to_states[max_y].size() << " " << seen.size() << std::endl;
 
   exit(-1);
 
