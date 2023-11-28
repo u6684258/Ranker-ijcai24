@@ -17,8 +17,6 @@
 namespace goose_linear {
 
 class GooseLinear : public goose_wl::WLGooseHeuristic {
-  void initialise_model(const plugins::Options &opts);
-
   /* Heuristic computation consists of three steps */
 
   // 1. convert state to CGraph (IG representation)
@@ -33,11 +31,6 @@ class GooseLinear : public goose_wl::WLGooseHeuristic {
 
  public:
   explicit GooseLinear(const plugins::Options &opts);
-
- private:
-  // A linear model of the form ax + b
-  std::vector<double> weights_;  // a
-  double bias_;                  // b
 };
 
 }  // namespace goose_linear

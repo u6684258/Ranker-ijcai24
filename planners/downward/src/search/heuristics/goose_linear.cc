@@ -16,79 +16,7 @@ using std::string;
 
 namespace goose_linear {
 
-GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuristic(opts) {
-  lifted_goose = true;
-  initialise_model(opts);
-  initialise_lifted_facts();
-}
-
-void GooseLinear::initialise_model(const plugins::Options &opts) {
-  std::string model_data_path = opts.get<string>("model_data");
-  std::string graph_data_path = opts.get<string>("graph_data");
-
-  std::cout << "Trying to load model data from files...\n";
-
-  // load graph data
-  graph_ = CGraph(graph_data_path);
-
-  // load model data
-  std::string line;
-  std::ifstream infile(model_data_path);
-  int hash_cnt = 0, hash_size = 0, weight_cnt = 0, weight_size = 0;
-
-  // there's probably a better way to parse things
-  while (std::getline(infile, line)) {
-    std::vector<std::string> toks;
-    std::istringstream iss(line);
-    std::string s;
-    while (std::getline(iss, s, ' ')) {
-      toks.push_back(s);
-    }
-    if (line.find("hash size") != std::string::npos) {
-      hash_size = stoi(toks[0]);
-      hash_cnt = 0;
-      continue;
-    } else if (line.find("weights size") != std::string::npos) {
-      weight_size = stoi(toks[0]);
-      weight_cnt = 0;
-      continue;
-    } else if (line.find("bias") != std::string::npos) {
-      bias_ = stod(toks[0]);
-      continue;
-    } else if (line.find("iterations") != std::string::npos) {
-      iterations_ = stoi(toks[0]);
-      continue;
-    } else if (line.find("wl_algorithm") != std::string::npos) {
-      wl_algorithm_ = toks[0];
-      continue;
-    } else if (line.find("NO_EDGE") != std::string::npos) {
-      NO_EDGE_ = stoi(toks[0]);
-      continue;
-    }
-
-    if (hash_cnt < hash_size) {
-      hash_[toks[0]] = stoi(toks[1]);
-      hash_cnt++;
-      continue;
-    }
-
-    if (weight_cnt < weight_size) {
-      weights_.push_back(stod(line));
-      weight_cnt++;
-      continue;
-    }
-  }
-
-  cnt_seen_colours = std::vector<long>(iterations_, 0);;
-  cnt_unseen_colours = std::vector<long>(iterations_, 0);;
-
-  // remove file
-  char *char_array = new char[model_data_path.length() + 1];
-  strcpy(char_array, model_data_path.c_str());
-  remove(char_array);
-
-  feature_size_ = static_cast<int>(weights_.size());
-}
+GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuristic(opts) {}
 
 int GooseLinear::predict(const std::vector<int> &feature) {
   double ret = bias_;
@@ -116,10 +44,9 @@ class GooseLinearFeature : public plugins::TypedFeature<Evaluator, GooseLinear> 
     document_synopsis("TODO");
 
     // https://github.com/aibasel/downward/pull/170 for string options
-    add_option<std::string>("model_data", "path to trained model data in the form of a .model file",
-                            "default_value");
-    add_option<std::string>("graph_data", "path to trained model graph representation data",
-                            "default_value");
+    add_option<std::string>("model_file", "path to trained python model", "default_value");
+    add_option<std::string>("domain_file", "Path to the domain file.", "default_file");
+    add_option<std::string>("instance_file", "Path to the instance file.", "default_file");
 
     Heuristic::add_options_to_feature(*this);
 

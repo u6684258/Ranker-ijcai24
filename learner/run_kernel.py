@@ -92,24 +92,17 @@ def fd_cmd(args, aux_file, plan_file):
         "gp": "linear_model",  # we assume dot product kernel
     }[model.model_name]
 
-    if model_type == "linear_model":
-        model.write_model_data()
-        model.write_representation_to_file()
-        model_data = model.get_model_data_path()
-        graph_data = model.get_graph_file_path()
-
-        fd_h = f'{model_type}(model_data="{model_data}", graph_data="{graph_data}")'
-    elif model_type in {"kernel_model", "bayes_model"}:
-        model_data = None
-        graph_data = None
-
-        fd_h = f'{model_type}(model_data="{m}", domain_file="{df}", instance_file="{pf}")'
-    else:
-        raise ValueError(model_type)
+    if args.train:
+        model_type += "_online"
+    fd_h = f'{model_type}(model_file="{m}", domain_file="{df}", instance_file="{pf}")'
 
     cmd = f"{_DOWNWARD} --search-time-limit {args.timeout} --sas-file {aux_file} --plan-file {plan_file} {df} {pf} --search '{search}([{fd_h}])'"
 
     if args.profile:
+        model.write_model_data()
+        model.write_representation_to_file()
+        model_data = model.get_model_data_path()
+        graph_data = model.get_graph_file_path()
         cmd = get_profile_cmd(cmd, model_data, graph_data)
 
     return cmd
@@ -124,6 +117,8 @@ if __name__ == "__main__":
         type=str,
         help="path to saved model weights",
     )
+    parser.add_argument("--train", action="store_true", help="perform online training")
+
     parser.add_argument(
         "--planner",
         "-p",

@@ -27,6 +27,10 @@ BAYESIAN_MODELS = [
     "gp",  # gaussian process with dot product kernel
 ]
 
+LINEAR_MODELS = [
+    "gp", "linear-svr"
+]
+
 _MAX_MODEL_ITER = 1000000
 _C = 1.0
 _ALPHA = 1.0
@@ -91,7 +95,7 @@ class KernelModelWrapper:
                     early_stopping=True,
                     validation_fraction=0.15,
                 ),
-                "blr": BayesianRidge(**kwargs),
+                "blr": BayesianRidge(),
                 "gp": GaussianProcessRegressor(kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10),  
             }[self.model_name]
 
@@ -176,8 +180,10 @@ class KernelModelWrapper:
     def get_num_zero_weights(self):
         return np.count_nonzero(self.get_weights() == 0)
 
-    def write_model_data(self, write_weights=True) -> None:
+    def write_model_data(self) -> None:
         from datetime import datetime
+
+        write_weights = self.model_name in LINEAR_MODELS
 
         df = self._representation.domain_pddl
         pf = self._representation.problem_pddl

@@ -22,20 +22,6 @@
 namespace goose_kernel {
 
 class GooseKernel : public goose_wl::WLGooseHeuristic {
-  void initialise_model(const plugins::Options &opts);
-
-  // Required for pybind. Once this goes out of scope python interaction is no
-  // longer possible.
-  //
-  // IMPORTANT: since member variables are destroyed in reverse order of
-  // construction it is important that the scoped_interpreter_guard is listed as
-  // first member variable (therefore destroyed last), otherwise calling the
-  // destructor of this class will lead to a segmentation fault.
-  pybind11::scoped_interpreter guard;
-
-  // Python object which computes the heuristic
-  pybind11::object model;
-
   /* Heuristic computation consists of three steps */
 
   // 1. convert state to CGraph (IG representation)
