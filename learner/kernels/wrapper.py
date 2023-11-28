@@ -92,7 +92,7 @@ class KernelModelWrapper:
                     validation_fraction=0.15,
                 ),
                 "blr": BayesianRidge(**kwargs),
-                "gp": GaussianProcessRegressor(kernel=DotProduct()),  
+                "gp": GaussianProcessRegressor(kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10),  
             }[self.model_name]
 
         self._train = True

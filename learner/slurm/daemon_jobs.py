@@ -6,7 +6,7 @@ DOMAINS = [
     "blocksworld",
     "childsnack",
     "ferry",
-    "floortile",
+    # "floortile",
     "miconic",
     "rovers",
     "satellite",
@@ -15,7 +15,7 @@ DOMAINS = [
     "transport",
 ]
 
-REPS = ["ilg"]
+REPS = ["ilg", "llg"]
 # LAYERS = [1, 4]
 LAYERS = [4]
 AGGRS = ["mean", "max"]
