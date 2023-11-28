@@ -89,7 +89,7 @@ def fd_cmd(args, aux_file, plan_file):
         "cubic-svr": "kernel_model",
         "mlp": "kernel_model",
         "blr": "bayes_model",
-        "gp": "bayes_model",
+        "gp": "linear_model",  # we assume dot product kernel
     }[model.model_name]
 
     if model_type == "linear_model":

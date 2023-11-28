@@ -149,12 +149,20 @@ class KernelModelWrapper:
         return
 
     def get_weights(self):
+        if self.model_name == "gp":
+            # a hack: after training in train_bayes.py, use alpha @ X_train to get weights
+            return self.weights
+        
         weights = self._model.coef_
         if hasattr(self, "_indices") and self._indices is not None:
             weights = weights[self._indices]
         return weights
 
     def get_bias(self) -> float:
+        if self.model_name == "gp":
+            bias = 0
+            return bias
+        
         bias = self._model.intercept_
         if type(bias) == float:
             return bias
@@ -182,8 +190,8 @@ class KernelModelWrapper:
         iterations = self.get_iterations()
 
         if write_weights:
-            indices = self.get_weight_indices()
             weights = self.get_weights()
+            indices = np.ones_like(weights)
             bias = self.get_bias()
 
             zero_weights = np.count_nonzero(weights == 0)
