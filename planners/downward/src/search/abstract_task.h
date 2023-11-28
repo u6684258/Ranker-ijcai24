@@ -15,6 +15,8 @@ struct FactPair {
     int var;
     int value;
 
+    FactPair() {}
+
     FactPair(int var, int value)
         : var(var), value(value) {
     }

@@ -1,6 +1,7 @@
 #include "goose_linear_online.h"
 
 #include <random>
+#include <unordered_set>
 
 #include "../plugins/plugin.h"
 #include "../task_utils/task_properties.h"
@@ -26,6 +27,52 @@ FullState GooseLinearOnline::assign_random_state(const PartialState &state) {
   }
 
   return ret;
+}
+
+inline bool regressable(const PartialState &state, const OperatorProxy &op) {
+  // https://fai.cs.uni-saarland.de/teaching/winter18-19/planning-material/planning06-progression-and-regression-post-handout.pdf
+  // slide 16/32
+  bool non_empty = false;
+
+  std::unordered_set<int> effect_vars;
+
+  FactPair fact_pair;
+  for (const EffectProxy &eff : op.get_effects()) {
+    fact_pair = eff.get_fact().get_pair();  // assume no conditional effects
+    int var = fact_pair.var;
+    int g_v = state[var];
+    int eff_v = fact_pair.value;
+    effect_vars.insert(var);
+
+    // (i) effect and partial state non empty
+    if (g_v == eff_v) {
+      non_empty = true;
+      break;
+    }
+
+    // (ii) effect leads into the partial state
+    if (g_v != -1 && g_v != eff_v) {
+      return false;
+    }
+  }
+
+  if (!non_empty) {
+    return false;
+  }
+
+  for (const FactProxy& fact : op.get_preconditions()) {
+    fact_pair = fact.get_pair();  // assume no conditional effects
+    int var = fact_pair.var;
+    int g_v = state[var];
+    int pre_v = fact_pair.value;
+
+    // (iii) unchanged precondition still the same in the partial state
+    if (!effect_vars.count(var) && g_v != -1 && pre_v != g_v) {
+      return false;
+    }
+  }
+
+  return true;
 }
 
 void GooseLinearOnline::train() {
@@ -63,7 +110,8 @@ void GooseLinearOnline::train() {
     int y = node.y;
 
     for (const auto &op : task_proxy.get_operators()) {
-      std::cout << op.get_name() << std::endl;
+      if (regressable(partial_state, op))
+        std::cout << op.get_name() << std::endl;
     }
   }
 
