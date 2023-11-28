@@ -38,6 +38,7 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
   pybind11::object model;
 
   // convert state to CGraph (ILG representation)
+  CGraph fact_pairs_to_graph(const std::vector<FactPair> &state);
   CGraph state_to_graph(const State &state);
 
   // perform the wl algorithm specified by wl_algorithm_ to

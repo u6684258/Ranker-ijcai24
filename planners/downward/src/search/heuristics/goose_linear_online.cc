@@ -1,18 +1,9 @@
 #include "goose_linear_online.h"
 
-#include <algorithm>
-#include <cstdio>
-#include <fstream>
-#include <iostream>
-#include <map>
-#include <regex>
-#include <string>
-#include <vector>
+#include <random>
 
 #include "../plugins/plugin.h"
 #include "../task_utils/task_properties.h"
-
-using std::string;
 
 namespace goose_linear_online {
 
@@ -21,7 +12,86 @@ GooseLinearOnline::GooseLinearOnline(const plugins::Options &opts)
   train();
 }
 
-void GooseLinearOnline::train() {}
+FullState GooseLinearOnline::assign_random_state(const PartialState &state) {
+  FullState ret;
+
+  for (int var = 0; var < n_variables; var++) {  // TODO(DZC) can optimise if -1 vars are static?
+    int val = state[var];
+    if (val == -1) {
+      std::uniform_int_distribution<std::mt19937::result_type> dist(0, vars[var].get_domain_size() -
+                                                                           1);
+      val = dist(rng);
+    }
+    ret.push_back(FactPair(var = var, val = val));
+  }
+
+  return ret;
+}
+
+void GooseLinearOnline::train() {
+  n_variables = task->get_num_variables();
+  vars = task_proxy.get_variables();
+  rng = std::mt19937(dev());
+
+  // initial state in backwards search is the goal condition
+  std::map<VariableProxy, int> var_to_ind;
+  for (int i = 0; i < n_variables; i++) {
+    var_to_ind[vars[i]] = i;
+  }
+
+  PartialState goal_condition(n_variables, -1);
+  for (FactProxy goal : task_proxy.get_goals()) {
+    goal_condition[var_to_ind[goal.get_variable()]] = goal.get_value();
+  }
+
+  std::cout << goal_condition << std::endl;
+
+  FullState full_state = assign_random_state(goal_condition);
+  int y = 0;
+  SearchNodeStats stats = compute_heuristic_vector_state(full_state);
+
+  BackwardsSearchNode node(goal_condition, y, stats);
+
+  std::set<PartialState> seen;
+  std::queue<BackwardsSearchNode> q;
+
+  q.push(node);
+  while (!q.empty() && seen.size() < 10000) {
+    BackwardsSearchNode node = q.front();
+    q.pop();
+    PartialState partial_state = node.state;
+    int y = node.y;
+
+    for (const auto &op : task_proxy.get_operators()) {
+      std::cout << op.get_name() << std::endl;
+    }
+  }
+
+  exit(-1);
+
+  // BackwardsSearchNode init_node(goal_condition, 0, 0, 0);
+
+  // for (FactProxy goal : task.get_goals()) {
+  //     if (state[goal.get_variable()] != goal)
+  //         return false;
+  // }
+  // return true;
+}
+
+SearchNodeStats GooseLinearOnline::compute_heuristic_vector_state(const FullState &state) {
+  std::vector<long> cur_seen_colours = cnt_seen_colours;
+  std::vector<long> cur_unseen_colours = cnt_unseen_colours;
+  std::vector<double> ratio(iterations_);
+  CGraph graph = fact_pairs_to_graph(state);
+  std::vector<int> feature = wl_feature(graph);
+  int h = predict(feature);
+  for (size_t i = 0; i < iterations_; i++) {
+    cur_seen_colours[i] -= cnt_seen_colours[i];
+    cur_unseen_colours[i] -= cnt_unseen_colours[i];
+    ratio[i] = cur_seen_colours[i] / (cur_seen_colours[i] + cur_unseen_colours[i]);
+  }
+  return SearchNodeStats(h = h, ratio = ratio);
+}
 
 class GooseLinearOnlineFeature : public plugins::TypedFeature<Evaluator, GooseLinearOnline> {
  public:
@@ -30,10 +100,9 @@ class GooseLinearOnlineFeature : public plugins::TypedFeature<Evaluator, GooseLi
     document_synopsis("TODO");
 
     // https://github.com/aibasel/downward/pull/170 for string options
-    add_option<std::string>("model_file", "path to trained model data in the form of a .model file",
-                            "default_value");
-    add_option<std::string>("graph_data", "path to trained model graph representation data",
-                            "default_value");
+    add_option<std::string>("model_file", "path to trained python model", "default_value");
+    add_option<std::string>("domain_file", "Path to the domain file.", "default_file");
+    add_option<std::string>("instance_file", "Path to the instance file.", "default_file");
 
     Heuristic::add_options_to_feature(*this);
 

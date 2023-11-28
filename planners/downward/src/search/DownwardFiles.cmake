@@ -530,6 +530,14 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME GOOSE_WL_LINEAR_HEURISTIC_ONLINE
+    HELP "The GOOSE heuristic with WL features linear model with online training"
+    SOURCES
+        heuristics/goose_linear_online
+    DEPENDS CGRAPH GOOSE_WL_LINEAR_HEURISTIC
+)
+
+fast_downward_plugin(
     NAME GOOSE_WL_KERNEL_HEURISTIC
     HELP "The GOOSE heuristic with WL features kernel model"
     SOURCES

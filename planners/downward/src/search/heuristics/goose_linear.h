@@ -17,6 +17,7 @@
 namespace goose_linear {
 
 class GooseLinear : public goose_wl::WLGooseHeuristic {
+ protected:
   /* Heuristic computation consists of three steps */
 
   // 1. convert state to CGraph (IG representation)
@@ -26,7 +27,6 @@ class GooseLinear : public goose_wl::WLGooseHeuristic {
   // 3. make a prediction with explicit feature
   int predict(const std::vector<int> &feature);
 
- protected:
   int compute_heuristic(const State &ancestor_state) override;
 
  public:

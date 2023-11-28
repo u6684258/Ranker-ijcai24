@@ -123,7 +123,7 @@ void WLGooseHeuristic::print_statistics() const {
   }
 }
 
-CGraph WLGooseHeuristic::state_to_graph(const State &state) {
+CGraph WLGooseHeuristic::fact_pairs_to_graph(const std::vector<FactPair> &state) {
   std::vector<std::vector<std::pair<int, int>>> edges = graph_.get_edges();
   std::vector<int> colours = graph_.get_colours();
   int cur_node_fact;
@@ -132,8 +132,8 @@ CGraph WLGooseHeuristic::state_to_graph(const State &state) {
   std::pair<std::string, std::vector<std::string>> pred_args;
   std::string pred, node_name;
   std::vector<std::string> args;
-  for (const FactProxy &fact : convert_ancestor_state(state)) {
-    pred_args = fact_to_l_input[fact.get_pair()];
+  for (const FactPair &fact_pair : state) {
+    pred_args = fact_to_l_input[fact_pair];
     pred = pred_args.first;
     args = pred_args.second;
     if (pred.size() == 0) {
@@ -175,6 +175,14 @@ CGraph WLGooseHeuristic::state_to_graph(const State &state) {
   }
 
   return {edges, colours};
+}
+
+CGraph WLGooseHeuristic::state_to_graph(const State &state) {
+  std::vector<FactPair> fact_pairs;
+  for (const FactProxy &fact : convert_ancestor_state(state)) {
+    fact_pairs.push_back(fact.get_pair());
+  }
+  return fact_pairs_to_graph(fact_pairs);
 }
 
 std::vector<int> WLGooseHeuristic::wl_feature(const CGraph &graph) {

@@ -319,6 +319,10 @@ public:
         assert(is_derived());
         return task->get_variable_default_axiom_value(id);
     }
+
+    bool operator<(const VariableProxy& other) const {
+        return get_id() < other.get_id();
+    }
 };
 
 
@@ -329,6 +333,7 @@ public:
     explicit VariablesProxy(const AbstractTask &task)
         : task(&task) {}
     ~VariablesProxy() = default;
+    VariablesProxy() {};
 
     std::size_t size() const {
         return task->get_num_variables();
