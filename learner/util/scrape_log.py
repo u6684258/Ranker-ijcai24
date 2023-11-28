@@ -20,7 +20,7 @@ def search_finished_correctly(f):
 
 
 def scrape_search_log(file):
-    """ assumes fast downward like log files """
+    """assumes fast downward like log files"""
 
     stats = {
         "first_h": -1,
@@ -62,7 +62,9 @@ def scrape_search_log(file):
             stats["unseen_colours"] = int(toks[-1])
 
     if stats["seen_colours"] != -1 and stats["unseen_colours"] != -1:
-        stats["ratio_seen_colours"] = stats["seen_colours"] / (stats["seen_colours"] + stats["unseen_colours"])
+        stats["ratio_seen_colours"] = stats["seen_colours"] / (
+            stats["seen_colours"] + stats["unseen_colours"]
+        )
 
     if stats["time"] > 1800:  # assume timeout is 1800
         stats["solved"] = 0
@@ -115,28 +117,32 @@ def scrape_train_log(file):
 
     return stats
 
+
 def scrape_kernel_train_log(log_file):
     assert os.path.exists(log_file), log_file
     stats = {}
-    lines = list(open(log_file, 'r').readlines())
+    lines = list(open(log_file, "r", encoding = "ISO-8859-1").readlines())
     for line in lines:
-      toks = line.split()
-      if "train_mse" in line:
-        stats["train_mse"] = float(toks[-1])
-      elif "train_f1_macro" in line:
-        stats["train_f1"] = float(toks[-1])
-      elif "val_mse" in line:
-        stats["val_mse"] = float(toks[-1])
-      elif "val_f1_macro" in line:
-        stats["val_f1"] = float(toks[-1])
-      elif "zero_weights" in line:
-        weights = int(toks[1].split('/')[1])
-        zeros = int(toks[1].split('/')[0])
-        stats["nonzero_weights"] = weights - zeros
-      elif "Model training completed in " in line:
-        stats["time"] = float(toks[-1].replace("s", ""))
-    
+        try:
+            toks = line.split()
+            if "train_mse" in line:
+                stats["train_mse"] = float(toks[-1])
+            elif "train_f1_macro" in line:
+                stats["train_f1"] = float(toks[-1])
+            elif "val_mse" in line:
+                stats["val_mse"] = float(toks[-1])
+            elif "val_f1_macro" in line:
+                stats["val_f1"] = float(toks[-1])
+            elif "zero_weights" in line:
+                weights = int(toks[1].split("/")[1])
+                zeros = int(toks[1].split("/")[0])
+                stats["nonzero_weights"] = weights - zeros
+            elif "Model training completed in " in line:
+                stats["time"] = float(toks[-1].replace("s", ""))
+        except:
+            pass
+
     if "nonzero_weights" not in stats:
-      stats["nonzero_weights"] = "na"
-    
+        stats["nonzero_weights"] = "na"
+
     return stats

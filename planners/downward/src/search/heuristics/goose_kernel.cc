@@ -92,6 +92,9 @@ void GooseKernel::initialise_model(const plugins::Options &opts) {
       continue;
     }
   }
+  
+  cnt_seen_colours = std::vector<long>(iterations_, 0);;
+  cnt_unseen_colours = std::vector<long>(iterations_, 0);;
 
   // remove file
   char *char_array = new char[model_data_path.length() + 1];

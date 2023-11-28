@@ -1,6 +1,6 @@
 MODEL=linear-svr
 REPRESENTATION=ilg
-DOMAIN=ferry
+DOMAIN=transport
 WL=1wl
 ITERATIONS=4
 

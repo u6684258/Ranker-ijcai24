@@ -79,6 +79,9 @@ void GooseLinear::initialise_model(const plugins::Options &opts) {
     }
   }
 
+  cnt_seen_colours = std::vector<long>(iterations_, 0);;
+  cnt_unseen_colours = std::vector<long>(iterations_, 0);;
+
   // remove file
   char *char_array = new char[model_data_path.length() + 1];
   strcpy(char_array, model_data_path.c_str());
@@ -96,9 +99,6 @@ int GooseLinear::predict(const std::vector<int> &feature) {
 }
 
 int GooseLinear::compute_heuristic(const State &ancestor_state) {
-  // int cur_seen_colours = cnt_seen_colours;
-  // int cur_unseen_colours = cnt_unseen_colours;
-
   // step 1.
   CGraph graph = state_to_graph(ancestor_state);
   // step 2.
@@ -106,37 +106,7 @@ int GooseLinear::compute_heuristic(const State &ancestor_state) {
   // step 3.
   int h = predict(feature);
 
-  // cur_seen_colours = cnt_seen_colours - cur_seen_colours;
-  // cur_unseen_colours = cnt_unseen_colours - cur_unseen_colours;
-  // double ratio_seen_colours = static_cast<double>(cur_seen_colours) / (cur_unseen_colours + cur_seen_colours);
-
-  // worst_seen_ratios.insert(ratio_seen_colours);
-
-  // if (worst_seen_ratios.size() == 6) {
-  //   worst_seen_ratios.erase(std::prev(worst_seen_ratios.end()));
-  // }
-  // if (worst_seen_ratios.count(ratio_seen_colours)) {
-  //   std::cout << h << " " << ratio_seen_colours << std::endl;
-  //   for (const auto r :worst_seen_ratios) {
-  //     std::cout<<" "<<r;
-  //   }
-  //   std::cout<<std::endl;
-  // }
-
-  // if (!h_to_worst_ratio.count(h)) {
-  //   h_to_worst_ratio[h] = ratio_seen_colours;
-  // }
-  // h_to_worst_ratio[h] = std::min(ratio_seen_colours, h_to_worst_ratio[h]);
-
   return h;
-}
-
-void GooseLinear::print_statistics() const {
-  log << "Number of seen " << wl_algorithm_ << " colours: " << cnt_seen_colours << std::endl;
-  log << "Number of unseen " << wl_algorithm_ << " colours: " << cnt_unseen_colours << std::endl;
-  // for (auto const [h, r] : h_to_worst_ratio) {
-  //   std::cout<<h<<" " <<r<< std::endl;
-  // }
 }
 
 class GooseLinearFeature : public plugins::TypedFeature<Evaluator, GooseLinear> {

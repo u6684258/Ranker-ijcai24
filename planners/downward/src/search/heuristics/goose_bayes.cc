@@ -91,6 +91,9 @@ void GooseBayes::initialise_model(const plugins::Options &opts) {
       continue;
     }
   }
+  
+  cnt_seen_colours = std::vector<long>(iterations_, 0);;
+  cnt_unseen_colours = std::vector<long>(iterations_, 0);;
 
   // remove file
   char *char_array = new char[model_data_path.length() + 1];
@@ -100,13 +103,13 @@ void GooseBayes::initialise_model(const plugins::Options &opts) {
   std::cout << "Model initialised!" << std::endl;
 }
 
-void GooseBayes::print_statistics() const {
-  log << "Number of seen " << wl_algorithm_ << " colours: " << cnt_seen_colours << std::endl;
-  log << "Number of unseen " << wl_algorithm_ << " colours: " << cnt_unseen_colours << std::endl;
-  // for (auto const &[r, s, h] : std_ratio_pairs) {
-  //   std::cout << r << " " << s << " " << h << std::endl;
-  // }
-}
+// void GooseBayes::print_statistics() const {
+//   log << "Number of seen " << wl_algorithm_ << " colours: " << cnt_seen_colours << std::endl;
+//   log << "Number of unseen " << wl_algorithm_ << " colours: " << cnt_unseen_colours << std::endl;
+//   // for (auto const &[r, s, h] : std_ratio_pairs) {
+//   //   std::cout << r << " " << s << " " << h << std::endl;
+//   // }
+// }
 
 int GooseBayes::compute_heuristic(const State &ancestor_state) {
   // int cur_seen_colours = cnt_seen_colours;
@@ -117,10 +120,13 @@ int GooseBayes::compute_heuristic(const State &ancestor_state) {
   // step 2.
   std::vector<int> feature = wl_feature(graph);
   // step 3.
-  std::pair<double, double> h_std_pair =
-      model.attr("predict_h_with_std")(feature).cast<std::pair<double, double>>();
-  int h = static_cast<int>(round(h_std_pair.first));
-  double std = h_std_pair.second;
+  // std::pair<double, double> h_std_pair =
+  //     model.attr("predict_h_with_std")(feature).cast<std::pair<double, double>>();
+  // int h = static_cast<int>(round(h_std_pair.first));
+  // double std = h_std_pair.second;
+
+  int h = model.attr("predict_h")(feature).cast<int>();
+  return h;
 
   // cur_seen_colours = cnt_seen_colours - cur_seen_colours;
   // cur_unseen_colours = cnt_unseen_colours - cur_unseen_colours;

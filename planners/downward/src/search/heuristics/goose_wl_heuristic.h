@@ -40,8 +40,8 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
  protected:
   // counters to keep track of number of seen and unseen colours
   // hopefully should not overflow (max val=9,223,372,036,854,775,807)
-  long cnt_seen_colours;
-  long cnt_unseen_colours;
+  std::vector<long> cnt_seen_colours;
+  std::vector<long> cnt_unseen_colours;
 
   // the following variables are pretty much constant after initialisation
   std::string wl_algorithm_;

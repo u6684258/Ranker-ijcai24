@@ -34,16 +34,10 @@ class GooseLinear : public goose_wl::WLGooseHeuristic {
  public:
   explicit GooseLinear(const plugins::Options &opts);
 
-  void print_statistics() const override;
-
  private:
   // A linear model of the form ax + b
   std::vector<double> weights_;  // a
   double bias_;                  // b
-
-  // // colour seen ratio
-  // std::set<double> worst_seen_ratios;
-  // std::map<int, double> h_to_worst_ratio;
 };
 
 }  // namespace goose_linear

@@ -17,14 +17,13 @@ using std::string;
 namespace goose_wl {
 
 WLGooseHeuristic::WLGooseHeuristic(const plugins::Options &opts)
-    : goose_heuristic::GooseHeuristic(opts) {
-  cnt_seen_colours = 0;
-  cnt_unseen_colours = 0;
-}
+    : goose_heuristic::GooseHeuristic(opts) {}
 
 void WLGooseHeuristic::print_statistics() const {
-  log << "Number of seen " << wl_algorithm_ << " colours: " << cnt_seen_colours << std::endl;
-  log << "Number of unseen " << wl_algorithm_ << " colours: " << cnt_unseen_colours << std::endl;
+  for (size_t i = 0; i < iterations_; i++) {
+    log << wl_algorithm_ << " seen/unseen colours in itr " << i << ": "
+        << cnt_seen_colours[i] << " " << cnt_unseen_colours[i] << std::endl;
+  }
 }
 
 CGraph WLGooseHeuristic::state_to_graph(const State &state) {
@@ -118,7 +117,6 @@ std::vector<int> WLGooseHeuristic::wl1_feature(const CGraph &graph) {
     col = hash_[std::to_string(graph.colour(u))];
     feature[col]++;
     colours_0[u] = col;
-    cnt_seen_colours++;
   }
 
   // main WL algorithm loop
@@ -159,9 +157,9 @@ std::vector<int> WLGooseHeuristic::wl1_feature(const CGraph &graph) {
       end_of_loop0:
         colours_1[u] = col;
         if (col == -1) {
-          cnt_unseen_colours++;
+          cnt_unseen_colours[itr]++;
         } else {
-          cnt_seen_colours++;
+          cnt_seen_colours[itr]++;
         }
       }
     } else {
@@ -198,9 +196,9 @@ std::vector<int> WLGooseHeuristic::wl1_feature(const CGraph &graph) {
       end_of_loop1:
         colours_0[u] = col;
         if (col == -1) {
-          cnt_unseen_colours++;
+          cnt_unseen_colours[itr]++;
         } else {
-          cnt_seen_colours++;
+          cnt_seen_colours[itr]++;
         }
       }
     }
@@ -259,9 +257,6 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
         col = hash_[new_colour];
         feature[col]++;
         colours_0[index] = col;
-        cnt_seen_colours++;
-      } else {
-        cnt_unseen_colours++;
       }
     }
   }
@@ -337,9 +332,9 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
         end_of_loop0:
           colours_1[index] = col;
           if (col == -1) {
-            cnt_unseen_colours++;
+            cnt_unseen_colours[itr]++;
           } else {
-            cnt_seen_colours++;
+            cnt_seen_colours[itr]++;
           }
         }
       }
@@ -408,9 +403,9 @@ std::vector<int> WLGooseHeuristic::gwl2_feature(const CGraph &graph) {
         end_of_loop1:
           colours_0[index] = col;
           if (col == -1) {
-            cnt_unseen_colours++;
+            cnt_unseen_colours[itr]++;
           } else {
-            cnt_seen_colours++;
+            cnt_seen_colours[itr]++;
           }
         }
       }
@@ -478,9 +473,6 @@ std::vector<int> WLGooseHeuristic::lwl2_feature(const CGraph &graph) {
         col = hash_[new_colour];
         feature[col]++;
         colours_0[index] = col;
-        cnt_seen_colours++;
-      } else {
-        cnt_unseen_colours++;
       }
     }
   }
@@ -535,9 +527,9 @@ std::vector<int> WLGooseHeuristic::lwl2_feature(const CGraph &graph) {
         end_of_loop0:
           colours_1[index] = col;
           if (col == -1) {
-            cnt_unseen_colours++;
+            cnt_unseen_colours[itr]++;
           } else {
-            cnt_seen_colours++;
+            cnt_seen_colours[itr]++;
           }
         }
       }
@@ -585,9 +577,9 @@ std::vector<int> WLGooseHeuristic::lwl2_feature(const CGraph &graph) {
         end_of_loop1:
           colours_0[index] = col;
           if (col == -1) {
-            cnt_unseen_colours++;
+            cnt_unseen_colours[itr]++;
           } else {
-            cnt_seen_colours++;
+            cnt_seen_colours[itr]++;
           }
         }
       }
@@ -600,6 +592,10 @@ std::vector<int> WLGooseHeuristic::lwl2_feature(const CGraph &graph) {
 std::vector<int> WLGooseHeuristic::lwl3_feature(const CGraph &graph) {
   // feature to return is a histogram of colours seen during training
   std::vector<int> feature(feature_size_, 0);
+
+  std::cout << "not implemented" << std::endl;
+
+  exit(-1);
 
   // const int n_nodes = static_cast<int>(graph.n_nodes());
   // const int n_pairs = static_cast<int>((n_nodes * (n_nodes - 1)) / 2);
@@ -666,9 +662,9 @@ std::vector<int> WLGooseHeuristic::lwl3_feature(const CGraph &graph) {
   //       col = hash_[new_colour];
   //       feature[col]++;
   //       colours_0[index] = col;
-  //       cnt_seen_colours++;
+  //       cnt_seen_colours[itr]++;
   //     } else {
-  //       cnt_unseen_colours++;
+  //       cnt_unseen_colours[itr]++;
   //     }
   //   }
   // }
@@ -723,9 +719,9 @@ std::vector<int> WLGooseHeuristic::lwl3_feature(const CGraph &graph) {
   //       end_of_loop0:
   //         colours_1[index] = col;
   //         if (col == -1) {
-  //           cnt_unseen_colours++;
+  //           cnt_unseen_colours[itr]++;
   //         } else {
-  //           cnt_seen_colours++;
+  //           cnt_seen_colours[itr]++;
   //         }
   //       }
   //     }
@@ -773,9 +769,9 @@ std::vector<int> WLGooseHeuristic::lwl3_feature(const CGraph &graph) {
   //       end_of_loop1:
   //         colours_0[index] = col;
   //         if (col == -1) {
-  //           cnt_unseen_colours++;
+  //           cnt_unseen_colours[itr]++;
   //         } else {
-  //           cnt_seen_colours++;
+  //           cnt_seen_colours[itr]++;
   //         }
   //       }
   //     }

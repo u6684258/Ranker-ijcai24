@@ -51,7 +51,7 @@ class GooseBayes : public goose_wl::WLGooseHeuristic {
  public:
   explicit GooseBayes(const plugins::Options &opts);
 
-  void print_statistics() const override;
+  // void print_statistics() const override;
 
 //  private:
 //   std::set<std::tuple<double, double, double>> std_ratio_pairs;
