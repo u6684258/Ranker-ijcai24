@@ -30,7 +30,7 @@ def parse_args():
         "-m",
         "--model",
         type=str,
-        default="blr",
+        default="gp",
         choices=BAYESIAN_MODELS,
         help="Bayesian ML model.",
     )
@@ -83,8 +83,6 @@ def parse_args():
     parser.add_argument("-s", "--seed", type=int, default=0, help="random seed")
     parser.add_argument("--planner", default="fd", choices=["fd", "pwl"])
     args = parser.parse_args()
-
-    domain = args.domain
 
     return args
 
@@ -172,6 +170,12 @@ def main():
         print("val confusion matrix:")
         print(confusion_matrix(y_val, y_val_pred))
 
+    # dot product kernel GP "explicit linear weights"
+    gpr = model._model
+    alpha = gpr.alpha_
+    weights = alpha @ X_train
+    model.weights = weights
+    
     # save model
     save_kernel_model(model, args)
 
