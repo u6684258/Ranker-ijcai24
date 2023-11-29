@@ -123,7 +123,11 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
   remove(char_array);
 
   feature_size_ = static_cast<int>(hash_.size());
-  std::cout << "feature size: " << feature_size_ << std::endl;
+  std::cout << "Feature size: " << feature_size_ << std::endl;
+  if (feature_size_ != weights_.size()) {
+    std::cout << "error: feature size " << feature_size_ << " and weights size " << weights_.size() << " not the same" << std::endl;
+    exit(-1);
+  }
 }
 
 void WLGooseHeuristic::print_statistics() const {

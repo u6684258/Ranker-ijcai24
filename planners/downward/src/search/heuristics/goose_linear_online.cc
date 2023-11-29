@@ -232,14 +232,18 @@ void GooseLinearOnline::train() {
 
   pybind11::list goose_states;  // pybind11::list of GooseState
   pybind11::list ys;            // pybind11::list of int
-  int to_keep = max_y;
+  // int to_keep = max_y;
   // int to_keep = static_cast<int>(floor(log2(max_y)));
   for (int y = max_y; y > 0; y--) {
-    // int to_keep = static_cast<int>(floor(log2(y)));
+    int to_keep = static_cast<int>(floor(log2(y)));
+    // random here can be improved
     std::vector<PartialState> states = get_random_elements(
         y_to_states[y], std::min(static_cast<int>(y_to_states[y].size()), to_keep));
+
     for (const PartialState &partial_state : states) {
+      // random here can be improved
       FullState full_state = assign_random_state(partial_state);
+
       GooseState goose_state = fact_pairs_list_to_goose_state(full_state);
       goose_states.append(goose_state);
       ys.append(pybind11::int_(y));
@@ -249,6 +253,7 @@ void GooseLinearOnline::train() {
   std::string model_data_path =
       model.attr("online_training")(goose_states, ys, domain_file, instance_file)
           .cast<std::string>();
+  pybind11::print();
 
   update_model_from_data_path(model_data_path);
 }

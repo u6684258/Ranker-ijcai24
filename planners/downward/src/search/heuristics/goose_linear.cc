@@ -16,7 +16,9 @@ using std::string;
 
 namespace goose_linear {
 
-GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuristic(opts) {}
+GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuristic(opts) {
+  model = pybind11::int_(0);  // release memory since we no longer need the python object
+}
 
 int GooseLinear::predict(const std::vector<int> &feature) {
   double ret = bias_;
@@ -33,7 +35,7 @@ int GooseLinear::compute_heuristic(const State &ancestor_state) {
   std::vector<int> feature = wl_feature(graph);
   // step 3.
   int h = predict(feature);
-  
+
   return h;
 }
 

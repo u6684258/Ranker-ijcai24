@@ -226,7 +226,8 @@ class KernelModelWrapper:
                 new_model_hash[key] = val
 
             model_hash = new_model_hash
-            weight = new_weights
+            weights = new_weights
+            assert len(weights) == len(model_hash)
 
         # write data
         with open(file_path, "w") as f:
@@ -332,6 +333,8 @@ class KernelModelWrapper:
         self.write_model_data()
 
         self.eval()
+        print(f"New hash size:", len(self.get_hash()))
+        print("Python online training completed!", flush=True)
         return self._model_data_path
 
     @property
