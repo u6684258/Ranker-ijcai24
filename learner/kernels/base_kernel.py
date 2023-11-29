@@ -198,6 +198,9 @@ class WlAlgorithm(ABC):
                 K[j][i] = k
 
         return K
+    
+    def update_iterations(self, iterations):
+        self.iterations = iterations
 
     @property
     def n_colours_(self) -> int:

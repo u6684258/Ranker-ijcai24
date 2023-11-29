@@ -47,9 +47,11 @@ class KernelModelWrapper:
         self._args = args
         self.model_name = args.model
         self.wl_name = args.features
+        self.iterations = args.iterations
+        self.prune = args.prune
 
         self._kernel: WlAlgorithm = kernels.GRAPH_FEATURE_GENERATORS[args.features](
-            iterations=args.iterations, prune=args.prune
+            iterations=self.iterations, prune=self.prune
         )
 
         self._iterations = args.iterations
@@ -300,7 +302,7 @@ class KernelModelWrapper:
     def predict_h_with_std(self, x: Iterable[float]) -> Tuple[float, float]:
         y, std = self.predict_with_std([x])
         return (y, std)
-
+    
     def online_training(
         self, states: List[State], ys: List[int], domain_pddl: str, problem_pddl: str
     ) -> str:
@@ -328,6 +330,12 @@ class KernelModelWrapper:
             graphs_train.append(graph)
         y_train = np.concatenate((y_train, np.array(ys)))
 
+        # log dataset stats
+        get_stats(dataset=list(zip(graphs_train, y_train)), desc="Online train dataset")
+
+        # try updating iterations
+        # self._kernel.update_iterations(self.iterations * 4)
+
         print("Generating histograms...")
         train_histograms = self.compute_histograms(graphs_train, return_ratio_seen_counts=False)
 
@@ -342,7 +350,6 @@ class KernelModelWrapper:
         y_train_pred = self.predict(X_train)
         mse = mean_squared_error(y_train_pred, y_train)
         print("mse:", mse)
-        get_stats(dataset=list(zip(graphs_train, y_train)), desc="Online training dataset")
 
         print("Writing model data...")
         self.write_model_data()

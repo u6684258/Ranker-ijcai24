@@ -233,6 +233,7 @@ void GooseLinearOnline::train() {
   pybind11::list ys;            // pybind11::list of int
   // int to_keep = max_y;
   // int to_keep = static_cast<int>(floor(log2(max_y)));
+  // int to_keep = 1;
   for (int y = max_y; y > 0; y--) {
     int to_keep = static_cast<int>(floor(log2(y))) + 1;
     // random here can be improved
