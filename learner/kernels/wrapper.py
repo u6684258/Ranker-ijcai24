@@ -1,7 +1,7 @@
 import time
 import numpy as np
-from sklearn.metrics import mean_squared_error
 import kernels
+from sklearn.metrics import mean_squared_error
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.model_selection import train_test_split
 from sklearn.neural_network import MLPClassifier, MLPRegressor
@@ -12,6 +12,7 @@ from typing import Iterable, List, Optional, Dict, Tuple, Union
 from representation import CGraph, Representation, REPRESENTATIONS
 from planning import State
 from kernels.base_kernel import Histogram, NO_EDGE, WlAlgorithm
+from util.stats import get_stats
 
 
 MODELS = [
@@ -341,6 +342,7 @@ class KernelModelWrapper:
         y_train_pred = self.predict(X_train)
         mse = mean_squared_error(y_train_pred, y_train)
         print("mse:", mse)
+        get_stats(dataset=list(zip(graphs_train, y_train)), desc="Online training dataset")
 
         print("Writing model data...")
         self.write_model_data()

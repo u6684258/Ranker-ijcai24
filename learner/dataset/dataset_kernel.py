@@ -4,7 +4,7 @@ import os
 import random
 import numpy as np
 from tqdm import tqdm
-# from util.stats import get_stats
+from util.stats import get_stats
 from representation import REPRESENTATIONS
 from deadend.deadend import deadend_states
 

@@ -1,17 +1,14 @@
 import numpy as np
-import torch
-import networkx as nx
-from torch_geometric.utils.convert import to_networkx
-from torch_geometric.data import Data
 
 """ Module containing methods originall used in thesis inference experiments. """
 
 
-def pyg_graph_diameter(x: torch.tensor, edge_index: torch.tensor) -> int:
+def pyg_graph_diameter(x, edge_index) -> int:
+    import networkx as nx
+    from torch_geometric.utils.convert import to_networkx
+    from torch_geometric.data import Data
     G = to_networkx(Data(x=x, edge_index=edge_index)).to_undirected()
-
     diameter = max(nx.diameter(G.subgraph(comp)) for comp in nx.connected_components(G))
-
     return diameter
 
 
@@ -61,8 +58,10 @@ def get_stats(dataset, desc=""):
     graph_dense = []
     ys = []
 
+    c_graphs = type(dataset[0]) == tuple
+
     for data in dataset:
-        if type(dataset[0]) == tuple:  # CGraphs
+        if c_graphs:  # CGraphs
             graph, y = data
             n_nodes = len(graph.nodes)
             n_edges = len(graph.edges)
