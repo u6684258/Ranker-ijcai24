@@ -30,12 +30,16 @@ int GooseLinear::predict(const std::vector<int> &feature) {
 
 int GooseLinear::compute_heuristic(const State &ancestor_state) {
   // step 1.
+  // std::cout << "s1 " << std::endl;
   CGraph graph = state_to_graph(ancestor_state);
   // step 2.
+  // std::cout << "s2 " << std::endl;
   std::vector<int> feature = wl_feature(graph);
   // step 3.
+  // std::cout << "s3 " << std::endl;
   int h = predict(feature);
 
+  // std::cout << "done" << std::endl;
   return h;
 }
 

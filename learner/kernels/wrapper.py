@@ -203,7 +203,6 @@ class KernelModelWrapper:
 
         if write_weights:
             weights = self.get_weights()
-            indices = np.ones_like(weights)
             bias = self.get_bias()
 
             zero_weights = np.count_nonzero(weights == 0)
@@ -215,19 +214,23 @@ class KernelModelWrapper:
 
             reverse_hash = {model_hash[k]: k for k in model_hash}
 
-            for colour, weight in enumerate(weights):
-                if abs(weight) == 0 or indices[colour] == 0:
+            colour = 0
+            for weight in weights:
+                if abs(weight) == 0:
                     continue
-
                 new_weights.append(weight)
-
                 key = reverse_hash[colour]
                 val = model_hash[key]
                 new_model_hash[key] = val
+                colour += 1
 
             model_hash = new_model_hash
             weights = new_weights
+
             assert len(weights) == len(model_hash)
+
+            for k, v in model_hash.items():
+                assert 0 <= v and v < len(weights), f"{v} not in [0, {len(weights)-1}]"
 
         # write data
         with open(file_path, "w") as f:
