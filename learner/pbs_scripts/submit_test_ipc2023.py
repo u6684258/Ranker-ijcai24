@@ -95,9 +95,9 @@ def main():
             continue
         
         if learning_model == "gp":
-            mf = f"{_GP_MODEL_DIR}/{domain}_gp.joblib"
+            mf = f"{_GP_MODEL_DIR}/{domain}_gp.pkl"
         else:
-            mf = f"{_MODEL_DIR}/{domain}_{rep}_{wl}_{iterations}_0_{learning_model}_H.joblib"
+            mf = f"{_MODEL_DIR}/{domain}_{rep}_{wl}_{iterations}_0_{learning_model}_H.pkl"
 
         df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
         problem_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/{difficulty}"
