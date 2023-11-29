@@ -37,7 +37,7 @@ _CONFIGS = [
 
 for wl, iterations, prune, rep, domain, model in _CONFIGS:
     desc = "_".join([domain, rep, wl, str(iterations), str(prune), model, "H"])
-    model_save_file = f"{MODEL_DIR}/{desc}.joblib"
+    model_save_file = f"{MODEL_DIR}/{desc}.pkl"
     log_file = f"{LOG_DIR}/{desc}.log"
     if model == "gp":
         train_script = "train_bayes.py"

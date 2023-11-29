@@ -7,7 +7,7 @@ p=fd
 i=3
 r=llg
 
-m=trained_models_kernel/${r}_gripper_wl_${i}.joblib
+m=trained_models_kernel/${r}_gripper_wl_${i}.pkl
 
 # singularity exec ../goose.sif python3 run.py $df $pf kernel-opt -m $m
 python3 run.py $df $pf kernel-opt -m $m -s gbfs --profile

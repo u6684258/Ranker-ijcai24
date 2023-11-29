@@ -68,7 +68,7 @@ def main():
         desc = "_".join([domain, rep, wl, str(iterations), str(prune), model, "H"])
         lock_file = f"{_LOCK_DIR}/{desc}.lock"
         log_file = f"{_LOG_DIR}/{desc}.log"
-        model_save_file = f"{_MODEL_DIR}/{desc}.joblib"
+        model_save_file = f"{_MODEL_DIR}/{desc}.pkl"
 
         if (os.path.exists(model_save_file) and os.path.exists(log_file)) or (os.path.exists(lock_file)):
             skipped += 1

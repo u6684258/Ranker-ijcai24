@@ -61,7 +61,7 @@ class GooseBayesFeature : public plugins::TypedFeature<Evaluator, GooseBayes> {
 
     // https://github.com/aibasel/downward/pull/170 for string options
     add_option<std::string>(
-        "model_file", "path to trained model data in the form of a .joblib file", "default_value");
+        "model_file", "path to trained model data in the form of a .pkl file", "default_value");
     add_option<std::string>("domain_file", "Path to the domain file.", "default_file");
     add_option<std::string>("instance_file", "Path to the instance file.", "default_file");
 

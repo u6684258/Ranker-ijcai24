@@ -92,7 +92,7 @@ def main():
         for iterations in _ITERS:
             for kernel in _KERNELS:
                 for domain in _DOMAINS:
-                    model_file = f"trained_models_kernel/{rep}_{domain}_{kernel}_{iterations}.joblib"
+                    model_file = f"trained_models_kernel/{rep}_{domain}_{kernel}_{iterations}.pkl"
                     df = f"../benchmarks/goose/{domain}/domain.pddl"
                     problem_dir = f"../benchmarks/goose/{domain}/test"
                     for file in sorted(os.listdir(problem_dir)):

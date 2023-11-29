@@ -27,7 +27,7 @@ if __name__ == "__main__":
     difficulty = args.difficulty
     problem = args.problem
 
-    save_file = f"tests/" + "_".join([wl, iterations, model, domain]) + ".joblib"
+    save_file = f"tests/" + "_".join([wl, iterations, model, domain]) + ".pkl"
 
     if args.train or not os.path.exists(save_file):
         print("training regardless because save file does not exist")

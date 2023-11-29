@@ -33,7 +33,7 @@ raise NotImplementedError
 
 # for k, l, p, r, domain, m in tqdm(list(configs)):
 #     desc = f"{domain}_{r}_{k}_{l}_{p}_{m}_{t}"
-#     save_file = f"{SAVE_DIR}/{desc}.joblib"
+#     save_file = f"{SAVE_DIR}/{desc}.pkl"
 #     log_file = f"{LOG_DIR}/{desc}.log"
 #     if os.path.exists(save_file) and os.path.exists(log_file):
 #         continue

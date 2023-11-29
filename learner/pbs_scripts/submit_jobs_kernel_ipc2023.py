@@ -75,7 +75,7 @@ def main():
 
     for config in CONFIGS:
         learning_model, rep, wl, iterations, domain, difficulty = config
-        mf = f"{_MODEL_DIR}/{domain}_{rep}_{wl}_{iterations}_0_{learning_model}_H.joblib"
+        mf = f"{_MODEL_DIR}/{domain}_{rep}_{wl}_{iterations}_0_{learning_model}_H.pkl"
 
         df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
         problem_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/{difficulty}"

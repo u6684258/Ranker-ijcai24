@@ -1,6 +1,6 @@
 """ Module for dealing with model saving and loading. """
 import os
-import joblib
+import pickle
 
 
 def arg_to_params(args, in_feat=4, out_feat=1):
@@ -65,7 +65,8 @@ def save_kernel_model(model, args):
     base_dir = os.path.dirname(model_save_file)
     if len(base_dir) > 0:
         os.makedirs(base_dir, exist_ok=True)
-    joblib.dump((model, args), model_save_file)
+    with open(model_save_file, 'wb') as handle:
+        pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
     print("Model saved!")
     print("Model parameter file:", model_save_file)
     return
@@ -94,8 +95,9 @@ def load_gnn_model(path, print_args=False):
 
 
 def load_kernel_model(path):
-    model, args = joblib.load(path)
-    return model, args
+    with open(path, 'rb') as handle:
+        model = pickle.load(handle)
+    return model
 
 
 def load_gnn_model_and_setup(path, domain_file, problem_file):
@@ -113,7 +115,7 @@ def load_gnn_model_and_setup(path, domain_file, problem_file):
 
 
 def load_kernel_model_and_setup(path, domain_file, problem_file):
-    model, args = load_kernel_model(path)
+    model = load_kernel_model(path)
     model.update_representation(domain_pddl=domain_file, problem_pddl=problem_file)
     # model.write_representation_to_file()
     model.eval()

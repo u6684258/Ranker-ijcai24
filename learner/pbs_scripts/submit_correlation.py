@@ -66,7 +66,7 @@ def main():
     missing_models = set()
 
     for domain, difficulty in CONFIGS:
-        mf = f"{_MODEL_DIR}/{domain}_{learning_model}.joblib"
+        mf = f"{_MODEL_DIR}/{domain}_{learning_model}.pkl"
         assert os.path.exists(mf), mf
 
         df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
