@@ -1,14 +1,10 @@
 import sys
-
 sys.path.append("..")
 import os
 import random
 import numpy as np
 from tqdm import tqdm
-from torch_geometric.data import Data
-from torch_geometric.loader import DataLoader
-from sklearn.model_selection import train_test_split
-from util.stats import get_stats
+# from util.stats import get_stats
 from representation import REPRESENTATIONS
 from deadend.deadend import deadend_states
 
@@ -127,7 +123,7 @@ def get_dataset_from_args(args):
         random.seed(123)
         dataset = random.sample(dataset, k=1000)
 
-    get_stats(dataset=dataset, desc="Whole dataset")
+    # get_stats(dataset=dataset, desc="Whole dataset")
 
     graphs = [data[0] for data in dataset]
     y = np.array([data[1] for data in dataset])

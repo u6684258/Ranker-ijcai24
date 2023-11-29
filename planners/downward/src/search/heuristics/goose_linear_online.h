@@ -37,7 +37,7 @@ struct BackwardsSearchNode {
 
 class GooseLinearOnline : public goose_linear::GooseLinear {
   // big method containing the online training procedure
-  // TODO(DZC) document
+  // TODO(DZC) documentation
   void train();
 
   // does not account for mutexes

@@ -1,4 +1,6 @@
+import time
 import numpy as np
+from sklearn.metrics import mean_squared_error
 import kernels
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.model_selection import train_test_split
@@ -41,7 +43,7 @@ class KernelModelWrapper:
         super().__init__()
         if args.model == "empty":
             return  # when there are no dead ends to learn
-        # self._args = args
+        self._args = args
         self.model_name = args.model
         self.wl_name = args.features
 
@@ -206,24 +208,26 @@ class KernelModelWrapper:
             zero_weights = np.count_nonzero(weights == 0)
             print(f"{zero_weights}/{len(weights)} = {zero_weights/len(weights):.2f} are zero")
 
-            # prune zero weights
-            new_weights = []
-            new_model_hash = {}
+            # TODO(DZC) prune out zero weights
+            # the below is wrong because keys need to be updated as well
+            # # prune zero weights
+            # new_weights = []
+            # new_model_hash = {}
 
-            reverse_hash = {model_hash[k]: k for k in model_hash}
+            # reverse_hash = {model_hash[k]: k for k in model_hash}
 
-            colour = 0
-            for weight in weights:
-                if abs(weight) == 0:
-                    continue
-                new_weights.append(weight)
-                key = reverse_hash[colour]
-                val = model_hash[key]
-                new_model_hash[key] = val
-                colour += 1
+            # colour = 0
+            # for weight in weights:
+            #     if abs(weight) == 0:
+            #         continue
+            #     new_weights.append(weight)
+            #     key = reverse_hash[colour]
+            #     val = model_hash[key]
+            #     new_model_hash[key] = val
+            #     colour += 1
 
-            model_hash = new_model_hash
-            weights = new_weights
+            # model_hash = new_model_hash
+            # weights = new_weights
 
             assert len(weights) == len(model_hash)
 
@@ -329,8 +333,14 @@ class KernelModelWrapper:
         print("Generating matrix...")
         X_train = self.get_matrix_representation(graphs_train, train_histograms)
 
+        t = time.time()
         print("Training...")
         self.fit(X_train, y_train)
+        print(f"Training complete in {time.time() - t:.2f}s!")
+
+        y_train_pred = self.predict(X_train)
+        mse = mean_squared_error(y_train_pred, y_train)
+        print("mse:", mse)
 
         print("Writing model data...")
         self.write_model_data()

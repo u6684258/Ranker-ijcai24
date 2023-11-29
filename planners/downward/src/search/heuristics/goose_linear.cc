@@ -17,7 +17,7 @@ using std::string;
 namespace goose_linear {
 
 GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuristic(opts) {
-  model = pybind11::int_(0);  // release memory since we no longer need the python object
+  // model = pybind11::int_(0);  // release memory since we no longer need the python object
 }
 
 int GooseLinear::predict(const std::vector<int> &feature) {

@@ -33,7 +33,7 @@ GooseLinearOnline::GooseLinearOnline(const plugins::Options &opts)
 FullState GooseLinearOnline::assign_random_state(const PartialState &state) {
   FullState ret;
 
-  for (int var = 0; var < n_variables; var++) {  // TODO(DZC) can optimise if -1 vars are static?
+  for (int var = 0; var < n_variables; var++) {
     int val = state[var];
     if (val == -1) {
       std::uniform_int_distribution<std::mt19937::result_type> dist(0, vars[var].get_domain_size() -
@@ -190,15 +190,14 @@ void GooseLinearOnline::train() {
         seen.insert(succ_state);
 
         CGraph graph = fact_pairs_to_graph(partial_state_to_fullstate_type(succ_state));
-        std::vector<int> feature = wl1_feature(graph);
-        if (seen_features.count(feature)) {
-          continue;
-        }
-        seen_features.insert(feature);
-
-        int h = predict(feature);
+        // std::vector<int> feature = wl1_feature(graph);
+        // if (seen_features.count(feature)) {
+        //   continue;
+        // }
+        // seen_features.insert(feature);
+        // int h = predict(feature);
         int succ_y = y + 1;
-        q.push(BackwardsSearchNode(succ_state, y = succ_y, h = h));
+        q.push(BackwardsSearchNode(succ_state, y = succ_y));
 
         // store non goal regression training states
         if (!y_to_states.count(succ_y)) {
@@ -235,7 +234,7 @@ void GooseLinearOnline::train() {
   // int to_keep = max_y;
   // int to_keep = static_cast<int>(floor(log2(max_y)));
   for (int y = max_y; y > 0; y--) {
-    int to_keep = static_cast<int>(floor(log2(y)));
+    int to_keep = static_cast<int>(floor(log2(y))) + 1;
     // random here can be improved
     std::vector<PartialState> states = get_random_elements(
         y_to_states[y], std::min(static_cast<int>(y_to_states[y].size()), to_keep));
