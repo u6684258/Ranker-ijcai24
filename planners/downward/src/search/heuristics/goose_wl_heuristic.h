@@ -1,11 +1,6 @@
 #ifndef GOOSE_WL_HEURISTIC_H
 #define GOOSE_WL_HEURISTIC_H
 
-#include <pybind11/embed.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-#include <pybind11/pybind11.h>
-
 #include <fstream>
 #include <map>
 #include <set>
@@ -50,12 +45,18 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
   std::vector<int> lwl2_feature(const CGraph &graph);
   std::vector<int> lwl3_feature(const CGraph &graph);
 
+  void update_model_from_data_path(const std::string model_data_path);
+
  public:
   explicit WLGooseHeuristic(const plugins::Options &opts);
 
   void print_statistics() const override;
 
  protected:
+  // pddl files (can probably access from somewhere else but I cannot find out how)
+  std::string domain_file;
+  std::string instance_file;
+
   // counters to keep track of number of seen and unseen colours
   // hopefully should not overflow (max val=9,223,372,036,854,775,807)
   std::vector<long> cnt_seen_colours;

@@ -1,6 +1,12 @@
 #include "goose_linear_online.h"
 
+#include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
+#include <pybind11/stl.h>
+#include <pybind11/stl_bind.h>
+
 #include <algorithm>
+#include <chrono>
 #include <fstream>
 #include <map>
 #include <queue>
@@ -19,6 +25,8 @@ namespace goose_linear_online {
 
 GooseLinearOnline::GooseLinearOnline(const plugins::Options &opts)
     : goose_linear::GooseLinear(opts) {
+  std::seed_seq seed{0};
+  rng = std::mt19937(seed);
   train();
 }
 
@@ -32,6 +40,17 @@ FullState GooseLinearOnline::assign_random_state(const PartialState &state) {
                                                                            1);
       val = dist(rng);
     }
+    ret.push_back(FactPair(var = var, val = val));
+  }
+
+  return ret;
+}
+
+FullState GooseLinearOnline::partial_state_to_fullstate_type(const PartialState &state) {
+  FullState ret;
+
+  for (int var = 0; var < n_variables; var++) {  // TODO(DZC) can optimise if -1 vars are static?
+    int val = state[var];
     ret.push_back(FactPair(var = var, val = val));
   }
 
@@ -112,10 +131,18 @@ inline PartialState regress(const PartialState &state, const OperatorProxy &op) 
   return ret;
 }
 
+template <typename T>
+std::vector<T> GooseLinearOnline::get_random_elements(const std::vector<T> &originalVector,
+                                                      std::size_t n) {
+  std::vector<T> shuffledVector = originalVector;
+  std::shuffle(shuffledVector.begin(), shuffledVector.end(), rng);
+  shuffledVector.resize(n);
+  return shuffledVector;
+}
+
 void GooseLinearOnline::train() {
   n_variables = task->get_num_variables();
   vars = task_proxy.get_variables();
-  rng = std::mt19937(dev());
 
   // initial state in backwards search is the goal condition
   std::map<VariableProxy, int> var_to_ind;
@@ -135,19 +162,25 @@ void GooseLinearOnline::train() {
   BackwardsSearchNode node(goal_condition, y);
 
   std::set<PartialState> seen;
+  std::set<std::vector<int>> seen_features;  // partial pruning
   std::queue<BackwardsSearchNode> q;
   std::unordered_map<int, std::vector<PartialState>> y_to_states;
   int max_y = 0;
 
-  std::cout << "performing BFS regression" << std::endl;
+  /* main BFS loop for performing regression */
+  double start_time = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  int previous_state_cnt = 0;
+  std::cout << "performing BFS regression up to " << MAX_REGRESSION_STATES_ << " states"
+            << std::endl;
   seen.insert(goal_condition);
   q.push(node);
-  while (!q.empty() && seen.size() < 100000) {
+  while (!q.empty() && seen.size() < MAX_REGRESSION_STATES_) {
     BackwardsSearchNode node = q.front();
     q.pop();
     PartialState partial_state = node.state;
     int y = node.y;
 
+    // check regressable operators; could probably optimise with a lot of effort like done in FD
     for (const auto &op : task_proxy.get_operators()) {
       if (regressable(partial_state, op)) {
         PartialState succ_state = regress(partial_state, op);
@@ -155,8 +188,17 @@ void GooseLinearOnline::train() {
           continue;
         }
         seen.insert(succ_state);
+
+        CGraph graph = fact_pairs_to_graph(partial_state_to_fullstate_type(succ_state));
+        std::vector<int> feature = wl1_feature(graph);
+        if (seen_features.count(feature)) {
+          continue;
+        }
+        seen_features.insert(feature);
+
+        int h = predict(feature);
         int succ_y = y + 1;
-        q.push(BackwardsSearchNode(succ_state, succ_y));
+        q.push(BackwardsSearchNode(succ_state, y = succ_y, h = h));
 
         // store non goal regression training states
         if (!y_to_states.count(succ_y)) {
@@ -167,22 +209,48 @@ void GooseLinearOnline::train() {
       }
     }
 
+    if (seen.size() - previous_state_cnt >= 10000) {
+      previous_state_cnt = seen.size();
+      double elapsed_time =
+          std::chrono::high_resolution_clock::now().time_since_epoch().count() - start_time;
+      elapsed_time /= 1000000000;
+      double nodes_per_second = static_cast<double>(previous_state_cnt) / elapsed_time;
+      std::cout << "regressed " << seen.size() << " partial states, "
+                << "max_y: " << max_y << ", t: " << elapsed_time << "s"
+                << " (" << nodes_per_second << " nodes/s)" << std::endl;
+    }
+
     if (q.empty()) {
-      std::cout << "queue empty " << std::endl;
+      std::cout << "BFS terminated because regression space completely explored" << std::endl;
     }
   }
 
-  std::cout << max_y << " " << y_to_states[max_y].size() << " " << seen.size() << std::endl;
+  std::cout << "Logging y to number of seen partial states with 1wl pruning:" << std::endl;
+  for (int y = max_y; y > 0; y--) {
+    std::cout << y << " " << y_to_states[y].size() << std::endl;
+  }
 
-  exit(-1);
+  pybind11::list goose_states;  // pybind11::list of GooseState
+  pybind11::list ys;            // pybind11::list of int
+  int to_keep = max_y;
+  // int to_keep = static_cast<int>(floor(log2(max_y)));
+  for (int y = max_y; y > 0; y--) {
+    // int to_keep = static_cast<int>(floor(log2(y)));
+    std::vector<PartialState> states = get_random_elements(
+        y_to_states[y], std::min(static_cast<int>(y_to_states[y].size()), to_keep));
+    for (const PartialState &partial_state : states) {
+      FullState full_state = assign_random_state(partial_state);
+      GooseState goose_state = fact_pairs_list_to_goose_state(full_state);
+      goose_states.append(goose_state);
+      ys.append(pybind11::int_(y));
+    }
+  }
 
-  // BackwardsSearchNode init_node(goal_condition, 0, 0, 0);
+  std::string model_data_path =
+      model.attr("online_training")(goose_states, ys, domain_file, instance_file)
+          .cast<std::string>();
 
-  // for (FactProxy goal : task.get_goals()) {
-  //     if (state[goal.get_variable()] != goal)
-  //         return false;
-  // }
-  // return true;
+  update_model_from_data_path(model_data_path);
 }
 
 SearchNodeStats GooseLinearOnline::compute_heuristic_vector_state(const FullState &state) {

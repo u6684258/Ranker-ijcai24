@@ -33,7 +33,7 @@ int GooseLinear::compute_heuristic(const State &ancestor_state) {
   std::vector<int> feature = wl_feature(graph);
   // step 3.
   int h = predict(feature);
-
+  
   return h;
 }
 

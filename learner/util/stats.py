@@ -1,13 +1,8 @@
 import numpy as np
-import os
-import matplotlib.pyplot as plt
 import torch
 import networkx as nx
-from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
-from tqdm import tqdm
 from torch_geometric.utils.convert import to_networkx
 from torch_geometric.data import Data
-from util.metrics import eval_admissibility, eval_f1_score
 
 """ Module containing methods originall used in thesis inference experiments. """
 

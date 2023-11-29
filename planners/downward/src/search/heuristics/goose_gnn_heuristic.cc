@@ -63,25 +63,9 @@ void GooseHeuristic::initialise_model(const plugins::Options &opts) {
   lifted_goose = model.attr("lifted_state_input")().cast<bool>();
 }
 
-py::list GooseHeuristic::list_to_goose_state(const State &ancestor_state) {
-  State state = convert_ancestor_state(ancestor_state);
-
-  py::list goose_state;
-  if (lifted_goose) {
-    for (FactProxy fact : state) {
-      goose_state.append(fact_to_l_input[fact.get_pair()]);
-    }
-  } else {
-    for (FactProxy fact : state) {
-      goose_state.append(fact_to_g_input[fact.get_pair()]);
-    }
-  }
-  return goose_state;
-}
-
 int GooseHeuristic::compute_heuristic(const State &ancestor_state) {
   // Convert state into Python object and feed into Goose.
-  py::list goose_state = list_to_goose_state(ancestor_state);
+  GooseState goose_state = fd_state_to_goose_state(ancestor_state);
   int h = model.attr("h")(goose_state).cast<int>();
   return h;
 }

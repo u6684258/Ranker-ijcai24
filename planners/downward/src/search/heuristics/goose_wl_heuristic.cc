@@ -42,25 +42,34 @@ WLGooseHeuristic::WLGooseHeuristic(const plugins::Options &opts)
   // python will be printed to stderr, even if it is not an error.
   sys.attr("stderr") = sys.attr("stdout");
 
+  // Load python object model
   std::string model_path = opts.get<std::string>("model_file");
-  std::string domain_file = opts.get<std::string>("domain_file");
-  std::string instance_file = opts.get<std::string>("instance_file");
+  domain_file = opts.get<std::string>("domain_file");
+  instance_file = opts.get<std::string>("instance_file");
   std::cout << "Trying to load model from file " << model_path << " ...\n";
   pybind11::module util_module = pybind11::module::import("util.save_load");
   model = util_module.attr("load_kernel_model_and_setup")(model_path, domain_file, instance_file);
   std::cout << "Loaded model!" << std::endl;
 
-  // use I/O similar to goose_linear_regression to get graph representation and WL data
-  model.attr("write_model_data")();
+  // use I/O similar to get graph representation
   model.attr("write_representation_to_file")();
-  std::string model_file_path = model.attr("get_model_data_path")().cast<std::string>();
   std::string graph_data_path = model.attr("get_graph_file_path")().cast<std::string>();
   graph_ = CGraph(graph_data_path);
 
+  // use I/O similar to get WL and ML data (hash and weights)
+  model.attr("write_model_data")();
+  std::string model_data_path = model.attr("get_model_data_path")().cast<std::string>();
+  update_model_from_data_path(model_data_path);
+}
+
+void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_path) {
   // load model data
   std::string line;
-  std::ifstream infile(model_file_path);
+  std::ifstream infile(model_data_path);
   int hash_cnt = 0, hash_size = 0, weight_cnt = 0, weight_size = 0;
+
+  hash_ = std::unordered_map<std::string, int>();
+  weights_ = std::vector<double>();
 
   // there's probably a better way to parse things
   while (std::getline(infile, line)) {
@@ -109,11 +118,12 @@ WLGooseHeuristic::WLGooseHeuristic(const plugins::Options &opts)
   cnt_unseen_colours = std::vector<long>(iterations_, 0);
 
   // remove file
-  char *char_array = new char[model_file_path.length() + 1];
-  strcpy(char_array, model_file_path.c_str());
+  char *char_array = new char[model_data_path.length() + 1];
+  strcpy(char_array, model_data_path.c_str());
   remove(char_array);
 
   feature_size_ = static_cast<int>(hash_.size());
+  std::cout << "feature size: " << feature_size_ << std::endl;
 }
 
 void WLGooseHeuristic::print_statistics() const {

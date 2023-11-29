@@ -1,22 +1,21 @@
 #include "goose_heuristic.h"
 
-#include "../plugins/plugin.h"
-#include "../task_utils/task_properties.h"
-
 #include <fstream>
 #include <iostream>
+
+#include "../plugins/plugin.h"
+#include "../task_utils/task_properties.h"
 
 using std::string;
 
 namespace goose_heuristic {
 
-GooseHeuristic::GooseHeuristic(const plugins::Options &opts)
-    : Heuristic(opts) {}
+GooseHeuristic::GooseHeuristic(const plugins::Options &opts) : Heuristic(opts) {}
 
 void GooseHeuristic::initialise_grounded_facts() {
   FactsProxy facts(*task);
   for (FactProxy fact : facts) {
-    // TODO this is an artifact of FD-Hypernet/STRIPS-HGN code
+    // TODO(DZC) this is an artifact of FD-Hypernet/STRIPS-HGN code
     // we can remove this conversion in both the code here and in python
     string name = fact.get_name();
 
@@ -115,6 +114,36 @@ void GooseHeuristic::initialise_facts() {
   } else {
     initialise_grounded_facts();
   }
+}
+
+GooseState GooseHeuristic::fd_state_to_goose_state(const State &ancestor_state) {
+  State state = convert_ancestor_state(ancestor_state);
+
+  GooseState goose_state;
+  if (lifted_goose) {
+    for (FactProxy fact : state) {
+      goose_state.append(fact_to_l_input[fact.get_pair()]);
+    }
+  } else {
+    for (FactProxy fact : state) {
+      goose_state.append(fact_to_g_input[fact.get_pair()]);
+    }
+  }
+  return goose_state;
+}
+
+GooseState GooseHeuristic::fact_pairs_list_to_goose_state(const std::vector<FactPair> &fact_pairs) {
+  GooseState goose_state;
+  if (lifted_goose) {
+    for (FactPair fact_pair : fact_pairs) {
+      goose_state.append(fact_to_l_input[fact_pair]);
+    }
+  } else {
+    for (FactPair fact_pair : fact_pairs) {
+      goose_state.append(fact_to_g_input[fact_pair]);
+    }
+  }
+  return goose_state;
 }
 
 }  // namespace goose_heuristic

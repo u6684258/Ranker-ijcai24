@@ -31,7 +31,7 @@ EagerSearch::EagerSearch(const plugins::Options &opts)
     cerr << "lazy_evaluator must cache its estimates" << endl;
     utils::exit_with(utils::ExitCode::SEARCH_INPUT_ERROR);
   }
-  hack_timer = std::chrono::high_resolution_clock::now().time_since_epoch().count();
+  // hack_timer = std::chrono::high_resolution_clock::now().time_since_epoch().count();
 }
 
 void EagerSearch::initialize() {

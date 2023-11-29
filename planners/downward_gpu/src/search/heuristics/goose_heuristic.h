@@ -45,7 +45,7 @@ class GooseHeuristic : public Heuristic {
 
   bool lifted_goose;
 
-  pybind11::list list_to_goose_state(const State &ancestor_state);
+  pybind11::list fd_state_to_goose_state(const State &ancestor_state);
 
  protected:
   virtual int compute_heuristic(const State &ancestor_state) override;

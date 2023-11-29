@@ -173,7 +173,7 @@ void GooseHeuristic::initialise_facts() {
   }
 }
 
-py::list GooseHeuristic::list_to_goose_state(const State &ancestor_state) {
+py::list GooseHeuristic::fd_state_to_goose_state(const State &ancestor_state) {
   State state = convert_ancestor_state(ancestor_state);
 
   py::list goose_state;
@@ -191,7 +191,7 @@ py::list GooseHeuristic::list_to_goose_state(const State &ancestor_state) {
 
 int GooseHeuristic::compute_heuristic(const State &ancestor_state) {
   // Convert state into Python object and feed into Goose.
-  py::list goose_state = list_to_goose_state(ancestor_state);
+  py::list goose_state = fd_state_to_goose_state(ancestor_state);
   int h = model.attr("h")(goose_state).cast<int>();
   return h;
 }
@@ -200,7 +200,7 @@ std::vector<int>
 GooseHeuristic::compute_heuristic_batch(const std::vector<State> &ancestor_states) {
   py::list py_states;
   for (const auto &state : ancestor_states) {
-    py_states.append(list_to_goose_state(state));
+    py_states.append(fd_state_to_goose_state(state));
   }
   py::object heuristics = model.attr("h_batch")(py_states);
   std::vector<int> ret = heuristics.cast<std::vector<int>>();

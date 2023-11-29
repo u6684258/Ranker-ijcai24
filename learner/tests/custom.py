@@ -29,7 +29,8 @@ if __name__ == "__main__":
 
     save_file = f"tests/" + "_".join([wl, iterations, model, domain]) + ".joblib"
 
-    if args.train:
+    if args.train or not os.path.exists(save_file):
+        print("training regardless because save file does not exist")
         if model in BAYESIAN_MODELS:
             script = "train_bayes.py"
         else:

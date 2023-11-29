@@ -1,11 +1,14 @@
+from argparse import Namespace
 import numpy as np
 from sklearn.gaussian_process import GaussianProcessRegressor
+from sklearn.model_selection import train_test_split
 import kernels
 from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.linear_model import BayesianRidge, Lasso, Ridge, LinearRegression, LogisticRegression
 from sklearn.svm import LinearSVR, SVR, LinearSVC, SVC
 from sklearn.gaussian_process.kernels import DotProduct
 from typing import Iterable, List, Optional, Dict, Tuple, Union
+from dataset.dataset_kernel import get_dataset_from_args
 from representation import CGraph, Representation, REPRESENTATIONS
 from planning import State
 from kernels.base_kernel import Histogram, NO_EDGE, WlAlgorithm
@@ -27,9 +30,7 @@ BAYESIAN_MODELS = [
     "gp",  # gaussian process with dot product kernel
 ]
 
-LINEAR_MODELS = [
-    "gp", "linear-svr"
-]
+LINEAR_MODELS = ["gp", "linear-svr"]
 
 _MAX_MODEL_ITER = 1000000
 _C = 1.0
@@ -42,10 +43,13 @@ class KernelModelWrapper:
         super().__init__()
         if args.model == "empty":
             return  # when there are no dead ends to learn
+        self._args = args
         self.model_name = args.model
         self.wl_name = args.features
 
-        self._kernel : WlAlgorithm = kernels.GRAPH_FEATURE_GENERATORS[args.features](iterations=args.iterations, prune=args.prune)
+        self._kernel: WlAlgorithm = kernels.GRAPH_FEATURE_GENERATORS[args.features](
+            iterations=args.iterations, prune=args.prune
+        )
 
         self._iterations = args.iterations
         self._prune = args.prune
@@ -96,7 +100,9 @@ class KernelModelWrapper:
                     validation_fraction=0.15,
                 ),
                 "blr": BayesianRidge(),
-                "gp": GaussianProcessRegressor(kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10),  
+                "gp": GaussianProcessRegressor(
+                    kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10
+                ),
             }[self.model_name]
 
         self._train = True
@@ -112,7 +118,7 @@ class KernelModelWrapper:
 
     def get_hit_colours(self) -> int:
         return self._kernel.get_hit_colours()
-    
+
     def get_missed_colours(self) -> int:
         return self._kernel.get_missed_colours()
 
@@ -123,7 +129,7 @@ class KernelModelWrapper:
         return self._model.predict(X)
 
     def predict_with_std(self, X) -> Tuple[np.array, np.array]:
-        """ for Bayesian models only """
+        """for Bayesian models only"""
         return self._model.predict(X, return_std=True)
 
     def get_learning_model(self):
@@ -156,7 +162,7 @@ class KernelModelWrapper:
         if self.model_name == "gp":
             # a hack: after training in train_bayes.py, use alpha @ X_train to get weights
             return self.weights
-        
+
         weights = self._model.coef_
         if hasattr(self, "_indices") and self._indices is not None:
             weights = weights[self._indices]
@@ -166,7 +172,7 @@ class KernelModelWrapper:
         if self.model_name == "gp":
             bias = 0
             return bias
-        
+
         bias = self._model.intercept_
         if type(bias) == float:
             return bias
@@ -258,7 +264,9 @@ class KernelModelWrapper:
     def get_hash(self) -> Dict[str, int]:
         return self._kernel.get_hash()
 
-    def compute_histograms(self, graphs: CGraph, return_ratio_seen_counts: bool = False) -> Union[List[Histogram], Tuple[List[Histogram], List[float]]]:
+    def compute_histograms(
+        self, graphs: CGraph, return_ratio_seen_counts: bool = False
+    ) -> Union[List[Histogram], Tuple[List[Histogram], List[float]]]:
         return self._kernel.compute_histograms(graphs, return_ratio_seen_counts)
 
     def get_matrix_representation(
@@ -281,10 +289,50 @@ class KernelModelWrapper:
         """predict for single row x"""
         y = self.predict([x])
         return y
-    
+
     def predict_h_with_std(self, x: Iterable[float]) -> Tuple[float, float]:
         y, std = self.predict_with_std([x])
         return (y, std)
+
+    def online_training(
+        self, states: List[State], ys: List[int], domain_pddl: str, problem_pddl: str
+    ) -> str:
+        # returns new model data path (contains hash and weights)
+
+        assert len(states) == len(ys)
+        self.train()
+
+        print("Loading initial training data...")
+        graphs, y_true = get_dataset_from_args(self._args)
+        graphs_train, _, y_train, _ = train_test_split(
+            graphs, y_true, test_size=0.33, random_state=2023
+        )
+        print(f"Initial training data has {len(graphs_train)} graphs")
+
+        print("Updating model representation...")
+        self.update_representation(domain_pddl, problem_pddl)
+
+        print(f"Generating training data from {len(states)} new states...")
+        for s in states:
+            ## cpp code already converts states to (pred, [args]) form
+            graph = self._representation.state_to_cgraph(s)
+            graphs_train.append(graph)
+        y_train = np.concatenate((y_train, np.array(ys)))
+
+        print("Generating histograms...")
+        train_histograms = self.compute_histograms(graphs_train, return_ratio_seen_counts=False)
+
+        print("Generating matrix...")
+        X_train = self.get_matrix_representation(graphs_train, train_histograms)
+
+        print("Training...")
+        self.fit(X_train, y_train)
+
+        print("Writing model data...")
+        self.write_model_data()
+
+        self.eval()
+        return self._model_data_path
 
     @property
     def n_colours_(self) -> int:

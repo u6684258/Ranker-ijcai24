@@ -111,9 +111,7 @@ def get_graphs_from_plans(args):
         plan = get_plan_info(domain_pddl, problem_pddl, plan_file, args)
 
         for s, action, distance_to_goal in plan:
-            if REPRESENTATIONS[representation].lifted:
-                s = rep.str_to_state(s)
-
+            s = rep.str_to_state(s)
             graph = rep.state_to_cgraph(s)
             graphs.append((graph, distance_to_goal))
 

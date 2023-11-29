@@ -43,8 +43,8 @@ public:
 
     void dump_search_space() const;
 
-private:
-    double hack_timer;
+// private:
+//     double hack_timer;
 };
 
 extern void add_options_to_feature(plugins::Feature &feature);

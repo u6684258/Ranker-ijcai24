@@ -4,11 +4,6 @@
 #include <string>
 #include <vector>
 
-#include <pybind11/embed.h>
-#include <pybind11/pybind11.h>
-#include <pybind11/stl.h>
-#include <pybind11/stl_bind.h>
-
 #include "goose_heuristic.h"
 
 /*
@@ -33,8 +28,6 @@ class GooseHeuristic : public goose_heuristic::GooseHeuristic {
 
   // Python object which computes the heuristic
   pybind11::object model;
-
-  pybind11::list list_to_goose_state(const State &ancestor_state);
 
  protected:
   virtual int compute_heuristic(const State &ancestor_state) override;
