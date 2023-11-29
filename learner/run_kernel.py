@@ -1,7 +1,7 @@
 import re
 import argparse
 import os
-from util.save_load import load_kernel_model_and_setup
+from util.save_load import load_kernel_model
 
 TIMEOUT = 1800000
 
@@ -71,7 +71,7 @@ def search_cmd(args):
 
 
 def fd_cmd(args, aux_file, plan_file):
-    m = args.model_path
+    mf = args.model_path
     df = args.domain_pddl
     pf = args.problem_pddl
     search = {
@@ -79,7 +79,7 @@ def fd_cmd(args, aux_file, plan_file):
         "eager": "eager_greedy",
     }[args.algorithm]
 
-    model = load_kernel_model_and_setup(m, df, pf)
+    model = load_kernel_model(mf)
     model_type = {
         "linear-svr": "linear_model",
         "ridge": "linear_model",
@@ -94,9 +94,9 @@ def fd_cmd(args, aux_file, plan_file):
 
     if args.train:
         model_type += "_online"
-    fd_h = f'{model_type}(model_file="{m}", domain_file="{df}", instance_file="{pf}")'
+    fd_h = f'{model_type}(model_file="{mf}", domain_file="{df}", instance_file="{pf}")'
 
-    cmd = f"{_DOWNWARD} --search-time-limit {args.timeout} --sas-file {aux_file} --plan-file {plan_file} {df} {pf} --search '{search}([{fd_h}])'"
+    cmd = f"{_DOWNWARD} --sas-file {aux_file} --plan-file {plan_file} {df} {pf} --search '{search}([{fd_h}])'"
 
     if args.profile:
         model.write_model_data()
