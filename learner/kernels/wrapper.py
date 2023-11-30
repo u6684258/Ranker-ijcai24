@@ -140,6 +140,33 @@ class KernelModelWrapper:
     def get_missed_colours(self) -> int:
         return self._wl.get_missed_colours()
 
+    def _transform_for_fit_only(self, X) -> np.array:
+        """transform X depending on the model"""
+        if self.model_name == "mip":
+            wl_hash = self.get_hash()
+            n, d = X.shape
+            additional = np.zeros((1, d))
+            assert d == len(wl_hash)
+            for k, v in wl_hash.items():
+                assert 0 <= v and v < d
+                toks = [int(t) for t in k.split(",")]
+                node_colours = [toks[0]] + [toks[i] for i in range(1, len(toks), 2)]
+                edge_colours = [toks[i] for i in range(2, len(toks), 2)]
+
+                # tiebreaker = len(toks)  # can be less naive (e.g. level of iteration)
+                # diversity = len(set([(c,'n') for c in node_colours]+[(c,'e') for c in edge_colours]))
+
+                tiebreaker = 1 + int(-1 in edge_colours)  # want to maximise this
+                tiebreaker = 1 / tiebreaker  # because we minimise in mip
+                if -1 in edge_colours:
+                    tiebreaker = 1
+                else:
+                    tiebreaker = 1000
+
+                additional[0][v] = tiebreaker
+            X = np.vstack((X, additional))
+        return X
+
     def fit_all(self, X, y_dict) -> None:
         # when self.learn_schema_count, we fit n+1 models where n is the number of schemata
         for schema in self._models:
@@ -148,6 +175,7 @@ class KernelModelWrapper:
     def fit(self, X, y, schema=ALL_KEY) -> None:
         assert schema in self._models
         print(f"Fitting model for learning number of '{schema}' in a plan...")
+        X = self._transform_for_fit_only(X)
         self._models[schema].fit(X, y)
 
     def predict_all(self, X, schema=ALL_KEY) -> Dict[str, np.array]:
@@ -221,6 +249,31 @@ class KernelModelWrapper:
     def get_num_zero_weights(self):
         return np.count_nonzero(self.get_weights() == 0)
 
+    def debug_weights(self):
+        print("Verbose linear weights information")
+        weights = self.get_weights()
+        model_hash = self.get_hash()
+        # nonzero_weights = np.nonzero(weights)[0]
+        # print(f"indices of nonzero weights:", nonzero_weights)
+        for schema, model in self._models.items():
+            print(schema)
+            weights = model.coef_
+            nonzero_weights = np.nonzero(weights)[0]
+            set_nonzero_weights = set(nonzero_weights)
+            for k, v in model_hash.items():
+                if v in set_nonzero_weights:
+                    print(f"{round(weights[v]):>5} * {k}")
+
+    def debug_colour_information(self):
+        domain = self._args.domain
+        domain_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
+        problem_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy/p01.pddl"
+        self.update_representation(domain_pddl, problem_pddl)
+        debug_map = self._representation._colour_debug
+        for k, v in self.get_hash().items():
+            if "," not in k and int(k) in debug_map:
+                print(f"{v} -> {debug_map[int(k)]}")
+
     def write_model_data(self) -> None:
         print("Writing model data to file...", flush=True)
         try:
@@ -247,6 +300,7 @@ class KernelModelWrapper:
 
                 # TODO(DZC) prune out zero weights
                 # the below is wrong because keys need to be updated as well
+
                 # # prune zero weights
                 # new_weights = []
                 # new_model_hash = {}

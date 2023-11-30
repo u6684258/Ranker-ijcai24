@@ -7,7 +7,7 @@ class ILG_FEATURES(Enum):
     G = 0  # is positive goal (grounded)
     N = 1  # is negative goal (grounded)
     O = 2  # is object
-    S = 3  # is activated (grounded)
+    S = 3  # is activated (grounded) [only used in GNN]
 
 
 ENC_FEAT_SIZE = len(ILG_FEATURES)
@@ -43,7 +43,9 @@ class InstanceLearningGraph(Representation, ABC):
 
         G = self._create_graph()
 
-        self.n_predicates = len(self.problem.predicates) - 1  # fd has an =(x, y) predicate
+        # fd has an =(x, y) predicate
+        predicates = [p for p in self.problem.predicates if p.name != "="]
+        self.n_predicates = len(predicates)
 
         # TODO(DZC) option to change n_node_features depending on whether we want to refine
         # predicate colour/encoding or not
@@ -55,13 +57,30 @@ class InstanceLearningGraph(Representation, ABC):
 
         # predicates
         largest_predicate = 0
-        for i, pred in enumerate(self.problem.predicates):
+        for i, pred in enumerate(predicates):
             if pred.name[0] == "=":
                 continue
             largest_predicate = max(largest_predicate, len(pred.arguments))
             G.add_node(pred.name, x=self._one_hot_node(ENC_FEAT_SIZE + i))  # add predicate node
         self.largest_predicate = largest_predicate
         self.n_edge_labels = largest_predicate + 1  # add one for -1 edge labels
+
+        # debugging
+        tmp = {
+            0: "G",
+            1: "N",
+            2: "O",
+            3: "S (not used)",
+        }
+        for i, pred in enumerate(predicates):
+            tmp[ENC_FEAT_SIZE + i] = pred.name
+        self.debugging = {}
+        for k, v in tmp.items():
+            k = str(tuple(self._one_hot_node(k).tolist()))
+            self.debugging[k] = v
+        self.debugging[0] = "To"
+        self.debugging[1] = "T+"
+        self.debugging[2] = "T-"
 
         # goal (state gets dealt with in state_to_tensor)
         if len(self.problem.goal.parts) == 0:
@@ -129,7 +148,7 @@ class InstanceLearningGraph(Representation, ABC):
 
         to_add = sum(len(fact[1]) + 1 for fact in state)
         x = torch.nn.functional.pad(x, (0, 0, 0, to_add), "constant", 0)
-        append_edge_index = {i:[] for i in range(-1, self.largest_predicate)}
+        append_edge_index = {i: [] for i in range(-1, self.largest_predicate)}
 
         for fact in state:
             pred = fact[0]
@@ -197,21 +216,13 @@ class InstanceLearningGraph(Representation, ABC):
 
             # connect fact to predicate
             assert self._name_to_node[pred] in c_graph.nodes
-            c_graph.add_edge(
-                u_of_edge=node, v_of_edge=self._name_to_node[pred], edge_label=-1
-            )
-            c_graph.add_edge(
-                v_of_edge=node, u_of_edge=self._name_to_node[pred], edge_label=-1
-            )
+            c_graph.add_edge(u_of_edge=node, v_of_edge=self._name_to_node[pred], edge_label=-1)
+            c_graph.add_edge(v_of_edge=node, u_of_edge=self._name_to_node[pred], edge_label=-1)
 
             for k, obj in enumerate(args):
                 # connect fact to object
                 assert self._name_to_node[obj] in c_graph.nodes
-                c_graph.add_edge(
-                    u_of_edge=node, v_of_edge=self._name_to_node[obj], edge_label=k
-                )
-                c_graph.add_edge(
-                    v_of_edge=node, u_of_edge=self._name_to_node[obj], edge_label=k
-                )
+                c_graph.add_edge(u_of_edge=node, v_of_edge=self._name_to_node[obj], edge_label=k)
+                c_graph.add_edge(v_of_edge=node, u_of_edge=self._name_to_node[obj], edge_label=k)
 
         return c_graph

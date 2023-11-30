@@ -227,6 +227,10 @@ def main():
     except Exception as e:  # not possible for nonlinear kernel methods
         pass
 
+    model.debug_weights()
+    model.debug_colour_information()
+    # breakpoint()
+
 
 if __name__ == "__main__":
     main()

@@ -59,10 +59,8 @@ WLGooseHeuristic::WLGooseHeuristic(const plugins::Options &opts)
     std::string model_data_path = model.attr("get_model_data_path")().cast<std::string>();
     update_model_from_data_path(model_data_path);
   } catch (py::error_already_set &e) {
-    PyErr_Print();
-    PyErr_Clear();
-    throw py::error_already_set();
-    // exit(-1);
+    std::cout << "encountered some python error" << std::endl;
+    exit(-1);
   }
 }
 
@@ -165,6 +163,7 @@ CGraph WLGooseHeuristic::fact_pairs_to_graph(const std::vector<FactPair> &state)
     }
 
     if (graph_.is_pos_goal_node(node_name)) {
+      // std::cout<<node_name<<std::endl;
       colours[graph_.get_node_index(node_name)] = graph_.TRUE_POS_GOAL_;
       continue;
     }
@@ -192,6 +191,7 @@ CGraph WLGooseHeuristic::fact_pairs_to_graph(const std::vector<FactPair> &state)
       edges[cur_node_fact].push_back(std::make_pair(object_node, k));
     }
   }
+      // std::cout<<std::endl;
 
   return {edges, colours};
 }

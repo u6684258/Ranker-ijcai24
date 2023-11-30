@@ -1,13 +1,12 @@
 #include "coloured_graph.h"
 
-#include <fstream>
-#include <vector>
-#include <map>
-#include <string>
-#include <regex>
-#include <cstdio>
 #include <algorithm>
-
+#include <cstdio>
+#include <fstream>
+#include <map>
+#include <regex>
+#include <string>
+#include <vector>
 
 std::vector<std::string> tokenise(const std::string str) {
   std::istringstream iss(str);
@@ -19,8 +18,7 @@ std::vector<std::string> tokenise(const std::string str) {
   return ret;
 }
 
-CGraph::CGraph() 
-{ }
+CGraph::CGraph() {}
 
 CGraph::CGraph(const std::string &path) {
   std::string line;
@@ -53,9 +51,9 @@ CGraph::CGraph(const std::string &path) {
 
       std::vector<std::pair<int, int>> neighbours;
 
-      for (size_t i = 2; i < toks.size(); i+=2) {
+      for (size_t i = 2; i < toks.size(); i += 2) {
         int neighbour_node = stoi(toks[i]);
-        int edge_label = stoi(toks[i+1]);
+        int edge_label = stoi(toks[i + 1]);
         neighbours.push_back({neighbour_node, edge_label});
       }
 
@@ -91,11 +89,11 @@ CGraph::CGraph(const std::string &path) {
   }
 
   // remove file
-  char* char_array = new char[path.length() + 1];
+  char *char_array = new char[path.length() + 1];
   strcpy(char_array, path.c_str());
   remove(char_array);
 }
 
-CGraph::CGraph(const std::vector<std::vector<std::pair<int, int>>> &edges, 
-  const std::vector<int> &colour) : edges_(edges), colour_(colour) 
-{ }
+CGraph::CGraph(const std::vector<std::vector<std::pair<int, int>>> &edges,
+               const std::vector<int> &colour)
+    : edges_(edges), colour_(colour) {}

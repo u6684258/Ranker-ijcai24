@@ -21,6 +21,9 @@ class MIP(BaseEstimator):
         print("Constructing MIP problem...")
         m = pulp.LpProblem()
         n, d = X.shape
+        n -= 1
+
+        tiebreaker = X[-1]  # see KernelModelWrapper._transform_for_fit_only
 
         """ Variables """
         print("Constructing variables...")
@@ -39,12 +42,13 @@ class MIP(BaseEstimator):
             m += diffs[i] >= y[i] - pred
         main_obj = lpSum(diffs)  # abs value of differences
 
-        # minimise weights
+        # minimise weights for tie breaking
         for j in range(d):
             m += weights_abs[j] >= -weights[j]
             m += weights_abs[j] >= weights[j]
             
-        m += sum(y) * main_obj + weights_abs  # minimise weights is for tie breaking
+        m += sum(y) * main_obj + lpDot(weights_abs, tiebreaker)
+        # m += sum(y) * main_obj + lpSum(weights_abs)
         
         print(f"MIP problem constructed in {time.time() - t:.2f}s!")
 
@@ -52,7 +56,7 @@ class MIP(BaseEstimator):
 
         """ Solve """
         m.checkDuplicateVars()
-        solver = pulp.getSolver("CPLEX_PY", timeLimit=60)  # TODO argument for time limit
+        solver = pulp.getSolver("CPLEX_PY", timeLimit=10)  # TODO argument for time limit
         m.solve(solver)
 
         self.coef_ = np.array([w.value() for w in weights])

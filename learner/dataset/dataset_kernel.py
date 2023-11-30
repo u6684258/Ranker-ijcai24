@@ -91,8 +91,13 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
         action = actions[i]
         schema = action.replace("(", "").split()[0]
         ret.append((state, schema_cnt.copy()))
+        # print(state)
+        # for s, v in schema_cnt.items():
+        #     print(f"{s:>15} {v:>4}")
+        # print()
         schema_cnt[schema] -= 1
         schema_cnt[ALL_KEY] -= 1
+    # breakpoint()
     return ret
 
 

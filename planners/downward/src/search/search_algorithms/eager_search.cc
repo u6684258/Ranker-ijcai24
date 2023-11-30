@@ -226,6 +226,14 @@ SearchStatus EagerSearch::step() {
       open_list->insert(succ_eval_context, succ_state.get_id());
       if (search_progress.check_progress(succ_eval_context)) {
         statistics.print_checkpoint_line(succ_node.get_g());
+
+        /* print out partial plan */
+        // Plan plan;
+        // search_space.trace_path(succ_state, plan);
+        // for (const auto& op_id : plan) {
+        //   std::cout << task_proxy.get_operators()[op_id].get_name() << std::endl;
+        // }
+
         reward_progress();
       }
     } else if (succ_node.get_g() > node->get_g() + get_adjusted_cost(op)) {

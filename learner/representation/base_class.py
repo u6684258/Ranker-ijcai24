@@ -166,7 +166,7 @@ class Representation(ABC):
             idx = len(self._name_to_node)
             self._name_to_node[node] = idx
             self._node_to_name[idx] = node
-            c_graph.add_node(idx, colour=colour)
+            c_graph.add_node(idx, colour=colour, name=node)
         for edge in self.G.edges:
             u, v = edge
             u = self._name_to_node[u]
@@ -176,6 +176,12 @@ class Representation(ABC):
             c_graph.add_edge(
                 u_of_edge=u, v_of_edge=v, edge_label=self.G.edges[edge]["edge_label"]
             )
+
+        if hasattr(self, "debugging"):
+            self._colour_debug = {v:self.debugging[k] for k, v in colours.items()}
+        # for k, v in colours.items():
+        #     print(v, self.debugging[k])
+        # breakpoint()
 
         self.c_graph = c_graph
         return
@@ -192,14 +198,20 @@ class Representation(ABC):
 
         f = open(file_path, "w")
 
+        def node_to_name(node_name):
+            for symbol in [" ", "'", ")", "("]:
+                node_name = node_name.replace(symbol, "")
+            if node_name[-1] == ',':
+                node_name = node_name[:-1]
+            return node_name
+
         # line number = node
         # <node_name> <node_colour> [<neighbour_node> <edge_label>]
         G = self.c_graph
         f.write(f"{len(G.nodes)} nodes\n")
         for u in G.nodes:
             node_name = str(self._node_to_name[u])
-            for symbol in [" ", "'", ")", "("]:
-                node_name = node_name.replace(symbol, "")
+            node_name = node_to_name(node_name)
             f.write(f"{node_name} {G.nodes[u]['colour']} ")
             for v in G[u]:
                 f.write(f"{v} {G[u][v]['edge_label']} ")
@@ -208,15 +220,13 @@ class Representation(ABC):
         f.write(f"{len(self._pos_goal_nodes)} pos goals\n")
         for node_name in self._pos_goal_nodes:
             node_name = str(node_name)
-            for symbol in [" ", "'", ")", "("]:
-                node_name = node_name.replace(symbol, "")
+            node_name = node_to_name(node_name)
             f.write(node_name + "\n")
 
         f.write(f"{len(self._neg_goal_nodes)} neg goals\n")
         for node_name in self._neg_goal_nodes:
             node_name = str(node_name)
-            for symbol in [" ", "'", ")", "("]:
-                node_name = node_name.replace(symbol, "")
+            node_name = node_to_name(node_name)
             f.write(node_name + "\n")
 
         f.close()

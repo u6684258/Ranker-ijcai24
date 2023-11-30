@@ -33,7 +33,7 @@ ACTIVATED_POS_GOAL_COLOUR = 2
 ACTIVATED_NEG_GOAL_COLOUR = 3
 
 
-""" LLG from AAAI23 submission """
+""" LLG from AAAI24 submission """
 
 
 class LiftedLearningGraph(Representation, ABC):
