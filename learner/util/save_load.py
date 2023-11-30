@@ -65,6 +65,7 @@ def save_kernel_model(model, args):
     base_dir = os.path.dirname(model_save_file)
     if len(base_dir) > 0:
         os.makedirs(base_dir, exist_ok=True)
+    model.setup_for_saving()
     with open(model_save_file, 'wb') as handle:
         pickle.dump(model, handle, protocol=pickle.HIGHEST_PROTOCOL)
     print("Model saved!")

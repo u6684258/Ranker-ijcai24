@@ -81,6 +81,8 @@ def fd_cmd(args, aux_file, plan_file):
 
     model = load_kernel_model(mf)
     model_type = {
+        "mip": "linear_model",
+        "linear-regression": "linear_model",
         "linear-svr": "linear_model",
         "ridge": "linear_model",
         "lasso": "linear_model",

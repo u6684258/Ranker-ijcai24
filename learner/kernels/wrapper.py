@@ -1,6 +1,7 @@
 import time
 import numpy as np
 import kernels
+from typing import Iterable, List, Optional, Dict, Tuple, Union
 from sklearn.metrics import mean_squared_error
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.model_selection import train_test_split
@@ -8,16 +9,19 @@ from sklearn.neural_network import MLPClassifier, MLPRegressor
 from sklearn.linear_model import BayesianRidge, Lasso, Ridge, LinearRegression, LogisticRegression
 from sklearn.svm import LinearSVR, SVR, LinearSVC, SVC
 from sklearn.gaussian_process.kernels import DotProduct
-from typing import Iterable, List, Optional, Dict, Tuple, Union
 from representation import CGraph, Representation, REPRESENTATIONS
 from planning import State
 from kernels.base_kernel import Histogram, NO_EDGE, WlAlgorithm
+from kernels.mip import MIP
 from util.stats import get_stats
-from dataset.dataset_kernel import ALL_KEY
 
+## prevent import otherwise pybind issues...
+# from dataset.dataset_kernel import ALL_KEY
+ALL_KEY = "_all_"
 
 MODELS = [
-    # "linear-regression",
+    "mip",
+    "linear-regression",
     "linear-svr",
     "ridge",
     "lasso",
@@ -32,7 +36,14 @@ BAYESIAN_MODELS = [
     "gp",  # gaussian process with dot product kernel
 ]
 
-LINEAR_MODELS = ["gp", "linear-svr"]
+LINEAR_MODELS = {
+    "gp",
+    "linear-svr",
+    "linear-regression",
+    "ridge",
+    "lasso",
+    "mip",
+}
 
 _MAX_MODEL_ITER = 1000000
 _C = 1.0
@@ -87,7 +98,8 @@ class KernelModelWrapper:
             else:  # heuristic is regression
                 return {
                     "empty": None,
-                    "linear-regression": LinearRegression(),
+                    "mip": MIP(),
+                    "linear-regression": LinearRegression(fit_intercept=False),
                     "linear-svr": LinearSVR(dual="auto", epsilon=e, C=c, fit_intercept=False),
                     "lasso": Lasso(alpha=a),
                     "ridge": Ridge(alpha=a),
@@ -134,7 +146,7 @@ class KernelModelWrapper:
 
     def fit(self, X, y, schema=ALL_KEY) -> None:
         assert schema in self._models
-        print(f"Fitting model for learning number of {schema} in a plan...")
+        print(f"Fitting model for learning number of '{schema}' in a plan...")
         self._models[schema].fit(X, y)
 
     def predict_all(self, X, schema=ALL_KEY) -> Dict[str, np.array]:
@@ -170,7 +182,7 @@ class KernelModelWrapper:
         )
         self._representation.convert_to_coloured_graph()
         return
-    
+
     def update_schemata_to_learn(self, schemata_to_learn: Iterable[str]) -> None:
         initial_schemata = set(self._models.keys())
         schemata_to_keep = set(schemata_to_learn)
@@ -381,6 +393,11 @@ class KernelModelWrapper:
         print(f"New hash size:", len(self.get_hash()))
         print("Python online training completed!", flush=True)
         return self._model_data_path
+
+    def setup_for_saving(self) -> None:
+        # if self.model_name in LINEAR_MODELS:
+        #     self._models = None
+        pass  # TODO?
 
     @property
     def n_colours_(self) -> int:
