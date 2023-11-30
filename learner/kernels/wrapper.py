@@ -76,49 +76,47 @@ class KernelModelWrapper:
             e = 0 if predict_schema else _EPSILON
             c = 1e5 if predict_schema else _C  # inverse strength
             a = 0 if predict_schema else _ALPHA
+
+
             if self._deadends:  # deadends is binary classification
-                return {
-                    "empty": None,
-                    "linear-regression": LogisticRegression(penalty=None),
-                    "linear-svr": LinearSVC(dual="auto", C=_C, fit_intercept=False),
-                    "lasso": LogisticRegression(  # l1 only works with liblinear and saga
+                if self.model_name == "empty": return None
+                if self.model_name == "linear-regression": return LogisticRegression(penalty=None)
+                if self.model_name == "linear-svr": return LinearSVC(dual="auto", C=_C, fit_intercept=False)
+                if self.model_name == "lasso": return LogisticRegression(  # l1 only works with liblinear and saga
                         penalty="l1", C=1 / _ALPHA, solver="liblinear"
-                    ),
-                    "ridge": LogisticRegression(penalty="l2", C=1 / _ALPHA),
-                    "rbf-svr": SVC(kernel="rbf", C=_C),
-                    "quadratic-svr": SVC(kernel="poly", degree=2, C=_C),
-                    "cubic-svr": SVC(kernel="poly", degree=3, C=_C),
-                    "mlp": MLPClassifier(
+                    )
+                if self.model_name == "ridge": return LogisticRegression(penalty="l2", C=1 / _ALPHA)
+                if self.model_name == "rbf-svr": return SVC(kernel="rbf", C=_C)
+                if self.model_name == "quadratic-svr": return SVC(kernel="poly", degree=2, C=_C)
+                if self.model_name == "cubic-svr": return SVC(kernel="poly", degree=3, C=_C)
+                if self.model_name == "mlp": return MLPClassifier(
                         hidden_layer_sizes=(64,),
                         batch_size=16,
                         learning_rate="adaptive",
                         early_stopping=True,
                         validation_fraction=0.15,
-                    ),
-                }[self.model_name]
+                    )
             else:  # heuristic is regression
-                return {
-                    "empty": None,
-                    "mip": MIP(),
-                    "linear-regression": LinearRegression(fit_intercept=False),
-                    "linear-svr": LinearSVR(dual="auto", epsilon=e, C=c, fit_intercept=False),
-                    "lasso": Lasso(alpha=a),
-                    "ridge": Ridge(alpha=a),
-                    "rbf-svr": SVR(kernel="rbf", epsilon=e, C=c),
-                    "quadratic-svr": SVR(kernel="poly", degree=2, epsilon=e, C=c),
-                    "cubic-svr": SVR(kernel="poly", degree=3, epsilon=e, C=c),
-                    "mlp": MLPRegressor(
+                if self.model_name == "empty": return None
+                if self.model_name == "mip": return MIP()
+                if self.model_name == "linear-regression": return LinearRegression(fit_intercept=False)
+                if self.model_name == "linear-svr": return LinearSVR(dual="auto", epsilon=e, C=c, fit_intercept=False)
+                if self.model_name == "lasso": return Lasso(alpha=a)
+                if self.model_name == "ridge": return Ridge(alpha=a)
+                if self.model_name == "rbf-svr": return SVR(kernel="rbf", epsilon=e, C=c)
+                if self.model_name == "quadratic-svr": return SVR(kernel="poly", degree=2, epsilon=e, C=c)
+                if self.model_name == "cubic-svr": return SVR(kernel="poly", degree=3, epsilon=e, C=c)
+                if self.model_name == "mlp": return MLPRegressor(
                         hidden_layer_sizes=(64,),
                         batch_size=16,
                         learning_rate="adaptive",
                         early_stopping=True,
                         validation_fraction=0.15,
-                    ),
-                    "blr": BayesianRidge(),
-                    "gp": GaussianProcessRegressor(
+                    )
+                if self.model_name == "blr": return BayesianRidge()
+                if self.model_name == "gp": return GaussianProcessRegressor(
                         kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10
-                    ),
-                }[self.model_name]
+                )
 
         self._models = {}
         for schema in args.schemata:

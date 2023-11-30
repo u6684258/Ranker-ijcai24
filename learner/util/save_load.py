@@ -120,11 +120,14 @@ def load_gnn_model_and_setup(path, domain_file, problem_file):
 
 
 def load_kernel_model_and_setup(path, domain_file, problem_file):
-    print(f"Entered Python code for loading model", flush=True)
-    model = load_kernel_model(path)
-    print("Updating representation", flush=True)
-    model.update_representation(domain_pddl=domain_file, problem_pddl=problem_file)
-    print("Representation updated!", flush=True)
-    model.eval()
-    print("Set to eval mode.", flush=True)
+    try:
+        print(f"Entered Python code for loading model", flush=True)
+        model = load_kernel_model(path)
+        print("Updating representation", flush=True)
+        model.update_representation(domain_pddl=domain_file, problem_pddl=problem_file)
+        print("Representation updated!", flush=True)
+        model.eval()
+        print("Set to eval mode.", flush=True)
+    except Exception:
+        print(traceback.format_exc(), flush=True)
     return model
