@@ -1,4 +1,5 @@
 import sys
+
 sys.path.append("..")
 import os
 import random
@@ -11,6 +12,7 @@ from deadend.deadend import deadend_states
 _DOWNWARD = "./../planners/downward/fast-downward.py"
 _POWERLIFTED = "./../planners/powerlifted/powerlifted.py"
 
+ALL_KEY = "_all_"
 
 def sample_from_dict(d, sample, seed):
     random.seed(seed)
@@ -32,7 +34,7 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
             actions.append(line.replace("\n", ""))
 
     state_output_file = repr(hash(repr(args))).replace("-", "n")
-    state_output_file += repr(hash(domain_pddl))+repr(hash(problem_pddl))+repr(hash(plan_file))
+    state_output_file += repr(hash(domain_pddl)) + repr(hash(problem_pddl)) + repr(hash(plan_file))
     aux_file = state_output_file + ".sas"
     state_output_file = state_output_file + ".states"
 
@@ -43,11 +45,10 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
         "fd": f"export PLAN_INPUT_PATH={plan_file} "
         + f"&& export STATES_OUTPUT_PATH={state_output_file} "
         + f"&& {_DOWNWARD} --sas-file {aux_file} {domain_pddl} {problem_pddl} "
-        + f'--search \'perfect([blind()])\'',  # need filler h
+        + f"--search 'perfect([blind()])'",  # need filler h
     }[planner]
 
-    # print("generating plan states with:")
-    # print(cmd)
+    # print("generating plan states with:") print(cmd)
 
     # disgusting method which hopefully makes running in parallel work fine
     assert not os.path.exists(aux_file), aux_file
@@ -76,19 +77,30 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
             states.append(s)
     os.remove(state_output_file)
 
+    schema_cnt = {ALL_KEY: len(actions)}
+    for action in actions:
+        schema = action.replace("(", "").split()[0]
+        if schema not in schema_cnt:
+            schema_cnt[schema] = 0
+        schema_cnt[schema] += 1
+
     ret = []
     for i, state in enumerate(states):
         if i == len(actions):
             continue  # ignore the goal state, annoying for learning useful schema
-        distance_to_goal = len(states) - i - 1
         action = actions[i]
-        ret.append((state, action, distance_to_goal))
+        schema = action.replace("(", "").split()[0]
+        ret.append((state, schema_cnt.copy()))
+        schema_cnt[schema] -= 1
+        schema_cnt[ALL_KEY] -= 1
     return ret
 
 
 def get_graphs_from_plans(args):
     print("Generating graphs from plans...")
-    graphs = []
+    dataset = []  # can probably make a class for this
+
+    schema_keys = set()
 
     representation = args.rep
     domain = args.domain
@@ -106,29 +118,34 @@ def get_graphs_from_plans(args):
         rep.convert_to_coloured_graph()
         plan = get_plan_info(domain_pddl, problem_pddl, plan_file, args)
 
-        for s, action, distance_to_goal in plan:
+        for s, schema_cnt in plan:
             s = rep.str_to_state(s)
             graph = rep.state_to_cgraph(s)
-            graphs.append((graph, distance_to_goal))
+            dataset.append((graph, schema_cnt))
+            schema_keys = schema_keys.union(set(schema_cnt.keys()))
 
     print("Graphs generated!")
-    return graphs
+    return dataset, schema_keys
 
 
 def get_dataset_from_args(args):
-    small_train = args.small_train
+    """Returns list of graphs, and dictionaries where keys are given by h* and schema counts"""
+    dataset, schema_keys = get_graphs_from_plans(args)
 
-    dataset = get_graphs_from_plans(args)
-    if small_train:
-        random.seed(123)
-        dataset = random.sample(dataset, k=1000)
+    graphs = []
+    ys = []
 
-    # get_stats(dataset=dataset, desc="Whole dataset")
+    for graph, schema_cnt in dataset:
+        graphs.append(graph)
+        test = 0
+        for k in schema_keys:
+            if k not in schema_cnt:
+                schema_cnt[k] = 0  # probably should never happen?
+            test += schema_cnt[k] if k != ALL_KEY else 0
+        assert test == schema_cnt[ALL_KEY]
+        ys.append(schema_cnt)
 
-    graphs = [data[0] for data in dataset]
-    y = np.array([data[1] for data in dataset])
-
-    return graphs, y
+    return graphs, ys
 
 
 def get_deadend_dataset_from_args(args):
@@ -144,14 +161,14 @@ def get_deadend_dataset_from_args(args):
     unsolvable_states = deadend_data["unsolvable_states"]
     solvable_states = deadend_data["solvable_states"]
     max_solvable_h = deadend_data["max_solvable_h"]
-    
+
     # balance 50-50 pos and neg
     smaller_set_size = min(len(unsolvable_states), len(solvable_states))
     if small_train:
         smaller_set_size = min(smaller_set_size, 1000)
     unsolvable_states = sample_from_dict(unsolvable_states, smaller_set_size, seed=0)
     solvable_states = sample_from_dict(solvable_states, smaller_set_size, seed=0)
-    
+
     # bring (df, pf) to keys for faster generation of graphs below
     unsolvable_states_ret = {}
     for state, (df, pf) in unsolvable_states.items():
@@ -159,7 +176,7 @@ def get_deadend_dataset_from_args(args):
         if k not in unsolvable_states_ret:
             unsolvable_states_ret[k] = []
         unsolvable_states_ret[k].append(state)
-    
+
     solvable_states_ret = {}
     for state, (df, pf) in solvable_states.items():
         k = (df, pf)

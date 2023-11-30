@@ -1,4 +1,5 @@
 from .base_class import *
+from enum import Enum
 
 
 class FLG_FEATURES(Enum):

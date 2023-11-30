@@ -1,5 +1,7 @@
 from .base_class import *
 from planning.translate.pddl import Atom, NegatedAtom, Truth
+from collections import OrderedDict
+from enum import Enum
 
 
 class LLG_FEATURES(Enum):

@@ -1,5 +1,6 @@
 from .base_class import *
 from .slg import StripsLearningGraph
+from enum import Enum
 
 
 class GLG_FEATURES(Enum):

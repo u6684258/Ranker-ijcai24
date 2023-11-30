@@ -1,5 +1,6 @@
 from .base_class import *
 from planning.translate.pddl import Atom, NegatedAtom, Truth
+from enum import Enum
 
 
 class ILG_FEATURES(Enum):

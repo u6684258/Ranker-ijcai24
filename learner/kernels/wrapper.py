@@ -13,6 +13,7 @@ from representation import CGraph, Representation, REPRESENTATIONS
 from planning import State
 from kernels.base_kernel import Histogram, NO_EDGE, WlAlgorithm
 from util.stats import get_stats
+from dataset.dataset_kernel import ALL_KEY
 
 
 MODELS = [
@@ -42,133 +43,152 @@ _EPSILON = 0.1
 class KernelModelWrapper:
     def __init__(self, args) -> None:
         super().__init__()
-        if args.model == "empty":
-            return  # when there are no dead ends to learn
-        self._args = args
         self.model_name = args.model
         self.wl_name = args.features
-        self.iterations = args.iterations
-        self.prune = args.prune
+        self.learn_schema_count = args.schema_count
 
-        self._kernel: WlAlgorithm = kernels.GRAPH_FEATURE_GENERATORS[args.features](
-            iterations=self.iterations, prune=self.prune
-        )
-
+        self._args = args
         self._iterations = args.iterations
         self._prune = args.prune
-
+        self._deadends = args.deadends
         self._rep_type = args.rep
         self._representation = None
 
-        kwargs = {
-            "max_iter": _MAX_MODEL_ITER,
-        }
+        self._wl: WlAlgorithm = kernels.GRAPH_FEATURE_GENERATORS[args.features](
+            iterations=self._iterations, prune=self._prune
+        )
 
-        self._deadends = args.deadends
-        if self._deadends:  # deadends is binary classification
-            self._model = {
-                None: None,
-                "linear-regression": LogisticRegression(penalty=None),
-                "linear-svr": LinearSVC(dual="auto", C=_C, **kwargs),
-                "lasso": LogisticRegression(  # l1 only works with liblinear and saga
-                    penalty="l1", C=1 / _ALPHA, solver="liblinear", **kwargs
-                ),
-                "ridge": LogisticRegression(penalty="l2", C=1 / _ALPHA, **kwargs),
-                "rbf-svr": SVC(kernel="rbf", C=_C, **kwargs),
-                "quadratic-svr": SVC(kernel="poly", degree=2, C=_C, **kwargs),
-                "cubic-svr": SVC(kernel="poly", degree=3, C=_C, **kwargs),
-                "mlp": MLPClassifier(
-                    hidden_layer_sizes=(64,),
-                    batch_size=16,
-                    learning_rate="adaptive",
-                    early_stopping=True,
-                    validation_fraction=0.15,
-                ),
-            }[self.model_name]
-        else:  # heuristic is regression
-            self._model = {
-                None: None,
-                "linear-regression": LinearRegression(),
-                "linear-svr": LinearSVR(dual="auto", epsilon=_EPSILON, C=_C, **kwargs),
-                "lasso": Lasso(alpha=_ALPHA, **kwargs),
-                "ridge": Ridge(alpha=_ALPHA, **kwargs),
-                "rbf-svr": SVR(kernel="rbf", epsilon=_EPSILON, C=_C, **kwargs),
-                "quadratic-svr": SVR(kernel="poly", degree=2, epsilon=_EPSILON, C=_C, **kwargs),
-                "cubic-svr": SVR(kernel="poly", degree=3, epsilon=_EPSILON, C=_C, **kwargs),
-                "mlp": MLPRegressor(
-                    hidden_layer_sizes=(64,),
-                    batch_size=16,
-                    learning_rate="adaptive",
-                    early_stopping=True,
-                    validation_fraction=0.15,
-                ),
-                "blr": BayesianRidge(),
-                "gp": GaussianProcessRegressor(
-                    kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10
-                ),
-            }[self.model_name]
+        # initialise model or models depending on whether we learn schema or not
+        def initialise_model(predict_schema: bool):
+            # if predict schema, we want to fit perfectly and then see if that generalises
+            e = 0 if predict_schema else _EPSILON
+            c = 1e5 if predict_schema else _C  # inverse strength
+            a = 0 if predict_schema else _ALPHA
+            if self._deadends:  # deadends is binary classification
+                return {
+                    "empty": None,
+                    "linear-regression": LogisticRegression(penalty=None),
+                    "linear-svr": LinearSVC(dual="auto", C=_C, fit_intercept=False),
+                    "lasso": LogisticRegression(  # l1 only works with liblinear and saga
+                        penalty="l1", C=1 / _ALPHA, solver="liblinear"
+                    ),
+                    "ridge": LogisticRegression(penalty="l2", C=1 / _ALPHA),
+                    "rbf-svr": SVC(kernel="rbf", C=_C),
+                    "quadratic-svr": SVC(kernel="poly", degree=2, C=_C),
+                    "cubic-svr": SVC(kernel="poly", degree=3, C=_C),
+                    "mlp": MLPClassifier(
+                        hidden_layer_sizes=(64,),
+                        batch_size=16,
+                        learning_rate="adaptive",
+                        early_stopping=True,
+                        validation_fraction=0.15,
+                    ),
+                }[self.model_name]
+            else:  # heuristic is regression
+                return {
+                    "empty": None,
+                    "linear-regression": LinearRegression(),
+                    "linear-svr": LinearSVR(dual="auto", epsilon=e, C=c, fit_intercept=False),
+                    "lasso": Lasso(alpha=a),
+                    "ridge": Ridge(alpha=a),
+                    "rbf-svr": SVR(kernel="rbf", epsilon=e, C=c),
+                    "quadratic-svr": SVR(kernel="poly", degree=2, epsilon=e, C=c),
+                    "cubic-svr": SVR(kernel="poly", degree=3, epsilon=e, C=c),
+                    "mlp": MLPRegressor(
+                        hidden_layer_sizes=(64,),
+                        batch_size=16,
+                        learning_rate="adaptive",
+                        early_stopping=True,
+                        validation_fraction=0.15,
+                    ),
+                    "blr": BayesianRidge(),
+                    "gp": GaussianProcessRegressor(
+                        kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10
+                    ),
+                }[self.model_name]
 
-        self._train = True
-        self._indices = None
+        self._models = {}
+        for schema in args.schemata:
+            if not self.learn_schema_count and schema != ALL_KEY:
+                continue
+            self._models[schema] = initialise_model(predict_schema=(schema == ALL_KEY))
 
     def train(self) -> None:
         """set train mode, not actually training anything"""
-        self._kernel.train()
+        self._wl.train()
 
     def eval(self) -> None:
         """set eval mode, not actually evaluating anything"""
-        self._kernel.eval()
+        self._wl.eval()
 
     def get_hit_colours(self) -> int:
-        return self._kernel.get_hit_colours()
+        return self._wl.get_hit_colours()
 
     def get_missed_colours(self) -> int:
-        return self._kernel.get_missed_colours()
+        return self._wl.get_missed_colours()
 
-    def fit(self, X, y) -> None:
-        self._model.fit(X, y)
+    def fit_all(self, X, y_dict) -> None:
+        # when self.learn_schema_count, we fit n+1 models where n is the number of schemata
+        for schema in self._models:
+            self.fit(X, y_dict[schema], schema=schema)
 
-    def predict(self, X) -> np.array:
-        return self._model.predict(X)
+    def fit(self, X, y, schema=ALL_KEY) -> None:
+        assert schema in self._models
+        print(f"Fitting model for learning number of {schema} in a plan...")
+        self._models[schema].fit(X, y)
 
-    def predict_with_std(self, X) -> Tuple[np.array, np.array]:
+    def predict_all(self, X, schema=ALL_KEY) -> Dict[str, np.array]:
+        y_dict = {}
+        for schema in self._models:
+            y_dict[schema] = self.predict(X, schema=schema)
+        return y_dict
+
+    def predict(self, X, schema=ALL_KEY) -> np.array:
+        assert schema in self._models
+        print(f"Predicting number of {schema} in a plan...")
+        return self._models[schema].predict(X)
+
+    def predict_with_std(self, X, schema=ALL_KEY) -> Tuple[np.array, np.array]:
         """for Bayesian models only"""
-        return self._model.predict(X, return_std=True)
+        return self._models[schema].predict(X, return_std=True)
 
-    def get_learning_model(self):
-        return self._model
+    def get_learning_model(self, schema=ALL_KEY):
+        return self._models[schema]
 
     def lifted_state_input(self) -> bool:
         return self._representation.lifted
 
     def update_representation(self, domain_pddl: str, problem_pddl: str) -> None:
+        if (
+            self._representation is not None
+            and domain_pddl == self._representation.domain_pddl
+            and problem_pddl == self._representation.problem_pddl
+        ):
+            return
         self._representation: Representation = REPRESENTATIONS[self._rep_type](
             domain_pddl, problem_pddl
         )
         self._representation.convert_to_coloured_graph()
         return
+    
+    def update_schemata_to_learn(self, schemata_to_learn: Iterable[str]) -> None:
+        initial_schemata = set(self._models.keys())
+        schemata_to_keep = set(schemata_to_learn)
+        for schema in initial_schemata:
+            if schema not in schemata_to_keep:
+                del self._models[schema]
 
     def get_iterations(self) -> int:
-        return self._kernel.iterations
-
-    def get_weight_indices(self):
-        """Boolean array that is the size of self._model.coef_"""
-        if hasattr(self, "_indices") and self._indices is not None:
-            return self._indices
-        return np.ones_like(self.get_weights())
-
-    def set_weight_indices(self, indices):
-        self._indices = indices
-        return
+        return self._wl.iterations
 
     def get_weights(self):
         if self.model_name == "gp":
             # a hack: after training in train_bayes.py, use alpha @ X_train to get weights
+            # since this interfact does not store X_train
+            # TODO gp class account for schema count
             return self.weights
 
-        weights = self._model.coef_
-        if hasattr(self, "_indices") and self._indices is not None:
-            weights = weights[self._indices]
+        weights = np.sum(model.coef_ for model in self._models.values())
         return weights
 
     def get_bias(self) -> float:
@@ -176,7 +196,7 @@ class KernelModelWrapper:
             bias = 0
             return bias
 
-        bias = self._model.intercept_
+        bias = np.sum(model.intercept_ for model in self._models.values())
         if type(bias) == float:
             return bias
         if type(bias) == np.float64:
@@ -271,17 +291,17 @@ class KernelModelWrapper:
         return
 
     def get_hash(self) -> Dict[str, int]:
-        return self._kernel.get_hash()
+        return self._wl.get_hash()
 
     def compute_histograms(
         self, graphs: CGraph, return_ratio_seen_counts: bool = False
     ) -> Union[List[Histogram], Tuple[List[Histogram], List[float]]]:
-        return self._kernel.compute_histograms(graphs, return_ratio_seen_counts)
+        return self._wl.compute_histograms(graphs, return_ratio_seen_counts)
 
     def get_matrix_representation(
         self, graphs: CGraph, histograms: Optional[List[Histogram]]
     ) -> np.array:
-        return self._kernel.get_x(graphs, histograms)
+        return self._wl.get_x(graphs, histograms)
 
     def h(self, state: State) -> float:
         h = self.h_batch([state])[0]
@@ -289,7 +309,7 @@ class KernelModelWrapper:
 
     def h_batch(self, states: List[State]) -> List[float]:
         graphs = [self._representation.state_to_cgraph(state) for state in states]
-        X = self._kernel.get_x(graphs)
+        X = self._wl.get_x(graphs)
         y = self.predict(X)
         hs = np.rint(y).astype(int).tolist()
         return hs
@@ -302,14 +322,17 @@ class KernelModelWrapper:
     def predict_h_with_std(self, x: Iterable[float]) -> Tuple[float, float]:
         y, std = self.predict_with_std([x])
         return (y, std)
-    
+
     def online_training(
         self, states: List[State], ys: List[int], domain_pddl: str, problem_pddl: str
     ) -> str:
         # returns new model data path (contains hash and weights)
 
-        print("TODO!!! fix this for gadi, causes issues when loading a model with pybind", flush=True)
+        print(
+            "TODO!!! fix this for gadi, causes issues when loading a model with pybind", flush=True
+        )
         from dataset.dataset_kernel import get_dataset_from_args
+
         assert len(states) == len(ys)
         self.train()
 
@@ -334,7 +357,7 @@ class KernelModelWrapper:
         get_stats(dataset=list(zip(graphs_train, y_train)), desc="Online train dataset")
 
         # try updating iterations
-        # self._kernel.update_iterations(self.iterations * 4)
+        # self._wl.update_iterations(self.iterations * 4)
 
         print("Generating histograms...")
         train_histograms = self.compute_histograms(graphs_train, return_ratio_seen_counts=False)
@@ -361,4 +384,4 @@ class KernelModelWrapper:
 
     @property
     def n_colours_(self) -> int:
-        return self._kernel.n_colours_
+        return self._wl.n_colours_

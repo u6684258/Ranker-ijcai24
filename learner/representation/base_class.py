@@ -1,28 +1,13 @@
-import sys
 import torch
 import networkx as nx
-import copy
 import time
-import os
-import util
-import random
 
 from typing import (
-    Set,
-    FrozenSet,
     List,
-    NamedTuple,
-    TypeVar,
     Tuple,
-    Dict,
-    Optional,
     Union,
 )
 from torch import Tensor
-from planning.translate.instantiate import instantiate, explore
-from enum import Enum
-from collections import OrderedDict
-from dataset import get_domain_name, get_problem_name
 from planning import get_planning_problem
 from planning import Proposition
 from tqdm import tqdm

@@ -1,5 +1,7 @@
 from .base_class import *
 from planning.translate.pddl import Literal, Atom, NegatedAtom, PropositionalAction
+from planning.translate.instantiate import explore
+from enum import Enum
 
 
 class SLG_FEATURES(Enum):

@@ -1,5 +1,6 @@
 """ Main training pipeline script. """
 
+from itertools import product
 import os
 import pickle
 import sys
@@ -11,7 +12,7 @@ import kernels
 from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.metrics import confusion_matrix, log_loss, mean_squared_error
 from kernels.wrapper import MODELS
-from dataset.dataset_kernel import get_dataset_from_args, get_deadend_dataset_from_args
+from dataset.dataset_kernel import ALL_KEY, get_dataset_from_args, get_deadend_dataset_from_args
 from util.save_load import print_arguments, save_kernel_model
 from util.metrics import f1_macro
 from dataset.ipc2023_learning_domain_info import IPC2023_LEARNING_DOMAINS
@@ -20,14 +21,24 @@ import warnings
 
 warnings.filterwarnings("ignore")
 
+F1_KEY = "f1_macro"
+MSE_KEY = "mse"
+LOG_LOSS_KEY = "ll"
+
+_SC_STRAT_ALL = "all"
+_SC_STRAT_NONE = "none"
+_SC_STRAT_SCHEMA_ONLY = "schema"
+
 _SCORING_HEURISTIC = {
-    "mse": mean_squared_error,
-    "f1_macro": f1_macro,
+    MSE_KEY: mean_squared_error,
+    F1_KEY: f1_macro,
 }
 _SCORING_DEADENDS = {
-    "ll": log_loss,
-    "f1_macro": f1_macro,
+    LOG_LOSS_KEY: log_loss,
+    F1_KEY: f1_macro,
 }
+
+_F1_KEEP_TOL = 1e-3
 
 
 def parse_args():
@@ -35,12 +46,7 @@ def parse_args():
 
     # ml model arguments
     parser.add_argument(
-        "-m",
-        "--model",
-        type=str,
-        default="linear-svr",
-        choices=MODELS,
-        help="ML model.",
+        "-m", "--model", type=str, default="linear-svr", choices=MODELS, help="ML model"
     )
     parser.add_argument(
         "--model-save-file", type=str, default=None, help="save file of model weights"
@@ -48,17 +54,17 @@ def parse_args():
 
     # data arguments
     parser.add_argument(
-        "-d",
-        "--domain",
-        required=True,
-        help="domain to learn domain knowledge for",
-        choices=IPC2023_LEARNING_DOMAINS,
+        "-s",
+        "--schema-count",
+        default=_SC_STRAT_NONE,
+        choices=[_SC_STRAT_NONE, _SC_STRAT_ALL, _SC_STRAT_SCHEMA_ONLY],
+        help="Strategy for learning schema counts.\n"
+        + "none: do not learn schema counts and learn h* prediction.\n"
+        + "all: learn schema counts and sum with h* prediction.\n"
+        + "schema: learn schema coutns only and not h* prediction.",
     )
-    parser.add_argument(
-        "--deadends",
-        action="store_true",
-        help="learn dead ends",
-    )
+    parser.add_argument("-d", "--domain", required=True, choices=IPC2023_LEARNING_DOMAINS)
+    parser.add_argument("--deadends", action="store_true", help="learn dead ends")
     parser.add_argument(
         "-r",
         "--rep",
@@ -76,11 +82,7 @@ def parse_args():
         help="wl algorithm to use",
     )
     parser.add_argument(
-        "-l",
-        "--iterations",
-        type=int,
-        default=5,
-        help="number of iterations for kernel algorithms",
+        "-l", "--iterations", type=int, default=5, help="number of iterations for wl algorithms"
     )
     parser.add_argument(
         "-p",
@@ -89,20 +91,10 @@ def parse_args():
         default=0,
         help="reduce feature sizes by discarding colours with total train count <= prune",
     )
-    parser.add_argument(
-        "--small-train",
-        action="store_true",
-        help="use small train set, useful for debugging",
-    )
-    parser.add_argument("-s", "--seed", type=int, default=0, help="random seed")
+    parser.add_argument("--seed", type=int, default=0, help="random seed")
     parser.add_argument("--planner", default="fd", choices=["fd", "pwl"])
 
     args = parser.parse_args()
-
-    domain = args.domain
-    args.domain_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
-    args.tasks_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy"
-    args.plans_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training_plans"
 
     return args
 
@@ -112,22 +104,10 @@ def main():
     print_arguments(args)
     np.random.seed(args.seed)
 
+    # load dataset
     predict_deadends = args.deadends
-
-    # class decides whether to use classifier or regressor
-    model = kernels.KernelModelWrapper(args)
-    model.train()
-    scoring = _SCORING_DEADENDS if predict_deadends else _SCORING_HEURISTIC
-
     if predict_deadends:
         graphs, y_true = get_deadend_dataset_from_args(args)
-        if len(graphs) == 0:
-            print(f"No deadends to learn for {args.domain}!")
-            print(f"Saving a redundant file...")
-            args.model = "empty"
-            model = kernels.KernelModelWrapper(args)
-            save_kernel_model(model, args)
-            return
     else:
         graphs, y_true = get_dataset_from_args(args)
 
@@ -135,12 +115,29 @@ def main():
         graphs, y_true, test_size=0.33, random_state=2023
     )
 
-    # ## uncomment this and breakpoint at EOF to test correctness of cpp implementation
-    # graphs_train = graphs
-    # graphs_val = graphs
-    # y_train = y_true
-    # y_val = y_true
+    if len(graphs) == 0:
+        print(f"Empty dataset for {args.domain} and predict_deadends={predict_deadends}!")
+        print(f"Saving a redundant file...")
+        args.model = "empty"
+        model = kernels.KernelModelWrapper(args)
+        save_kernel_model(model, args)
+        return
 
+    schemata = sorted(list(y_train[0].keys())) if args.schema_count else [ALL_KEY]
+    if args.schema_count == _SC_STRAT_NONE:
+        schemata = [ALL_KEY]
+    elif args.schema_count == _SC_STRAT_ALL:
+        pass
+    elif args.schema_count == _SC_STRAT_SCHEMA_ONLY:
+        schemata.remove(ALL_KEY)
+    args.schemata = schemata
+
+    # class decides whether to use classifier or regressor
+    model = kernels.KernelModelWrapper(args)
+    model.train()
+    scoring = _SCORING_DEADENDS if predict_deadends else _SCORING_HEURISTIC
+
+    # training data
     print(f"Setting up training data...")
     t = time.time()
     train_histograms = model.compute_histograms(graphs_train)
@@ -148,14 +145,24 @@ def main():
     print(f"Initialised {args.features} for {len(graphs_train)} graphs")
     print(f"Collected {model.n_colours_} colours over {n_train_nodes} nodes")
     X_train = model.get_matrix_representation(graphs_train, train_histograms)
+    y_train_true = {s: [] for s in schemata}
+    for y_dict in y_train:
+        for s in schemata:
+            y_train_true[s].append(y_dict[s])
     print(f"Set up training data in {time.time()-t:.2f}s")
 
+    # validation data
     print(f"Setting up validation data...")
     model.eval()
     t = time.time()
     val_histograms = model.compute_histograms(graphs_val)
     X_val = model.get_matrix_representation(graphs_val, val_histograms)
+    y_val_true = {s: [] for s in schemata}
+    for y_dict in y_val:
+        for s in schemata:
+            y_val_true[s].append(y_dict[s])
     print(f"Set up validation data in {time.time()-t:.2f}s")
+
     n_hit_colours = model.get_hit_colours()
     n_missed_colours = model.get_missed_colours()
     print(f"hit colours: {n_hit_colours}")
@@ -165,41 +172,60 @@ def main():
     # training
     print(f"Training on entire {args.domain} for {args.model}...")
     t = time.time()
-    model.fit(X_train, y_train)
+    model.fit_all(X_train, y_train_true)
     print(f"Model training completed in {time.time()-t:.2f}s")
 
     # predict on train and val sets
     print("Predicting...")
     t = time.time()
-    y_train_pred = model.predict(X_train)
-    y_val_pred = model.predict(X_val)
+    print("  For train...")
+    y_train_pred = model.predict_all(X_train)
+    print("  For val...")
+    y_val_pred = model.predict_all(X_val)
     print(f"Predicting completed in {time.time()-t:.2f}s")
 
     # metrics
-    print("Scores:")
+    print("Scores on prediction against h*:")
+    products = list(product(scoring.keys(), schemata))
+    train_scores = {(m, s): scoring[m](y_train_true[s], y_train_pred[s]) for m, s in products}
+    val_scores = {(m, s): scoring[m](y_val_true[s], y_val_pred[s]) for m, s in products}
     t = time.time()
+    schemata_to_keep = set()
     for metric in scoring:
-        print(f"train_{metric}: {scoring[metric](y_train, y_train_pred):.2f}")
-        print(f"val_{metric}: {scoring[metric](y_val, y_val_pred):.2f}")
+        print(f"{metric:<10} {'schema':<10} {'train':<10} {'val':<10}")
+        for schema in schemata:
+            t = train_scores[(metric, schema)]
+            v = val_scores[(metric, schema)]
+            print(f"{'':<10} {schema:<10} {t:<10.4f} {v:<10.4f}")
+            if abs(v - 1) < _F1_KEEP_TOL and metric == F1_KEY:
+                schemata_to_keep.add(schema)
+    if args.schema_count in {_SC_STRAT_ALL, _SC_STRAT_NONE}:
+        schemata_to_keep.add(ALL_KEY)
+    elif args.schema_count == _SC_STRAT_SCHEMA_ONLY and ALL_KEY in schemata_to_keep:
+        schemata_to_keep.remove(ALL_KEY)
+
+    # log schemata to learn
+    print(f"{len(schemata_to_keep)} schemata to keep")
+    for s in sorted(schemata_to_keep):
+        print(f"  {s}")
+    model.update_schemata_to_learn(schemata_to_keep)
 
     if predict_deadends:
         print("train confusion matrix:")
-        print(confusion_matrix(y_train, y_train_pred))
+        print(confusion_matrix(y_train_true, y_train_pred))
         print("val confusion matrix:")
-        print(confusion_matrix(y_val, y_val_pred))
+        print(confusion_matrix(y_val_true, y_val_pred))
 
     # save model
     save_kernel_model(model, args)
 
-    # print % weights are zero
+    # print % weights that are zero
     try:
         n_zero_weights = model.get_num_zero_weights()
         n_weights = model.get_num_weights()
         print(f"zero_weights: {n_zero_weights}/{n_weights} = {n_zero_weights/n_weights:.2f}")
-    except Exception as e:  # not possible for true kernel methods
+    except Exception as e:  # not possible for nonlinear kernel methods
         pass
-
-    # breakpoint()
 
 
 if __name__ == "__main__":

@@ -30,14 +30,15 @@ if __name__ == "__main__":
     save_file = f"tests/" + "_".join([wl, iterations, model, domain]) + ".pkl"
 
     if args.train or not os.path.exists(save_file):
-        print("training regardless because save file does not exist")
+        if not os.path.exists(save_file):
+            print("training because save file does not exist")
         if model in BAYESIAN_MODELS:
             script = "train_bayes.py"
         else:
             script = "train_kernel.py"
-        os.system(
-            f"python3 {script} -m {model} -r {representation} -d {domain} -k {wl} -l {iterations} --model-save-file {save_file}"
-        )
+        cmd = f"python3 {script} -m {model} -r {representation} -d {domain} -k {wl} -l {iterations} --model-save-file {save_file}"
+        print(cmd)
+        os.system(cmd)
 
     if args.run:
         os.system(f"cd ../planners/downward && python3 build.py")
@@ -45,4 +46,6 @@ if __name__ == "__main__":
         problem_file = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/{difficulty}/{problem}.pddl"
         assert os.path.exists(problem_file), problem_file
         flag = "--train" if args.online else ""
-        os.system(f"python3 run_kernel.py {domain_file} {problem_file} {save_file} {flag}")
+        cmd = f"python3 run_kernel.py {domain_file} {problem_file} {save_file} {flag}"
+        print(cmd)
+        os.system(cmd)
