@@ -13,6 +13,7 @@
 #include "../task_utils/task_properties.h"
 
 using std::string;
+namespace py = pybind11;
 
 namespace goose_wl {
 
@@ -35,31 +36,34 @@ WLGooseHeuristic::WLGooseHeuristic(const plugins::Options &opts)
   }
 
   // Append python module directory to the path
-  pybind11::module sys = pybind11::module::import("sys");
+  py::module sys = py::module::import("sys");
   sys.attr("path").attr("append")(path);
 
-  // Force all output being printed to stdout. Otherwise INFO logging from
-  // python will be printed to stderr, even if it is not an error.
-  sys.attr("stderr") = sys.attr("stdout");
+  try {
+    // Load python object model
+    std::string model_path = opts.get<std::string>("model_file");
+    domain_file = opts.get<std::string>("domain_file");
+    instance_file = opts.get<std::string>("instance_file");
+    std::cout << "Trying to load model from file " << model_path << " ...\n";
+    py::module util_module = py::module::import("util.save_load");
+    model = util_module.attr("load_kernel_model_and_setup")(model_path, domain_file, instance_file);
+    std::cout << "Loaded model!" << std::endl;
 
-  // Load python object model
-  std::string model_path = opts.get<std::string>("model_file");
-  domain_file = opts.get<std::string>("domain_file");
-  instance_file = opts.get<std::string>("instance_file");
-  std::cout << "Trying to load model from file " << model_path << " ...\n";
-  pybind11::module util_module = pybind11::module::import("util.save_load");
-  model = util_module.attr("load_kernel_model_and_setup")(model_path, domain_file, instance_file);
-  std::cout << "Loaded model!" << std::endl;
+    // use I/O similar to get graph representation
+    model.attr("write_representation_to_file")();
+    std::string graph_data_path = model.attr("get_graph_file_path")().cast<std::string>();
+    graph_ = CGraph(graph_data_path);
 
-  // use I/O similar to get graph representation
-  model.attr("write_representation_to_file")();
-  std::string graph_data_path = model.attr("get_graph_file_path")().cast<std::string>();
-  graph_ = CGraph(graph_data_path);
-
-  // use I/O similar to get WL and ML data (hash and weights)
-  model.attr("write_model_data")();
-  std::string model_data_path = model.attr("get_model_data_path")().cast<std::string>();
-  update_model_from_data_path(model_data_path);
+    // use I/O similar to get WL and ML data (hash and weights)
+    model.attr("write_model_data")();
+    std::string model_data_path = model.attr("get_model_data_path")().cast<std::string>();
+    update_model_from_data_path(model_data_path);
+  } catch (py::error_already_set &e) {
+    PyErr_Print();
+    PyErr_Clear();
+    throw py::error_already_set();
+    // exit(-1);
+  }
 }
 
 void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_path) {
@@ -125,7 +129,8 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
   feature_size_ = static_cast<int>(hash_.size());
   std::cout << "Feature size: " << feature_size_ << std::endl;
   if (feature_size_ != weights_.size()) {
-    std::cout << "error: feature size " << feature_size_ << " and weights size " << weights_.size() << " not the same" << std::endl;
+    std::cout << "error: feature size " << feature_size_ << " and weights size " << weights_.size()
+              << " not the same" << std::endl;
     exit(-1);
   }
 }

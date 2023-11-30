@@ -1,4 +1,5 @@
 import time
+import traceback
 import numpy as np
 import kernels
 from typing import Iterable, List, Optional, Dict, Tuple, Union
@@ -204,16 +205,15 @@ class KernelModelWrapper:
         return weights
 
     def get_bias(self) -> float:
-        if self.model_name == "gp":
-            bias = 0
-            return bias
-
-        bias = np.sum(model.intercept_ for model in self._models.values())
-        if type(bias) == float:
-            return bias
-        if type(bias) == np.float64:
-            return float(bias)
-        return float(bias[0])  # linear-svr returns array
+        try:
+            bias = np.sum(model.intercept_ for model in self._models.values())
+            if type(bias) == float:
+                return bias
+            if type(bias) == np.float64:
+                return float(bias)
+            return float(bias[0])  # linear-svr returns array
+        except Exception:
+            return 0
 
     def get_num_weights(self):
         return len(self.get_weights())
@@ -222,80 +222,95 @@ class KernelModelWrapper:
         return np.count_nonzero(self.get_weights() == 0)
 
     def write_model_data(self) -> None:
-        from datetime import datetime
+        print("Writing model data to file...", flush=True)
+        try:
+            from datetime import datetime
 
-        write_weights = self.model_name in LINEAR_MODELS
+            write_weights = self.model_name in LINEAR_MODELS
 
-        df = self._representation.domain_pddl
-        pf = self._representation.problem_pddl
-        t = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
-        file_path = "_".join(["graph", df, pf, t])
-        file_path = repr(hash(file_path)).replace("-", "n")
-        file_path = file_path + ".model"
+            df = self._representation.domain_pddl
+            pf = self._representation.problem_pddl
+            t = datetime.now().strftime("%Y-%m-%d-%H-%M-%S")
+            file_path = "_".join(["graph", df, pf, t])
+            file_path = repr(hash(file_path)).replace("-", "n")
+            file_path = file_path + ".model"
 
-        model_hash = self.get_hash()
-        iterations = self.get_iterations()
-
-        if write_weights:
-            weights = self.get_weights()
-            bias = self.get_bias()
-
-            zero_weights = np.count_nonzero(weights == 0)
-            print(f"{zero_weights}/{len(weights)} = {zero_weights/len(weights):.2f} are zero")
-
-            # TODO(DZC) prune out zero weights
-            # the below is wrong because keys need to be updated as well
-            # # prune zero weights
-            # new_weights = []
-            # new_model_hash = {}
-
-            # reverse_hash = {model_hash[k]: k for k in model_hash}
-
-            # colour = 0
-            # for weight in weights:
-            #     if abs(weight) == 0:
-            #         continue
-            #     new_weights.append(weight)
-            #     key = reverse_hash[colour]
-            #     val = model_hash[key]
-            #     new_model_hash[key] = val
-            #     colour += 1
-
-            # model_hash = new_model_hash
-            # weights = new_weights
-
-            assert len(weights) == len(model_hash)
-
-            for k, v in model_hash.items():
-                assert 0 <= v and v < len(weights), f"{v} not in [0, {len(weights)-1}]"
-
-        # write data
-        with open(file_path, "w") as f:
-            f.write(f"{NO_EDGE} NO_EDGE\n")
-            f.write(f"{self.wl_name} wl_algorithm\n")
-            f.write(f"{iterations} iterations\n")
-            f.write(f"{len(model_hash)} hash size\n")
-            for k in model_hash:
-                f.write(f"{k} {model_hash[k]}\n")
+            model_hash = self.get_hash()
+            iterations = self.get_iterations()
 
             if write_weights:
-                f.write(f"{len(weights)} weights size\n")
-                for weight in weights:
-                    f.write(str(weight) + "\n")
-                f.write(f"{bias} bias\n")
+                weights = self.get_weights()
+                bias = self.get_bias()
 
-        self._model_data_path = file_path
-        pass
+                zero_weights = np.count_nonzero(weights == 0)
+                print(f"{zero_weights}/{len(weights)} = {zero_weights/len(weights):.2f} are zero")
+
+                # TODO(DZC) prune out zero weights
+                # the below is wrong because keys need to be updated as well
+                # # prune zero weights
+                # new_weights = []
+                # new_model_hash = {}
+
+                # reverse_hash = {model_hash[k]: k for k in model_hash}
+
+                # colour = 0
+                # for weight in weights:
+                #     if abs(weight) == 0:
+                #         continue
+                #     new_weights.append(weight)
+                #     key = reverse_hash[colour]
+                #     val = model_hash[key]
+                #     new_model_hash[key] = val
+                #     colour += 1
+
+                # model_hash = new_model_hash
+                # weights = new_weights
+
+                assert len(weights) == len(model_hash)
+
+                for k, v in model_hash.items():
+                    assert 0 <= v and v < len(weights), f"{v} not in [0, {len(weights)-1}]"
+
+            # write data
+            with open(file_path, "w") as f:
+                f.write(f"{NO_EDGE} NO_EDGE\n")
+                f.write(f"{self.wl_name} wl_algorithm\n")
+                f.write(f"{iterations} iterations\n")
+                f.write(f"{len(model_hash)} hash size\n")
+                for k in model_hash:
+                    f.write(f"{k} {model_hash[k]}\n")
+
+                if write_weights:
+                    f.write(f"{len(weights)} weights size\n")
+                    for weight in weights:
+                        f.write(str(weight) + "\n")
+                    f.write(f"{bias} bias\n")
+
+            self._model_data_path = file_path
+        except Exception:
+            print(traceback.format_exc(), flush=True)
 
     def get_model_data_path(self) -> str:
-        return self._model_data_path
+        print("Getting model file path...", flush=True)
+        try:
+            return self._model_data_path
+        except Exception:
+            print(traceback.format_exc(), flush=True)
 
     def write_representation_to_file(self) -> None:
-        self._representation.write_to_file()
+        print("Writing representation to file...", flush=True)
+        try:
+            self._representation.write_to_file()
+        except Exception:
+            print(traceback.format_exc(), flush=True)
         return
 
     def get_graph_file_path(self) -> str:
-        return self._representation.get_graph_file_path()
+        print("Getting representation file path...", flush=True)
+        try:
+            return self._representation.get_graph_file_path()
+        except Exception:
+            print(traceback.format_exc(), flush=True)
 
     def clear_graph(self) -> None:
         """Save memory for planner by deleting represntation once collected"""

@@ -1,20 +1,22 @@
 import numpy as np
-import pulp
 import time
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_array, check_is_fitted
-from pulp import LpVariable as Var
-from pulp import lpDot, lpSum
 
 
 class MIP(BaseEstimator):
     def __init__(self):
+        import pulp
         assert pulp.apis.CPLEX_PY().available()
         self.coef_ = np.array([0])
         self.bias_ = 0  # no bias
+        self.intercept_ = 0  # no bias
         pass
 
     def fit(self, X, y):
+        import pulp
+        from pulp import LpVariable as Var
+        from pulp import lpDot, lpSum
         t = time.time()
         print("Constructing MIP problem...")
         m = pulp.LpProblem()

@@ -1,6 +1,7 @@
 """ Module for dealing with model saving and loading. """
 import os
 import pickle
+import traceback
 
 
 def arg_to_params(args, in_feat=4, out_feat=1):
@@ -97,7 +98,10 @@ def load_gnn_model(path, print_args=False):
 
 def load_kernel_model(path):
     with open(path, 'rb') as handle:
-        model = pickle.load(handle)
+        try:
+            model = pickle.load(handle)
+        except Exception:
+            print(traceback.format_exc(), flush=True)
     return model
 
 
@@ -122,5 +126,5 @@ def load_kernel_model_and_setup(path, domain_file, problem_file):
     model.update_representation(domain_pddl=domain_file, problem_pddl=problem_file)
     print("Representation updated!", flush=True)
     model.eval()
-    print("Set to eval mode", flush=True)
+    print("Set to eval mode.", flush=True)
     return model
