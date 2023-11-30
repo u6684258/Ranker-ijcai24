@@ -192,11 +192,11 @@ def main():
     t = time.time()
     schemata_to_keep = set()
     for metric in scoring:
-        print(f"{metric:<10} {'schema':<10} {'train':<10} {'val':<10}")
+        print(f"{metric:<10} {'schema':<20} {'train':<10} {'val':<10}")
         for schema in schemata:
             t = train_scores[(metric, schema)]
             v = val_scores[(metric, schema)]
-            print(f"{'':<10} {schema:<10} {t:<10.4f} {v:<10.4f}")
+            print(f"{'':<10} {schema:<20} {t:<10.4f} {v:<10.4f}")
             if abs(v - 1) < _F1_KEEP_TOL and metric == F1_KEY:
                 schemata_to_keep.add(schema)
     if args.schema_count in {_SC_STRAT_ALL, _SC_STRAT_NONE}:
@@ -227,8 +227,8 @@ def main():
     except Exception as e:  # not possible for nonlinear kernel methods
         pass
 
-    model.debug_weights()
-    model.debug_colour_information()
+    # model.debug_weights()
+    # model.debug_colour_information()
     # breakpoint()
 
 

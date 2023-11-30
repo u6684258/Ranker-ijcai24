@@ -7,9 +7,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-m", "--model", default="linear-svr")
     parser.add_argument("-r", "--representation", default="ilg")
-    parser.add_argument("-k", "--wl", required=True)
-    parser.add_argument("-l", "--iterations", default="1", type=str)
+    parser.add_argument("-k", "--wl", default="1wl")
+    parser.add_argument("-l", "--iterations", default="4", type=str)
     parser.add_argument("-d", "--domain", default="ferry")
+    parser.add_argument("-s", "--schema-count", default="none", choices=["none", "all", "schema"])
 
     parser.add_argument("--train", dest="run", action="store_false")
     parser.add_argument("--run", dest="train", action="store_false")
@@ -23,11 +24,12 @@ if __name__ == "__main__":
     representation = args.representation
     domain = args.domain
     wl = args.wl
+    schema_count = args.schema_count
     iterations = args.iterations
     difficulty = args.difficulty
     problem = args.problem
 
-    save_file = f"tests/" + "_".join([wl, iterations, model, domain]) + ".pkl"
+    save_file = f"tests/" + "_".join([wl, iterations, model, schema_count, domain]) + ".pkl"
 
     if args.train or not os.path.exists(save_file):
         if not os.path.exists(save_file):
@@ -36,7 +38,7 @@ if __name__ == "__main__":
             script = "train_bayes.py"
         else:
             script = "train_kernel.py"
-        cmd = f"python3 {script} -m {model} -r {representation} -d {domain} -k {wl} -l {iterations} --model-save-file {save_file}"
+        cmd = f"python3 {script} -m {model} -r {representation} -d {domain} -k {wl} -l {iterations} -s {schema_count} --model-save-file {save_file}"
         print(cmd)
         os.system(cmd)
 
