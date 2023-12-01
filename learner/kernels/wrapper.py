@@ -220,12 +220,12 @@ class KernelModelWrapper:
     def get_iterations(self) -> int:
         return self._wl.iterations
 
-    def get_weights(self):
+    def get_weights(self) -> np.array:
         if self.model_name == "gp":
             # a hack: after training in train_bayes.py, use alpha @ X_train to get weights
-            # since this interfact does not store X_train
+            # since this interface does not store X_train
             # TODO gp class account for schema count
-            return self.weights
+            return np.sum(np.array(list(self.weights.values())), axis=0)
 
         weights = np.sum(model.coef_ for model in self._models.values())
         return weights

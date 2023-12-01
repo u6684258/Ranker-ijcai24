@@ -29,39 +29,24 @@ LOG_DIR = "icaps24_train_logs"
 
 os.makedirs(LOG_DIR, exist_ok=True)
 
-configs = product(
-    [
-        "1wl",
-        # "2gwl",
-        # "2lwl",
-    ],  # wl algorithms
-    [4],  # iterations
-    [0],  # prunes
-    ["ilg"],  # representation
-    DOMAINS,
-    [  # models
-        "linear-svr",
-        # "lasso",
-        # "ridge",
-        # "rbf-svr",
-        # "quadratic-svr",
-        # "cubic-svr",
-        # "mlp",
-    ],
-)
+configs = [
+    # ("1wl", 1, 0, "ilg", "mip", "schema"),
+    ("1wl", 4, 0, "ilg", "gp", "none"),
+]
 
 # deadend_configs = [("H", "?"), ("D", "--deadends")]
 # deadend_configs = [("D", "--deadends")]
 deadend_configs = [("H", "")]
 
-for k, l, p, r, domain, m in tqdm(list(configs)):
-    for t, flag in deadend_configs:
-        desc = f"{domain}_{r}_{k}_{l}_{p}_{m}_{t}"
-        save_file = f"{SAVE_DIR}/{desc}.pkl"
-        log_file = f"{LOG_DIR}/{desc}.log"
-        # if os.path.exists(save_file) and os.path.exists(log_file):
-        #     continue
-        cmd = f"python3 train_kernel.py -d {domain} -k {k} -l {l} -r {r} -m {m} {flag} --model-save-file {save_file}"
-        cmd = f"{cmd} > {log_file}"
-        print(cmd)
-        os.system(cmd)
+for domain in DOMAINS:
+    for k, l, p, r, m, schema_strategy in tqdm(list(configs)):
+        for t, flag in deadend_configs:
+            desc = f"{domain}_{r}_{k}_{l}_{p}_{m}_{schema_strategy}_{t}"
+            save_file = f"{SAVE_DIR}/{desc}.pkl"
+            log_file = f"{LOG_DIR}/{desc}.log"
+            # if os.path.exists(save_file) and os.path.exists(log_file):
+            #     continue
+            cmd = f"python3 train_kernel.py -d {domain} -k {k} -l {l} -r {r} -m {m} {flag} --schema {schema_strategy} --model-save-file {save_file}"
+            cmd = f"{cmd} > {log_file}"
+            print(cmd)
+            os.system(cmd)

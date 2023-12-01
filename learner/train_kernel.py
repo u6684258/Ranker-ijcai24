@@ -11,7 +11,7 @@ import representation
 import kernels
 from sklearn.model_selection import cross_validate, train_test_split
 from sklearn.metrics import confusion_matrix, log_loss, mean_squared_error
-from kernels.wrapper import MODELS
+from kernels.wrapper import BAYESIAN_MODELS, MODELS
 from dataset.dataset_kernel import ALL_KEY, get_dataset_from_args, get_deadend_dataset_from_args
 from util.save_load import print_arguments, save_kernel_model
 from util.metrics import f1_macro
@@ -46,7 +46,7 @@ def parse_args():
 
     # ml model arguments
     parser.add_argument(
-        "-m", "--model", type=str, default="linear-svr", choices=MODELS, help="ML model"
+        "-m", "--model", type=str, default="linear-svr", choices=MODELS+BAYESIAN_MODELS, help="ML model"
     )
     parser.add_argument(
         "--model-save-file", type=str, default=None, help="save file of model weights"
@@ -215,6 +215,14 @@ def main():
         print(confusion_matrix(y_train_true, y_train_pred))
         print("val confusion matrix:")
         print(confusion_matrix(y_val_true, y_val_pred))
+
+    if args.model == "gp":
+        # dot product kernel GP "explicit linear weights"
+        weights = {}
+        for s, gpr in model._models.items():
+            alpha = gpr.alpha_
+            weights[s] = alpha @ X_train
+        model.weights = weights
 
     # save model
     save_kernel_model(model, args)

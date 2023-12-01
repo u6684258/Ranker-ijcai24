@@ -12,9 +12,11 @@ if __name__ == "__main__":
     parser.add_argument("-d", "--domain", default="ferry")
     parser.add_argument("-s", "--schema-count", default="none", choices=["none", "all", "schema"])
 
-    parser.add_argument("--train", dest="run", action="store_false")
     parser.add_argument("--run", dest="train", action="store_false")
+    parser.add_argument("--train", dest="run", action="store_false")
     parser.add_argument("--online", action="store_true")
+
+    parser.add_argument("--official", action="store_true", help="use trained model in icaps24_wl_models folder")
 
     parser.add_argument("--difficulty", default="medium", choices=["easy", "medium", "hard"])
     parser.add_argument("-p", "--problem", default="p10")
@@ -29,11 +31,16 @@ if __name__ == "__main__":
     difficulty = args.difficulty
     problem = args.problem
 
-    save_file = f"tests/" + "_".join([wl, iterations, model, schema_count, domain]) + ".pkl"
+    if args.official:
+        save_file = f"icaps24_wl_models/" + "_".join([domain, representation, wl, iterations, "0", model, "H"]) + ".pkl"
+    else:
+        save_file = f"tests/" + "_".join([wl, iterations, model, schema_count, domain]) + ".pkl"
 
     if args.train or not os.path.exists(save_file):
         if not os.path.exists(save_file):
-            print("training because save file does not exist")
+            print(f"training because save file does not exist")
+            print(f"save file: {save_file}")
+            # breakpoint()
         if model in BAYESIAN_MODELS:
             script = "train_bayes.py"
         else:
