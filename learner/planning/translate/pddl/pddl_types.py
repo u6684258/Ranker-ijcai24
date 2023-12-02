@@ -51,6 +51,9 @@ class TypedObject:
 
     def __repr__(self):
         return "<TypedObject %s: %s>" % (self.name, self.type_name)
+    
+    def __lt__(self, other):
+        return self.name+"__"+self.type_name < other.name+"__"+other.type_name
 
     def uniquify_name(self, type_map, renamings):
         if self.name not in type_map:

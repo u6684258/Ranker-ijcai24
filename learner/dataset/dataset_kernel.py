@@ -74,7 +74,7 @@ def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
                     args = fact.split(",")[:-1]
                     lime = "(" + " ".join([pred] + args) + ")"
                 s.add(lime)
-            states.append(s)
+            states.append(sorted(list(s)))
     os.remove(state_output_file)
 
     schema_cnt = {ALL_KEY: len(actions)}

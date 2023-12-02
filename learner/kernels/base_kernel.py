@@ -96,6 +96,7 @@ class WlAlgorithm(ABC):
         if self._train:
             if colour not in self._hash:
                 self._hash[colour] = len(self._hash)
+                # print(colour)
             return self._hash[colour]
         else:
             if colour in self._hash:

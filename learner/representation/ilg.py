@@ -39,12 +39,15 @@ class InstanceLearningGraph(Representation, ABC):
         }
 
     def _compute_graph_representation(self) -> None:
-        """TODO: reference definition of this graph representation"""
+        """TODO: reference definition of this graph representation
+
+        everything is sorted to try to make deterministic
+        """
 
         G = self._create_graph()
 
         # fd has an =(x, y) predicate
-        predicates = [p for p in self.problem.predicates if p.name != "="]
+        predicates = sorted([p for p in self.problem.predicates if p.name != "="])
         self.n_predicates = len(predicates)
 
         # TODO(DZC) option to change n_node_features depending on whether we want to refine
@@ -52,7 +55,7 @@ class InstanceLearningGraph(Representation, ABC):
         self.n_node_features = ENC_FEAT_SIZE + self.n_predicates
 
         # objects
-        for i, obj in enumerate(self.problem.objects):
+        for i, obj in enumerate(sorted(self.problem.objects)):
             G.add_node(obj.name, x=self._one_hot_node(ILG_FEATURES.O.value))  # add object node
 
         # predicates
@@ -87,7 +90,7 @@ class InstanceLearningGraph(Representation, ABC):
             goals = [self.problem.goal]
         else:
             goals = self.problem.goal.parts
-        for fact in goals:
+        for fact in sorted(goals):
             assert type(fact) in {Atom, NegatedAtom}
 
             # may have negative goals

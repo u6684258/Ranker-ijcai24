@@ -31,11 +31,11 @@ LOG_DIR = "icaps24_train_logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
 configs = [
-    ("1wl", 1, 0, "ilg", "quadratic-svr", "none"),
-    ("1wl", 1, 0, "ilg", "cubic-svr", "none"),
-    ("1wl", 1, 0, "ilg", "rbf-svr", "none"),
-    # ("1wl", 1, 0, "ilg", "mip", "schema"),
+    # ("1wl", 4, 0, "ilg", "quadratic-svr", "none"),
+    # ("1wl", 4, 0, "ilg", "cubic-svr", "none"),
+    # ("1wl", 4, 0, "ilg", "rbf-svr", "none"),
     # ("1wl", 4, 0, "ilg", "gp", "none"),
+    ("1wl", 4, 0, "ilg", "mip", "schema"),
     # ("1wl", 4, 0, "ilg", "blr", "none"),
 ]
 

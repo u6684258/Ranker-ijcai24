@@ -82,7 +82,7 @@ def parse_args():
         help="wl algorithm to use",
     )
     parser.add_argument(
-        "-l", "--iterations", type=int, default=5, help="number of iterations for wl algorithms"
+        "-l", "--iterations", type=int, default=4, help="number of iterations for wl algorithms"
     )
     parser.add_argument(
         "-p",

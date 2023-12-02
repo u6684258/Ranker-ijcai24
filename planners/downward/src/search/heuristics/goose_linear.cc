@@ -19,18 +19,19 @@ namespace goose_linear {
 GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuristic(opts) {
   model = pybind11::int_(0);  // release memory since we no longer need the python object
   // TODO(DZC) do not delete this for linear_online
+  feature_size_ = static_cast<int>(hash_.size());
   std::cout << "Feature size: " << feature_size_ << std::endl;
-  if (feature_size_ != static_cast<int>(weights_.size())) {
-    std::cout << "error: feature size " << feature_size_ << " and weights size " << weights_.size()
+  if (feature_size_ != static_cast<int>(weights_[0].size())) {
+    std::cout << "error: hash size " << feature_size_ << " and weights size " << weights_[0].size()
               << " not the same" << std::endl;
     exit(-1);
   }
 }
 
 int GooseLinear::predict(const std::vector<int> &feature) {
-  double ret = bias_;
+  double ret = bias_[0];
   for (int i = 0; i < feature_size_; i++) {
-    ret += feature[i] * weights_[i];
+    ret += feature[i] * weights_[0][i];
   }
   return static_cast<int>(round(ret));
 }

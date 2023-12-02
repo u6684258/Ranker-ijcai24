@@ -157,12 +157,12 @@ class KernelModelWrapper:
                 # tiebreaker = len(toks)  # can be less naive (e.g. level of iteration)
                 # diversity = len(set([(c,'n') for c in node_colours]+[(c,'e') for c in edge_colours]))
 
-                tiebreaker = 1 + int(-1 in edge_colours)  # want to maximise this
-                tiebreaker = 1 / tiebreaker  # because we minimise in mip
+                # tiebreaker = 1 + int(-1 in edge_colours)  # want to maximise this
+                # tiebreaker = 1 / tiebreaker  # because we minimise in mip
                 if -1 in edge_colours:
                     tiebreaker = 1
                 else:
-                    tiebreaker = 1000
+                    tiebreaker = 10
 
                 additional[0][v] = tiebreaker
             X = np.vstack((X, additional))
@@ -299,47 +299,45 @@ class KernelModelWrapper:
                 zero_weights = np.count_nonzero(weights == 0)
                 print(f"{zero_weights}/{len(weights)} = {zero_weights/len(weights):.2f} are zero")
 
-                # TODO(DZC) prune out zero weights
-                # the below is wrong because keys need to be updated as well
-
-                # # prune zero weights
-                # new_weights = []
-                # new_model_hash = {}
-
-                # reverse_hash = {model_hash[k]: k for k in model_hash}
-
-                # colour = 0
-                # for weight in weights:
-                #     if abs(weight) == 0:
-                #         continue
-                #     new_weights.append(weight)
-                #     key = reverse_hash[colour]
-                #     val = model_hash[key]
-                #     new_model_hash[key] = val
-                #     colour += 1
-
-                # model_hash = new_model_hash
-                # weights = new_weights
-
                 assert len(weights) == len(model_hash)
 
                 for k, v in model_hash.items():
                     assert 0 <= v and v < len(weights), f"{v} not in [0, {len(weights)-1}]"
+
+            n_linear_models = 0
+            if hasattr(self, "_other_linear_models") and self._other_linear_models is not None:
+                n_linear_models = len(self._other_linear_models)
 
             # write data
             with open(file_path, "w") as f:
                 f.write(f"{NO_EDGE} NO_EDGE\n")
                 f.write(f"{self.wl_name} wl_algorithm\n")
                 f.write(f"{iterations} iterations\n")
+
                 f.write(f"{len(model_hash)} hash size\n")
                 for k in model_hash:
                     f.write(f"{k} {model_hash[k]}\n")
 
+                f.write(f"{n_linear_models + 1} linear model(s)\n")
+
                 if write_weights:
-                    f.write(f"{len(weights)} weights size\n")
-                    for weight in weights:
-                        f.write(str(weight) + "\n")
-                    f.write(f"{bias} bias\n")
+                    n_weights = len(weights)
+
+                    list_of_weights = [weights]  # n_models x n_weights
+                    list_of_bias = [bias]  # n_models
+
+                    if n_linear_models > 0:
+                        for model in self._other_linear_models:
+                            list_of_weights.append(model[0])
+                            list_of_bias.append(model[1])
+                    
+                    list_of_weights = np.vstack(list_of_weights).T  # n_weights x n_models
+                    assert list_of_weights.shape == (n_weights, n_linear_models + 1)
+
+                    f.write(f"{n_weights} weights size\n")
+                    for weights in list_of_weights:
+                        f.write(" ".join([str(w) for w in weights.tolist()]) + "\n")
+                    f.write(f"{' '.join([str(b) for b in list_of_bias])} bias\n")
 
             self._model_data_path = file_path
         except Exception:
@@ -407,6 +405,25 @@ class KernelModelWrapper:
     def predict_h_with_std(self, x: Iterable[float]) -> Tuple[float, float]:
         y, std = self.predict_with_std([x])
         return (y, std)
+    
+    def combine_with_other_models(self, output_path_name: str, path_to_models: List[str]):
+        from util.save_load import load_kernel_model, save_kernel_model
+        # only works for linear models + same WL
+        # TODO some code to do checks
+
+        self._other_linear_models = []  # List[Tuple[np.array, double]]
+        this_hash = self.get_hash()
+
+        for path in path_to_models:
+            model : KernelModelWrapper = load_kernel_model(path)
+            other_hash = model.get_hash()
+            assert this_hash == other_hash  # so indicies of features are the same
+            weights = model.get_weights()
+            bias = model.get_bias()
+            self._other_linear_models.append((weights, bias))
+
+        save_kernel_model(model=self, args=self._args)
+        return
 
     def online_training(
         self, states: List[State], ys: List[int], domain_pddl: str, problem_pddl: str

@@ -14,6 +14,7 @@ class MIP(BaseEstimator):
         pass
 
     def fit(self, X, y):
+        # TODO(DZC) pulp MIP construction is slow, even when solving is fast
         import pulp
         from pulp import LpVariable as Var
         from pulp import lpDot, lpSum
@@ -26,6 +27,7 @@ class MIP(BaseEstimator):
         tiebreaker = X[-1]  # see KernelModelWrapper._transform_for_fit_only
 
         """ Variables """
+        t1 = time.time()
         print("Constructing variables...")
         weights = [
             Var(f"w:{j}", cat=pulp.const.LpInteger, lowBound=-1, upBound=1) for j in range(d)
@@ -33,7 +35,10 @@ class MIP(BaseEstimator):
         weights_abs = [Var(f"w_abs:{j}") for j in range(d)]
         diffs = [Var(f"diff:{i}") for i in range(n)]
 
+        print(f"Constructed variables in {time.time()-t1:.2f}")
+        
         """ Objective and Constraints """
+        t1 = time.time()
         print("Constructing objective and constraints...")
         # minimise L1 distance loss
         for i in range(n):
@@ -47,8 +52,9 @@ class MIP(BaseEstimator):
             m += weights_abs[j] >= -weights[j]
             m += weights_abs[j] >= weights[j]
             
-        m += sum(y) * main_obj + lpDot(weights_abs, tiebreaker)
-        # m += sum(y) * main_obj + lpSum(weights_abs)
+        # m += sum(y) * main_obj + lpDot(weights_abs, tiebreaker)
+        m += sum(y) * main_obj + lpSum(weights_abs)
+        print(f"Constructed objective and constraints in {time.time()-t1:.2f}")
         
         print(f"MIP problem constructed in {time.time() - t:.2f}s!")
 

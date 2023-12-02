@@ -70,8 +70,9 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
   size_t iterations_;  // number of WL iterations
 
   // For linear models of the form ax + b
-  std::vector<double> weights_;  // a
-  double bias_;                  // b
+  int n_linear_models_;
+  std::vector<std::vector<double>> weights_;  // a
+  std::vector<double> bias_;                  // b
 
   // represents no edge for 2-wl methods, read from file but treat it as a constant
   int NO_EDGE_;  

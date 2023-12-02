@@ -71,7 +71,6 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
   int hash_cnt = 0, hash_size = 0, weight_cnt = 0, weight_size = 0;
 
   hash_ = std::unordered_map<std::string, int>();
-  weights_ = std::vector<double>();
 
   // there's probably a better way to parse things
   while (std::getline(infile, line)) {
@@ -85,12 +84,17 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
       hash_size = stoi(toks[0]);
       hash_cnt = 0;
       continue;
+    } else if (line.find("linear model(s)") != std::string::npos) {
+      n_linear_models_ = stoi(toks[0]);
+      weights_ = std::vector<std::vector<double>>(n_linear_models_, std::vector<double>());
     } else if (line.find("weights size") != std::string::npos) {
       weight_size = stoi(toks[0]);
       weight_cnt = 0;
       continue;
     } else if (line.find("bias") != std::string::npos) {
-      bias_ = stod(toks[0]);
+      for (int i = 0 ; i < n_linear_models_; i++) {
+        bias_.push_back(stod(toks[i]));
+      }
       continue;
     } else if (line.find("iterations") != std::string::npos) {
       iterations_ = stoi(toks[0]);
@@ -110,7 +114,9 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
     }
 
     if (weight_cnt < weight_size) {
-      weights_.push_back(stod(line));
+      for (int i = 0 ; i < n_linear_models_; i++) {
+        weights_[i].push_back(stod(toks[i]));
+      }
       weight_cnt++;
       continue;
     }
@@ -123,8 +129,6 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
   char *char_array = new char[model_data_path.length() + 1];
   strcpy(char_array, model_data_path.c_str());
   remove(char_array);
-
-  feature_size_ = static_cast<int>(hash_.size());
 }
 
 void WLGooseHeuristic::print_statistics() const {
@@ -185,7 +189,7 @@ CGraph WLGooseHeuristic::fact_pairs_to_graph(const std::vector<FactPair> &state)
       edges[cur_node_fact].push_back(std::make_pair(object_node, k));
     }
   }
-      // std::cout<<std::endl;
+  // std::cout<<std::endl;
 
   return {edges, colours};
 }
