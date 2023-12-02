@@ -1,4 +1,5 @@
 import os
+import sys
 from itertools import product
 from tqdm import tqdm
 
@@ -30,8 +31,12 @@ LOG_DIR = "icaps24_train_logs"
 os.makedirs(LOG_DIR, exist_ok=True)
 
 configs = [
+    ("1wl", 1, 0, "ilg", "quadratic-svr", "none"),
+    ("1wl", 1, 0, "ilg", "cubic-svr", "none"),
+    ("1wl", 1, 0, "ilg", "rbf-svr", "none"),
     # ("1wl", 1, 0, "ilg", "mip", "schema"),
-    ("1wl", 4, 0, "ilg", "gp", "none"),
+    # ("1wl", 4, 0, "ilg", "gp", "none"),
+    # ("1wl", 4, 0, "ilg", "blr", "none"),
 ]
 
 # deadend_configs = [("H", "?"), ("D", "--deadends")]
@@ -49,4 +54,12 @@ for domain in DOMAINS:
             cmd = f"python3 train_kernel.py -d {domain} -k {k} -l {l} -r {r} -m {m} {flag} --schema {schema_strategy} --model-save-file {save_file}"
             cmd = f"{cmd} > {log_file}"
             print(cmd)
-            os.system(cmd)
+
+            try:
+                os.system(cmd)
+            except KeyboardInterrupt:
+                print('Interrupted')
+                try:
+                    sys.exit(-1)
+                except SystemExit:
+                    os._exit(-1)

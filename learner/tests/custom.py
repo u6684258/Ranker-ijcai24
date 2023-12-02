@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument("--train", dest="run", action="store_false")
     parser.add_argument("--online", action="store_true")
 
-    parser.add_argument("--official", action="store_true", help="use trained model in icaps24_wl_models folder")
+    parser.add_argument("--official", help="path to trained model in icaps24_wl_models folder")
 
     parser.add_argument("--difficulty", default="medium", choices=["easy", "medium", "hard"])
     parser.add_argument("-p", "--problem", default="p10")
@@ -31,8 +31,10 @@ if __name__ == "__main__":
     difficulty = args.difficulty
     problem = args.problem
 
-    if args.official:
-        save_file = f"icaps24_wl_models/" + "_".join([domain, representation, wl, iterations, "0", model, "H"]) + ".pkl"
+    if args.official is not None:
+        save_file = args.official
+        args.train = False
+        args.run = True
     else:
         save_file = f"tests/" + "_".join([wl, iterations, model, schema_count, domain]) + ".pkl"
 

@@ -22,13 +22,16 @@ ALL_KEY = "_all_"
 
 MODELS = [
     "mip",
+    #
     "linear-regression",
-    "linear-svr",
     "ridge",
     "lasso",
-    "rbf-svr",
+    #
+    "linear-svr",
     "quadratic-svr",
     "cubic-svr",
+    "rbf-svr",
+    #
     "mlp",
 ]
 
@@ -183,8 +186,8 @@ class KernelModelWrapper:
         return y_dict
 
     def predict(self, X, schema=ALL_KEY) -> np.array:
-        assert schema in self._models
-        print(f"Predicting number of {schema} in a plan...")
+        # assert schema in self._models  # slow to assert during runtime when used by a planner
+        # print(f"Predicting number of {schema} in a plan...")
         return self._models[schema].predict(X)
 
     def predict_with_std(self, X, schema=ALL_KEY) -> Tuple[np.array, np.array]:
@@ -395,7 +398,10 @@ class KernelModelWrapper:
 
     def predict_h(self, x: Iterable[float]) -> float:
         """predict for single row x"""
-        y = self.predict([x])
+        try:
+            y = self.predict([x])
+        except Exception:
+            print(traceback.format_exc(), flush=True)
         return y
 
     def predict_h_with_std(self, x: Iterable[float]) -> Tuple[float, float]:

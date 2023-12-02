@@ -25,6 +25,7 @@ namespace goose_linear_online {
 
 GooseLinearOnline::GooseLinearOnline(const plugins::Options &opts)
     : goose_linear::GooseLinear(opts) {
+      // TODO(DZC) get back pybind model see goose_linear.cc
   std::seed_seq seed{0};
   rng = std::mt19937(seed);
   train();
