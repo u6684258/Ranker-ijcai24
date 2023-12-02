@@ -49,6 +49,10 @@ class GooseOpenList {
     buckets[key].push_back(entry);
     ++size;
   }
+
+  bool empty() {
+    return size == 0;
+  }
 };
 
 namespace multi_queue_goose {
