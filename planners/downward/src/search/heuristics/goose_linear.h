@@ -31,6 +31,8 @@ class GooseLinear : public goose_wl::WLGooseHeuristic {
 
  public:
   explicit GooseLinear(const plugins::Options &opts);
+
+  int compute_heuristic_from_feature(const std::vector<int> &feature, int model);
 };
 
 }  // namespace goose_linear

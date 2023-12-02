@@ -1,4 +1,5 @@
-from util.save_load import load_kernel_model, load_kernel_model_and_setup
+from argparse import Namespace
+from util.save_load import save_kernel_model, load_kernel_model_and_setup
 from kernels.wrapper import KernelModelWrapper
 
 domain = "spanner"
@@ -14,4 +15,7 @@ m1 : KernelModelWrapper = load_kernel_model_and_setup(m1, df, pf)
 m1.combine_with_other_models(target, [m2])
 
 m1.write_model_data()
-print(m1.get_model_data_path())
+
+args = Namespace()
+args.model_save_file = target
+save_kernel_model(m1, args)

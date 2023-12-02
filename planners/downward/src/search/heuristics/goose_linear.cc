@@ -29,11 +29,7 @@ GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuris
 }
 
 int GooseLinear::predict(const std::vector<int> &feature) {
-  double ret = bias_[0];
-  for (int i = 0; i < feature_size_; i++) {
-    ret += feature[i] * weights_[0][i];
-  }
-  return static_cast<int>(round(ret));
+  return compute_heuristic_from_feature(feature, 0);
 }
 
 int GooseLinear::compute_heuristic(const State &ancestor_state) {
@@ -49,6 +45,15 @@ int GooseLinear::compute_heuristic(const State &ancestor_state) {
 
   // std::cout << "done" << std::endl;
   return h;
+}
+
+int GooseLinear::compute_heuristic_from_feature(const std::vector<int> &feature, int model) {
+  // TODO(DZC): use this from predict
+  double ret = bias_[model];
+  for (int i = 0; i < feature_size_; i++) {
+    ret += feature[i] * weights_[model][i];
+  }
+  return static_cast<int>(round(ret));
 }
 
 class GooseLinearFeature : public plugins::TypedFeature<Evaluator, GooseLinear> {

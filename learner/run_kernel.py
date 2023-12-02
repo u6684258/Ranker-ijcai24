@@ -77,6 +77,7 @@ def fd_cmd(args, aux_file, plan_file):
     search = {
         "lazy": "lazy_greedy",
         "eager": "eager_greedy",
+        "mq": "mq_goose",
     }[args.algorithm]
 
     model = load_kernel_model(mf)
@@ -134,7 +135,7 @@ if __name__ == "__main__":
         "-s",
         type=str,
         default="eager",
-        choices=["eager", "lazy"],
+        choices=["eager", "lazy", "mq"],
         help="solving algorithm using the heuristic",
     )
     parser.add_argument("--timeout", "-t", type=int, default=TIMEOUT, help="timeout in seconds")

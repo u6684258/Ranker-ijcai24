@@ -393,6 +393,15 @@ fast_downward_plugin(
 )
 
 fast_downward_plugin(
+    NAME MULTI_QUEUE_WL_SEARCH
+    HELP "Multi queue GOOSE eager search"
+    SOURCES
+        search_algorithms/multi_queue_goose
+    DEPENDS NULL_PRUNING_METHOD ORDERED_SET SUCCESSOR_GENERATOR
+    DEPENDENCY_ONLY
+)
+
+fast_downward_plugin(
     NAME PLUGIN_ASTAR
     HELP "A* search"
     SOURCES
@@ -406,6 +415,14 @@ fast_downward_plugin(
     SOURCES
         search_algorithms/plugin_eager
     DEPENDS EAGER_SEARCH SEARCH_COMMON
+)
+
+fast_downward_plugin(
+    NAME PLUGIN_MULTI_QUEUE_WL_SEARCH
+    HELP "Multi queue GOOSE eager search"
+    SOURCES
+        search_algorithms/plugin_multi_queue_goose
+    DEPENDS MULTI_QUEUE_WL_SEARCH SEARCH_COMMON
 )
 
 fast_downward_plugin(

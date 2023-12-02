@@ -52,6 +52,14 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
 
   void print_statistics() const override;
 
+  std::vector<int> get_feature(const State &state) {
+    return wl_feature(state_to_graph(state));
+  }
+
+  int num_linear_models() {
+    return n_linear_models_;
+  }
+
  protected:
   // pddl files (can probably access from somewhere else but I cannot find out how)
   std::string domain_file;
