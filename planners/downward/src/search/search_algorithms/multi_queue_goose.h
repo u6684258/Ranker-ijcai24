@@ -64,6 +64,8 @@ class MultiQueueGoose : public SearchAlgorithm {
 
   int n_linear_models_;
 
+  std::shared_ptr<State> state;
+
  protected:
   virtual void initialize() override;
   virtual SearchStatus step() override;

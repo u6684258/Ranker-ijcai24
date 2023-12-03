@@ -406,23 +406,31 @@ class KernelModelWrapper:
         y, std = self.predict_with_std([x])
         return (y, std)
     
-    def combine_with_other_models(self, output_path_name: str, path_to_models: List[str]):
+    def combine_with_other_models(self, path_to_models: List[str]):
         from util.save_load import load_kernel_model, save_kernel_model
         # only works for linear models + same WL
         # TODO some code to do checks
+
+        print(f"Combining with {len(path_to_models)} other linear models...")
 
         self._other_linear_models = []  # List[Tuple[np.array, double]]
         this_hash = self.get_hash()
 
         for path in path_to_models:
             model : KernelModelWrapper = load_kernel_model(path)
+
+            # other model is actually linear
+            assert model.model_name in LINEAR_MODELS
+
+            # so indicies of features are the same
             other_hash = model.get_hash()
-            assert this_hash == other_hash  # so indicies of features are the same
+            assert this_hash == other_hash  
+
             weights = model.get_weights()
             bias = model.get_bias()
             self._other_linear_models.append((weights, bias))
 
-        save_kernel_model(model=self, args=self._args)
+        print("Combination successful!")
         return
 
     def online_training(

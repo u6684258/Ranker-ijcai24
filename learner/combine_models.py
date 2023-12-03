@@ -1,21 +1,22 @@
 from argparse import Namespace
+from dataset.ipc2023_learning_domain_info import IPC2023_LEARNING_DOMAINS as DOMAINS
 from util.save_load import save_kernel_model, load_kernel_model_and_setup
 from kernels.wrapper import KernelModelWrapper
 
-domain = "spanner"
-df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
-pf = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy/p01.pddl"
+for domain in DOMAINS:
+    df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
+    pf = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy/p01.pddl"
 
-m1 = "icaps24_wl_models/spanner_ilg_1wl_4_0_linear-svr_none_H.pkl"
-m2 = "icaps24_wl_models/spanner_ilg_1wl_4_0_mip_schema_H.pkl"
-target = "spanner_combined.pkl"
+    m1 = f"icaps24_wl_models/{domain}_ilg_1wl_4_0_linear-svr_none_H.pkl"
+    m2 = f"icaps24_wl_models/{domain}_ilg_1wl_4_0_mip_schema_H.pkl"
+    target = f"icaps24_wl_models/{domain}_combined.pkl"
 
-m1 : KernelModelWrapper = load_kernel_model_and_setup(m1, df, pf)
+    m1 : KernelModelWrapper = load_kernel_model_and_setup(m1, df, pf)
 
-m1.combine_with_other_models(target, [m2])
+    m1.combine_with_other_models([m2])
 
-m1.write_model_data()
+    args = Namespace()
+    args.model_save_file = target
+    save_kernel_model(m1, args)
 
-args = Namespace()
-args.model_save_file = target
-save_kernel_model(m1, args)
+print("All models combined successfully!")

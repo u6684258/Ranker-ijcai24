@@ -46,7 +46,7 @@ def scrape_search_log(file):
 
         if "Solution found." in line:
             stats["solved"] = 1
-        elif "Actual search time:" in line:
+        elif "Search time:" in line:
             stats["time"] = float(toks[-1].replace("s", ""))
         elif "Plan cost:" in line:
             stats["cost"] = int(toks[-1])

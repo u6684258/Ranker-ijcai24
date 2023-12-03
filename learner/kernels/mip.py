@@ -1,5 +1,6 @@
 import numpy as np
 import time
+from tqdm import tqdm, trange
 from sklearn.base import BaseEstimator
 from sklearn.utils.validation import check_array, check_is_fitted
 
@@ -41,14 +42,14 @@ class MIP(BaseEstimator):
         t1 = time.time()
         print("Constructing objective and constraints...")
         # minimise L1 distance loss
-        for i in range(n):
+        for i in trange(n):  # a bottleneck when constructing in pulp
             pred = lpDot(weights, X[i])
             m += diffs[i] >= pred - y[i]
             m += diffs[i] >= y[i] - pred
         main_obj = lpSum(diffs)  # abs value of differences
 
         # minimise weights for tie breaking
-        for j in range(d):
+        for j in trange(d):
             m += weights_abs[j] >= -weights[j]
             m += weights_abs[j] >= weights[j]
             

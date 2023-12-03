@@ -35,8 +35,9 @@ void MultiQueueGoose::initialize() {
 
   // hack: just do everything here
 
-  // TODO(DZC) more verbose loging: best computed h for each heuristic
-  int q_cnt = 0;
+  std::vector<int> best_h(n_linear_models_, bound);
+
+  int q_cnt = 0;  // multi queue cycler count
 
   State initial_state = state_registry.get_initial_state();
   std::vector<int> feature = goose_heuristic->get_feature(initial_state);
@@ -52,10 +53,11 @@ void MultiQueueGoose::initialize() {
     q_cnt = (q_cnt + 1) % n_linear_models_;
     State s = state_registry.lookup_state(s_id);
     node.emplace(search_space.get_node(s));
+    node->close();
+    statistics.inc_expanded();
 
     vector<OperatorID> applicable_ops;
     successor_generator.generate_applicable_ops(s, applicable_ops);
-    statistics.inc_expanded();
 
     for (OperatorID op_id : applicable_ops) {
       OperatorProxy op = task_proxy.get_operators()[op_id];
@@ -64,18 +66,29 @@ void MultiQueueGoose::initialize() {
       statistics.inc_generated();
       SearchNode succ_node = search_space.get_node(succ_state);
 
-      if (check_goal_and_set_plan(succ_state)) {
-        log << "OK" << std::endl;
-        return;
-      }
-
       if (succ_node.is_new()) {
         statistics.inc_evaluated_states(n_linear_models_);
         succ_node.open(*node, op, get_adjusted_cost(op));
 
+        // must put here since we need to open the node before we can extract the plan
+        if (check_goal_and_set_plan(succ_state)) {
+          state = make_shared<State>(succ_state);
+          return;
+        }
+
+        // generate WL features once to use for several linear models
         feature = goose_heuristic->get_feature(succ_state);
         for (int i = 0; i < n_linear_models_; i++) {
           int h = goose_heuristic->compute_heuristic_from_feature(feature, i);
+
+          // log progress
+          if (h < best_h[i]) {
+            log << "New best heuristic value for h_" << i << ": " << h << std::endl;
+            statistics.print_checkpoint_line(succ_node.get_g());
+            best_h[i] = h;
+          }
+
+          // insert into priority queue
           open_lists[i].insert(h, succ_state.get_id());
         }
       }

@@ -20,6 +20,7 @@ if __name__ == "__main__":
 
     parser.add_argument("--difficulty", default="medium", choices=["easy", "medium", "hard"])
     parser.add_argument("-p", "--problem", default="p10")
+    parser.add_argument("--mq", action="store_true")
     args = parser.parse_args()
 
     model = args.model
@@ -58,5 +59,7 @@ if __name__ == "__main__":
         assert os.path.exists(problem_file), problem_file
         flag = "--train" if args.online else ""
         cmd = f"python3 run_kernel.py {domain_file} {problem_file} {save_file} {flag}"
+        if args.mq:
+            cmd += " -s mq"
         print(cmd)
         os.system(cmd)
