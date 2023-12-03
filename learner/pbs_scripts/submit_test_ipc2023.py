@@ -12,14 +12,14 @@ _PBS_TIMEOUT = "00:31:30"
 # 900 all problems / 300 per difficulty
 # 1.8 KSU all problems / 0.6 KSU per difficulty
 _DOMAINS = [
-    "blocksworld",
+    # "blocksworld",
     "childsnack",
     "ferry",
     "floortile",
     "miconic",
     "rovers",
     "satellite",
-    "sokoban",
+    # "sokoban",
     "spanner",
     "transport",
 ]
@@ -29,32 +29,22 @@ _DIFFICULTIES = [
     "hard",
 ]
 
-def skip(domain, difficulty):
+def skip(domain, difficulty, model):
     if domain == "floortile":
         return difficulty in {"medium", "hard"}
     
-    if domain != "ferry":
+    if domain == "spanner" and model == "combined":
+        return False
+    
+    if domain not in {"ferry", "miconic", "blocksworld"}:
         return difficulty in {"hard"}
     
     return False
 
-_LEARNING_MODELS = [
-    "linear-svr",
-    # "gp",
+_MODELS = [
+    # "ilg_1wl_4_0_linear-svr_H",
+    "combined",
 ]
-_REPRESENTATIONS = ["ilg"]
-_WLS = [
-    "1wl", 
-    # "2gwl", 
-    # "2lwl",
-]
-_ITERATIONS = [
-    # 1, 
-    4,
-]
-
-# inaccurate fd timer, rely on pbs script and postprocessing for timing out
-_TIMEOUT = 360000  
 
 _LOG_DIR = "icaps24_test_logs"
 _LOCK_DIR = "lock"
@@ -77,10 +67,7 @@ def main():
 
     CONFIGS = list(
         product(
-            _LEARNING_MODELS,
-            _REPRESENTATIONS,
-            _WLS,
-            _ITERATIONS,
+            _MODELS,
             _DOMAINS,
             _DIFFICULTIES,
         )
@@ -89,15 +76,12 @@ def main():
     missing_models = set()
 
     for config in CONFIGS:
-        learning_model, rep, wl, iterations, domain, difficulty = config
+        model, domain, difficulty = config
 
-        if skip(domain, difficulty):
+        if skip(domain, difficulty, model):
             continue
         
-        if learning_model == "gp":
-            mf = f"{_GP_MODEL_DIR}/{domain}_gp.pkl"
-        else:
-            mf = f"{_MODEL_DIR}/{domain}_{rep}_{wl}_{iterations}_0_{learning_model}_H.pkl"
+        mf = f"{_MODEL_DIR}/{domain}_{model}.pkl"
 
         df = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
         problem_dir = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/{difficulty}"
@@ -114,7 +98,7 @@ def main():
             problem = os.path.basename(pf).replace(".pddl", "")
 
             # check whether to skip
-            desc = f'{domain}_{difficulty}_{problem}_{rep}_{wl}_{iterations}_{learning_model}_H'
+            desc = f'{domain}_{difficulty}_{problem}_{model.replace("_0_", "_")}'
             log_file = f"{_LOG_DIR}/{desc}.log"
             lock_file = f"{_LOCK_DIR}/{desc}.lock"
 
@@ -130,7 +114,9 @@ def main():
             with open(lock_file, "w") as f:
                 pass
 
-            cmd = f"python3 run_kernel.py {df} {pf} {mf}  --timeout {_TIMEOUT}"
+            cmd = f"python3 run_kernel.py {df} {pf} {mf} "
+            if model == "combined":
+                cmd += "-s mq "
 
             cmd = (
                 f"qsub -o {log_file} -j oe -l walltime={_PBS_TIMEOUT} -v "
