@@ -74,11 +74,7 @@ def fd_cmd(args, aux_file, plan_file):
     mf = args.model_path
     df = args.domain_pddl
     pf = args.problem_pddl
-    search = {
-        "lazy": "lazy_greedy",
-        "eager": "eager_greedy",
-        "mq": "mq_goose",
-    }[args.algorithm]
+    algorithm = args.algorithm
 
     model = load_kernel_model(mf)
     model_type = {
@@ -99,7 +95,15 @@ def fd_cmd(args, aux_file, plan_file):
         model_type += "_online"
     fd_h = f'{model_type}(model_file="{mf}", domain_file="{df}", instance_file="{pf}")'
 
-    cmd = f"{_DOWNWARD} --sas-file {aux_file} --plan-file {plan_file} {df} {pf} --search '{search}([{fd_h}])'"
+    fd_search = ""
+    if algorithm in {"lazy", "eager"}:
+        fd_search = f"{algorithm}_greedy([{fd_h}])"
+    elif algorithm == "mq":
+        fd_search = f"mq_goose([{fd_h}], symmetry=false)"
+    elif algorithm == "mqp":
+        fd_search = f"mq_goose([{fd_h}], symmetry=true)"
+
+    cmd = f"{_DOWNWARD} --sas-file {aux_file} --plan-file {plan_file} {df} {pf} --search '{fd_search}'"
 
     if args.profile:
         model.write_model_data()
@@ -135,7 +139,7 @@ if __name__ == "__main__":
         "-s",
         type=str,
         default="eager",
-        choices=["eager", "lazy", "mq"],
+        choices=["eager", "lazy", "mq", "mqp"],
         help="solving algorithm using the heuristic",
     )
     parser.add_argument("--timeout", "-t", type=int, default=TIMEOUT, help="timeout in seconds")
