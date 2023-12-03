@@ -32,6 +32,7 @@ def scrape_search_log(file):
         "seen_colours": -1,  # for the wl methods only
         "unseen_colours": -1,
         "ratio_seen_colours": -1,
+        "std": -1,
         "tried": 0,
     }
 
@@ -60,6 +61,8 @@ def scrape_search_log(file):
             stats["seen_colours"] = int(toks[-1])
         elif "Number of unseen" in line:
             stats["unseen_colours"] = int(toks[-1])
+        elif "Computed std at initial state:" in line:
+            stats["std"] = float(toks[-1])
 
     if stats["seen_colours"] != -1 and stats["unseen_colours"] != -1:
         stats["ratio_seen_colours"] = stats["seen_colours"] / (
