@@ -1,6 +1,8 @@
+import random
 import time
 import traceback
 import numpy as np
+from tqdm import tqdm
 import kernels
 from typing import Iterable, List, Optional, Dict, Tuple, Union
 from sklearn.metrics import mean_squared_error
@@ -80,19 +82,27 @@ class KernelModelWrapper:
             c = 1e5 if predict_schema else _C  # inverse strength
             a = 0 if predict_schema else _ALPHA
 
-
             if self._deadends:  # deadends is binary classification
-                if self.model_name == "empty": return None
-                if self.model_name == "linear-regression": return LogisticRegression(penalty=None)
-                if self.model_name == "linear-svr": return LinearSVC(dual="auto", C=_C, fit_intercept=False)
-                if self.model_name == "lasso": return LogisticRegression(  # l1 only works with liblinear and saga
+                if self.model_name == "empty":
+                    return None
+                if self.model_name == "linear-regression":
+                    return LogisticRegression(penalty=None)
+                if self.model_name == "linear-svr":
+                    return LinearSVC(dual="auto", C=_C, fit_intercept=False)
+                if self.model_name == "lasso":
+                    return LogisticRegression(  # l1 only works with liblinear and saga
                         penalty="l1", C=1 / _ALPHA, solver="liblinear"
                     )
-                if self.model_name == "ridge": return LogisticRegression(penalty="l2", C=1 / _ALPHA)
-                if self.model_name == "rbf-svr": return SVC(kernel="rbf", C=_C)
-                if self.model_name == "quadratic-svr": return SVC(kernel="poly", degree=2, C=_C)
-                if self.model_name == "cubic-svr": return SVC(kernel="poly", degree=3, C=_C)
-                if self.model_name == "mlp": return MLPClassifier(
+                if self.model_name == "ridge":
+                    return LogisticRegression(penalty="l2", C=1 / _ALPHA)
+                if self.model_name == "rbf-svr":
+                    return SVC(kernel="rbf", C=_C)
+                if self.model_name == "quadratic-svr":
+                    return SVC(kernel="poly", degree=2, C=_C)
+                if self.model_name == "cubic-svr":
+                    return SVC(kernel="poly", degree=3, C=_C)
+                if self.model_name == "mlp":
+                    return MLPClassifier(
                         hidden_layer_sizes=(64,),
                         batch_size=16,
                         learning_rate="adaptive",
@@ -100,26 +110,38 @@ class KernelModelWrapper:
                         validation_fraction=0.15,
                     )
             else:  # heuristic is regression
-                if self.model_name == "empty": return None
-                if self.model_name == "mip": return MIP()
-                if self.model_name == "linear-regression": return LinearRegression(fit_intercept=False)
-                if self.model_name == "linear-svr": return LinearSVR(dual="auto", epsilon=e, C=c, fit_intercept=False)
-                if self.model_name == "lasso": return Lasso(alpha=a)
-                if self.model_name == "ridge": return Ridge(alpha=a)
-                if self.model_name == "rbf-svr": return SVR(kernel="rbf", epsilon=e, C=c)
-                if self.model_name == "quadratic-svr": return SVR(kernel="poly", degree=2, epsilon=e, C=c)
-                if self.model_name == "cubic-svr": return SVR(kernel="poly", degree=3, epsilon=e, C=c)
-                if self.model_name == "mlp": return MLPRegressor(
+                if self.model_name == "empty":
+                    return None
+                if self.model_name == "mip":
+                    return MIP()
+                if self.model_name == "linear-regression":
+                    return LinearRegression(fit_intercept=False)
+                if self.model_name == "linear-svr":
+                    return LinearSVR(dual="auto", epsilon=e, C=c, fit_intercept=False)
+                if self.model_name == "lasso":
+                    return Lasso(alpha=a)
+                if self.model_name == "ridge":
+                    return Ridge(alpha=a)
+                if self.model_name == "rbf-svr":
+                    return SVR(kernel="rbf", epsilon=e, C=c)
+                if self.model_name == "quadratic-svr":
+                    return SVR(kernel="poly", degree=2, epsilon=e, C=c)
+                if self.model_name == "cubic-svr":
+                    return SVR(kernel="poly", degree=3, epsilon=e, C=c)
+                if self.model_name == "mlp":
+                    return MLPRegressor(
                         hidden_layer_sizes=(64,),
                         batch_size=16,
                         learning_rate="adaptive",
                         early_stopping=True,
                         validation_fraction=0.15,
                     )
-                if self.model_name == "blr": return BayesianRidge()
-                if self.model_name == "gp": return GaussianProcessRegressor(
+                if self.model_name == "blr":
+                    return BayesianRidge()
+                if self.model_name == "gp":
+                    return GaussianProcessRegressor(
                         kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10
-                )
+                    )
 
         self._models = {}
         for schema in args.schemata:
@@ -330,7 +352,7 @@ class KernelModelWrapper:
                         for model in self._other_linear_models:
                             list_of_weights.append(model[0])
                             list_of_bias.append(model[1])
-                    
+
                     list_of_weights = np.vstack(list_of_weights).T  # n_weights x n_models
                     assert list_of_weights.shape == (n_weights, n_linear_models + 1)
 
@@ -405,9 +427,10 @@ class KernelModelWrapper:
     def predict_h_with_std(self, x: Iterable[float]) -> Tuple[float, float]:
         y, std = self.predict_with_std([x])
         return (y, std)
-    
+
     def combine_with_other_models(self, path_to_models: List[str]):
         from util.save_load import load_kernel_model, save_kernel_model
+
         # only works for linear models + same WL
         # TODO some code to do checks
 
@@ -417,14 +440,14 @@ class KernelModelWrapper:
         this_hash = self.get_hash()
 
         for path in path_to_models:
-            model : KernelModelWrapper = load_kernel_model(path)
+            model: KernelModelWrapper = load_kernel_model(path)
 
             # other model is actually linear
             assert model.model_name in LINEAR_MODELS
 
             # so indicies of features are the same
             other_hash = model.get_hash()
-            assert this_hash == other_hash  
+            assert this_hash == other_hash
 
             weights = model.get_weights()
             bias = model.get_bias()
@@ -438,59 +461,69 @@ class KernelModelWrapper:
     ) -> str:
         # returns new model data path (contains hash and weights)
 
-        print(
-            "TODO!!! fix this for gadi, causes issues when loading a model with pybind", flush=True
-        )
-        from dataset.dataset_kernel import get_dataset_from_args
+        try:
+            from dataset.dataset_kernel import get_dataset_from_args
 
-        assert len(states) == len(ys)
-        self.train()
+            assert len(states) == len(ys)
+            self.train()
 
-        print("Loading initial training data...")
-        graphs, y_true = get_dataset_from_args(self._args)
-        graphs_train, _, y_train, _ = train_test_split(
-            graphs, y_true, test_size=0.33, random_state=2023
-        )
-        print(f"Initial training data has {len(graphs_train)} graphs")
+            print("Loading initial training data...")
+            graphs, y_true = get_dataset_from_args(self._args)
+            graphs_train, _, y_train, _ = train_test_split(
+                graphs, y_true, test_size=0.33, random_state=2023
+            )
+            y_train = [y[ALL_KEY] for y in y_train]
+            print(f"Initial training data has {len(graphs_train)} graphs")
 
-        print("Updating model representation...")
-        self.update_representation(domain_pddl, problem_pddl)
+            print("Updating model representation...")
+            self.update_representation(domain_pddl, problem_pddl)
 
-        print(f"Generating training data from {len(states)} new states...")
-        for s in states:
-            ## cpp code already converts states to (pred, [args]) form
-            graph = self._representation.state_to_cgraph(s)
-            graphs_train.append(graph)
-        y_train = np.concatenate((y_train, np.array(ys)))
+            _SELECTION = 0.5
+            print(
+                f"Generating training data from {int(len(graphs_train) * _SELECTION)} out of {len(states)} new states..."
+            )
+            new_data = list(zip(states, ys))
+            random.seed(2023)
+            random.shuffle(new_data)
+            new_data = new_data[: int(len(graphs_train) * _SELECTION)]
+            new_ys = []
+            for s, y in tqdm(new_data):
+                ## cpp code already converts states to (pred, [args]) form
+                graph = self._representation.state_to_cgraph(s)
+                graphs_train.append(graph)
+                new_ys.append(y)
+            y_train = np.concatenate((y_train, np.array(new_ys)))
 
-        # log dataset stats
-        get_stats(dataset=list(zip(graphs_train, y_train)), desc="Online train dataset")
+            # log dataset stats
+            get_stats(dataset=list(zip(graphs_train, y_train)), desc="Online train dataset")
 
-        # try updating iterations
-        # self._wl.update_iterations(self.iterations * 4)
+            # try updating iterations
+            # self._wl.update_iterations(self.iterations * 4)
 
-        print("Generating histograms...")
-        train_histograms = self.compute_histograms(graphs_train, return_ratio_seen_counts=False)
+            print("Generating histograms...")
+            train_histograms = self.compute_histograms(graphs_train, return_ratio_seen_counts=False)
 
-        print("Generating matrix...")
-        X_train = self.get_matrix_representation(graphs_train, train_histograms)
+            print("Generating matrix...")
+            X_train = self.get_matrix_representation(graphs_train, train_histograms)
 
-        t = time.time()
-        print("Training...")
-        self.fit(X_train, y_train)
-        print(f"Training complete in {time.time() - t:.2f}s!")
+            t = time.time()
+            print("Training...")
+            self.fit(X_train, y_train)
+            print(f"Training complete in {time.time() - t:.2f}s!")
 
-        y_train_pred = self.predict(X_train)
-        mse = mean_squared_error(y_train_pred, y_train)
-        print("mse:", mse)
+            y_train_pred = self.predict(X_train)
+            mse = mean_squared_error(y_train_pred, y_train)
+            print("mse:", mse)
 
-        print("Writing model data...")
-        self.write_model_data()
+            print("Writing model data...")
+            self.write_model_data()
 
-        self.eval()
-        print(f"New hash size:", len(self.get_hash()))
-        print("Python online training completed!", flush=True)
-        return self._model_data_path
+            self.eval()
+            print(f"New hash size:", len(self.get_hash()))
+            print("Python online training completed!", flush=True)
+            return self._model_data_path
+        except Exception:
+            print(traceback.format_exc(), flush=True)
 
     def setup_for_saving(self) -> None:
         # if self.model_name in LINEAR_MODELS:

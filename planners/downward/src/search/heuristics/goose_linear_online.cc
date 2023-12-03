@@ -25,9 +25,13 @@ namespace goose_linear_online {
 
 GooseLinearOnline::GooseLinearOnline(const plugins::Options &opts)
     : goose_linear::GooseLinear(opts) {
-      // TODO(DZC) get back pybind model see goose_linear.cc
   std::seed_seq seed{0};
   rng = std::mt19937(seed);
+
+  // suboptimal (load a model again after it was deleted in GooseLinear)
+  pybind11::module util_module = pybind11::module::import("util.save_load");
+  model = util_module.attr("load_kernel_model_and_setup")(model_path, domain_file, instance_file);
+
   train();
 }
 
@@ -133,12 +137,12 @@ inline PartialState regress(const PartialState &state, const OperatorProxy &op) 
 }
 
 template <typename T>
-std::vector<T> GooseLinearOnline::get_random_elements(const std::vector<T> &originalVector,
+std::vector<T> GooseLinearOnline::get_random_elements(const std::vector<T> &original_vector,
                                                       std::size_t n) {
-  std::vector<T> shuffledVector = originalVector;
-  std::shuffle(shuffledVector.begin(), shuffledVector.end(), rng);
-  shuffledVector.resize(n);
-  return shuffledVector;
+  std::vector<T> shuffled_vector = original_vector;
+  std::shuffle(shuffled_vector.begin(), shuffled_vector.end(), rng);
+  shuffled_vector.resize(n);
+  return shuffled_vector;
 }
 
 void GooseLinearOnline::train() {
@@ -225,10 +229,10 @@ void GooseLinearOnline::train() {
     }
   }
 
-  std::cout << "Logging y to number of seen partial states with 1wl pruning:" << std::endl;
-  for (int y = max_y; y > 0; y--) {
-    std::cout << y << " " << y_to_states[y].size() << std::endl;
-  }
+  // std::cout << "Logging y to number of seen partial states with 1wl pruning:" << std::endl;
+  // for (int y = max_y; y > 0; y--) {
+  //   std::cout << y << " " << y_to_states[y].size() << std::endl;
+  // }
 
   pybind11::list goose_states;  // pybind11::list of GooseState
   pybind11::list ys;            // pybind11::list of int

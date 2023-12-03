@@ -150,7 +150,8 @@ void MultiQueueGoose::initialize() {
           if (seen_features.count(feature_and_unseen_cnt)) {
             cnt_symmetries += 1;
             hs = seen_features[feature_and_unseen_cnt];
-            h_adjustment = 1000000;
+            // h_adjustment = 1000000;
+            continue;  // throw away state
           } else {
             hs = std::vector<int>(n_linear_models_);
             feature = feature_and_unseen_cnt.first;
@@ -158,11 +159,12 @@ void MultiQueueGoose::initialize() {
               hs[i] = goose_heuristic->compute_heuristic_from_feature(feature, i);
             }
             seen_features[feature_and_unseen_cnt] = hs;
-            h_adjustment = 0;
+            // h_adjustment = 0;
           }
 
           for (int i = 0; i < n_linear_models_; i++) {
-            int h = hs[i] + h_adjustment;  // 'delete' symmetries without losing completeness
+            // int h = hs[i] + h_adjustment;  // 'delete' symmetries without losing completeness
+            int h = hs[i];
 
             // log progress
             if (h < best_h[i]) {
