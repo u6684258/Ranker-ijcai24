@@ -216,15 +216,6 @@ def main():
         print("val confusion matrix:")
         print(confusion_matrix(y_val_true, y_val_pred))
 
-    if args.model in BAYESIAN_MODELS:
-        # dot product kernel GP "explicit linear weights"
-        weights = {}
-        for s, gpr in model._models.items():
-            breakpoint()
-            alpha = gpr.alpha_
-            weights[s] = alpha @ X_train
-        model.weights = weights
-
     # save model
     save_kernel_model(model, args)
 

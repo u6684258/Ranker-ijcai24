@@ -94,6 +94,9 @@ def fd_cmd(args, aux_file, plan_file):
     if args.train:
         model_type += "_online"
     fd_h = f'{model_type}(model_file="{mf}", domain_file="{df}", instance_file="{pf}")'
+    if args.std:
+        assert model_type == "linear_model"
+        fd_h = f'{model_type}(model_file="{mf}", domain_file="{df}", instance_file="{pf}", compute_std=true)'
 
     fd_search = ""
     if algorithm in {"lazy", "eager"}:
@@ -141,6 +144,9 @@ if __name__ == "__main__":
         default="eager",
         choices=["eager", "lazy", "mq", "mqp"],
         help="solving algorithm using the heuristic",
+    )
+    parser.add_argument(
+        "--std", action="store_true", help="compute std at initial state for bayesian models"
     )
     parser.add_argument("--timeout", "-t", type=int, default=TIMEOUT, help="timeout in seconds")
     parser.add_argument("--profile", action="store_true", help="profile with valgrind")

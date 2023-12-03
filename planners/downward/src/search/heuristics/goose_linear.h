@@ -17,6 +17,10 @@
 namespace goose_linear {
 
 class GooseLinear : public goose_wl::WLGooseHeuristic {
+  bool compute_std_;
+
+  double compute_std(const State &ancestor_state);
+  
  protected:
   /* Heuristic computation consists of three steps */
 

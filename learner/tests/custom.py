@@ -61,5 +61,9 @@ if __name__ == "__main__":
         cmd = f"python3 run_kernel.py {domain_file} {problem_file} {save_file} {flag}"
         if args.mq:
             cmd += " -s mq"
-        print(cmd)
         os.system(cmd)
+        print()
+        print()
+        print(cmd)
+        print()
+        print()

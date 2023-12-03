@@ -247,12 +247,17 @@ class KernelModelWrapper:
 
     def get_weights(self) -> np.array:
         if self.model_name == "gp":
-            # a hack: after training in train_bayes.py, use alpha @ X_train to get weights
-            # since this interface does not store X_train
-            # TODO gp class account for schema count
-            return np.sum(np.array(list(self.weights.values())), axis=0)
+            ## For the general GP case:
+            # L = cholesky(k(X, X)) X is X_train
+            # a = L \ (L \ t); Ax = b => x = A \ b
+            # m(x) = k(x, X) . a
+            # v = L \ k(X, x)
+            # s^2(x) = k(x, x) - v^T . v
 
-        weights = np.sum(model.coef_ for model in self._models.values())
+            # but if we use dot product kernel, we can simplify and get
+            weights = np.sum(model.alpha_ @ model.X_train_ for model in self._models.values())
+        else:
+            weights = np.sum(model.coef_ for model in self._models.values())
         return weights
 
     def get_bias(self) -> float:
@@ -427,6 +432,11 @@ class KernelModelWrapper:
     def predict_h_with_std(self, x: Iterable[float]) -> Tuple[float, float]:
         y, std = self.predict_with_std([x])
         return (y, std)
+    
+    def compute_std(self, x: Iterable[float]) -> float:
+        _, std = self.predict_with_std([x])
+        return std
+
 
     def combine_with_other_models(self, path_to_models: List[str]):
         from util.save_load import load_kernel_model, save_kernel_model
