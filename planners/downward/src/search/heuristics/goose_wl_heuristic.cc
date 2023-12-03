@@ -41,7 +41,7 @@ WLGooseHeuristic::WLGooseHeuristic(const plugins::Options &opts)
 
   try {
     // Load python object model
-    std::string model_path = opts.get<std::string>("model_file");
+    model_path = opts.get<std::string>("model_file");
     domain_file = opts.get<std::string>("domain_file");
     instance_file = opts.get<std::string>("instance_file");
     std::cout << "Trying to load model from file " << model_path << " ...\n";
@@ -92,7 +92,7 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
       weight_cnt = 0;
       continue;
     } else if (line.find("bias") != std::string::npos) {
-      for (int i = 0 ; i < n_linear_models_; i++) {
+      for (int i = 0; i < n_linear_models_; i++) {
         bias_.push_back(stod(toks[i]));
       }
       continue;
@@ -114,7 +114,7 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
     }
 
     if (weight_cnt < weight_size) {
-      for (int i = 0 ; i < n_linear_models_; i++) {
+      for (int i = 0; i < n_linear_models_; i++) {
         weights_[i].push_back(stod(toks[i]));
       }
       weight_cnt++;
@@ -129,6 +129,15 @@ void WLGooseHeuristic::update_model_from_data_path(const std::string model_data_
   char *char_array = new char[model_data_path.length() + 1];
   strcpy(char_array, model_data_path.c_str());
   remove(char_array);
+
+  // store feature size
+  feature_size_ = static_cast<int>(hash_.size());
+  std::cout << "Feature size: " << feature_size_ << std::endl;
+  if (weights_[0].size() != 0 && feature_size_ != static_cast<int>(weights_[0].size())) {
+    std::cout << "error: hash size " << feature_size_ << " and weights size " << weights_[0].size()
+              << " not the same" << std::endl;
+    exit(-1);
+  }
 }
 
 void WLGooseHeuristic::print_statistics() const {

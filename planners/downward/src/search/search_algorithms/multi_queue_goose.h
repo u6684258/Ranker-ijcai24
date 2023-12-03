@@ -63,6 +63,7 @@ class MultiQueueGoose : public SearchAlgorithm {
   std::vector<GooseOpenList<StateID>> open_lists;
 
   int n_linear_models_;
+  bool symmetry_;
 
   std::shared_ptr<State> state;
 

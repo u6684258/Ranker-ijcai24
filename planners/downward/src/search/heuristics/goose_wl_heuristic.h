@@ -32,6 +32,9 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
   // Python object which computes the heuristic
   pybind11::object model;
 
+  // Initial model path
+  std::string model_path;
+
   // convert state to CGraph (ILG representation)
   CGraph fact_pairs_to_graph(const std::vector<FactPair> &state);
   CGraph state_to_graph(const State &state);
@@ -54,6 +57,16 @@ class WLGooseHeuristic : public goose_heuristic::GooseHeuristic {
 
   std::vector<int> get_feature(const State &state) {
     return wl_feature(state_to_graph(state));
+  }
+
+  std::pair<std::vector<int>, std::vector<int>> get_feature_and_cnt_unseen(const State &state) {
+    std::vector<long> cnt_unseen_colours_tmp = cnt_unseen_colours;
+    std::vector<int> feature = get_feature(state);
+    std::vector<int> state_unseen_colours(cnt_unseen_colours.size(), 0);
+    for (size_t i = 0; i < cnt_unseen_colours.size(); i++) {
+      state_unseen_colours[i] = static_cast<int>(cnt_unseen_colours[i] - cnt_unseen_colours_tmp[i]);
+    }
+    return std::make_pair(feature, state_unseen_colours);
   }
 
   int num_linear_models() {

@@ -17,15 +17,27 @@ using std::string;
 namespace goose_linear {
 
 GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuristic(opts) {
-  model = pybind11::int_(0);  // release memory since we no longer need the python object
-  // TODO(DZC) do not delete this for linear_online
-  feature_size_ = static_cast<int>(hash_.size());
-  std::cout << "Feature size: " << feature_size_ << std::endl;
-  if (feature_size_ != static_cast<int>(weights_[0].size())) {
-    std::cout << "error: hash size " << feature_size_ << " and weights size " << weights_[0].size()
-              << " not the same" << std::endl;
-    exit(-1);
+  compute_std_ = opts.get<bool>("compute_std");
+  if (compute_std_) {
+    State initial_state = task_proxy.get_initial_state();
+    log << "Computed std at initial state: " << compute_std(initial_state) << std::endl;
   }
+  model = pybind11::int_(0);  // release memory since we no longer need the python object
+}
+
+double GooseLinear::compute_std(const State &ancestor_state) {
+  CGraph graph = state_to_graph(ancestor_state);
+  std::vector<int> feature = wl_feature(graph);
+  double std = model.attr("compute_std")(feature).cast<double>();
+  return std;
+}
+
+int GooseLinear::compute_heuristic_from_feature(const std::vector<int> &feature, int model) {
+  double ret = bias_[model];
+  for (int i = 0; i < feature_size_; i++) {
+    ret += feature[i] * weights_[model][i];
+  }
+  return static_cast<int>(round(ret));
 }
 
 int GooseLinear::predict(const std::vector<int> &feature) {
@@ -34,26 +46,13 @@ int GooseLinear::predict(const std::vector<int> &feature) {
 
 int GooseLinear::compute_heuristic(const State &ancestor_state) {
   // step 1.
-  // std::cout << "s1 " << std::endl;
   CGraph graph = state_to_graph(ancestor_state);
   // step 2.
-  // std::cout << "s2 " << std::endl;
   std::vector<int> feature = wl_feature(graph);
   // step 3.
-  // std::cout << "s3 " << std::endl;
   int h = predict(feature);
 
-  // std::cout << "done" << std::endl;
   return h;
-}
-
-int GooseLinear::compute_heuristic_from_feature(const std::vector<int> &feature, int model) {
-  // TODO(DZC): use this from predict
-  double ret = bias_[model];
-  for (int i = 0; i < feature_size_; i++) {
-    ret += feature[i] * weights_[model][i];
-  }
-  return static_cast<int>(round(ret));
 }
 
 class GooseLinearFeature : public plugins::TypedFeature<Evaluator, GooseLinear> {
@@ -66,6 +65,8 @@ class GooseLinearFeature : public plugins::TypedFeature<Evaluator, GooseLinear> 
     add_option<std::string>("model_file", "path to trained python model", "default_value");
     add_option<std::string>("domain_file", "Path to the domain file.", "default_file");
     add_option<std::string>("instance_file", "Path to the instance file.", "default_file");
+    add_option<bool>("compute_std", "Compute std in initial state with Bayesian linear model",
+                     "false");
 
     Heuristic::add_options_to_feature(*this);
 

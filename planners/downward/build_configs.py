@@ -1,4 +1,9 @@
-release = ["-DCMAKE_BUILD_TYPE=Release", "-DBoost_INCLUDE_DIR=$BOOST_BASE/include", "-DBoost_LIBRARY_DIR=$BOOST_BASE/lib/GNU"]
+release = [
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DBoost_INCLUDE_DIR=$BOOST_BASE/include",
+    "-DBoost_LIBRARY_DIR=$BOOST_BASE/lib/GNU",
+    "-DPYTHON_EXECUTABLE=/home/dillon/.conda/envs/goose-icaps24/bin/python3.10",
+]
 debug = ["-DCMAKE_BUILD_TYPE=Debug"]
 release_no_lp = ["-DCMAKE_BUILD_TYPE=Release", "-DUSE_LP=NO"]
 # USE_GLIBCXX_DEBUG is not compatible with USE_LP (see issue983).
