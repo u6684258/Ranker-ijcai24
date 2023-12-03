@@ -1,5 +1,13 @@
 #include "multi_queue_goose.h"
 
+#include <cassert>
+#include <chrono>
+#include <cstdlib>
+#include <memory>
+#include <optional>
+#include <set>
+#include <utility>
+
 #include "../evaluation_context.h"
 #include "../evaluator.h"
 #include "../open_list_factory.h"
@@ -9,13 +17,6 @@
 #include "../plugins/options.h"
 #include "../task_utils/successor_generator.h"
 #include "../utils/logging.h"
-
-#include <cassert>
-#include <chrono>
-#include <cstdlib>
-#include <memory>
-#include <optional>
-#include <set>
 
 using namespace std;
 
@@ -105,6 +106,7 @@ void MultiQueueGoose::initialize() {
     std::mt19937 rng = std::mt19937(seed);
 
     int cnt_symmetries = 0;
+    std::map<std::pair<std::vector<int>, std::vector<int>>, std::vector<int>> seen_features;
     std::vector<int> hs;
     int h_adjustment;
 
@@ -120,10 +122,9 @@ void MultiQueueGoose::initialize() {
 
       vector<OperatorID> applicable_ops;
       successor_generator.generate_applicable_ops(s, applicable_ops);
-      // shuffle for symmetry breaking selection
-      std::shuffle(applicable_ops.begin(), applicable_ops.end(), rng);
 
-      std::map<std::vector<int>, std::vector<int>> seen_features;
+      // shuffle for symmetry breaking selection [this is what is giving the improvement...]
+      // std::shuffle(applicable_ops.begin(), applicable_ops.end(), rng);
 
       for (OperatorID op_id : applicable_ops) {
         OperatorProxy op = task_proxy.get_operators()[op_id];
@@ -144,17 +145,19 @@ void MultiQueueGoose::initialize() {
           }
 
           // generate WL features once to use for several linear models
-          feature = goose_heuristic->get_feature(succ_state);
-          if (seen_features.count(feature)) {
+          std::pair<std::vector<int>, std::vector<int>> feature_and_unseen_cnt =
+              goose_heuristic->get_feature_and_cnt_unseen(succ_state);
+          if (seen_features.count(feature_and_unseen_cnt)) {
             cnt_symmetries += 1;
-            hs = seen_features[feature];
+            hs = seen_features[feature_and_unseen_cnt];
             h_adjustment = 1000000;
           } else {
             hs = std::vector<int>(n_linear_models_);
+            feature = feature_and_unseen_cnt.first;
             for (int i = 0; i < n_linear_models_; i++) {
               hs[i] = goose_heuristic->compute_heuristic_from_feature(feature, i);
             }
-            seen_features[feature] = hs;
+            seen_features[feature_and_unseen_cnt] = hs;
             h_adjustment = 0;
           }
 
@@ -164,11 +167,9 @@ void MultiQueueGoose::initialize() {
             // log progress
             if (h < best_h[i]) {
               log << "New best heuristic value for h_" << i << ": " << h << std::endl;
-              log << "g=" << succ_node.get_g() << ", "
-                  << statistics.get_evaluated_states() << " evaluated, "
-                  << statistics.get_expanded() << " expanded, "
-                  << cnt_symmetries << " WL symmetries" 
-                  << std::endl;
+              log << "g=" << succ_node.get_g() << ", " << statistics.get_evaluated_states()
+                  << " evaluated, " << statistics.get_expanded() << " expanded, " << cnt_symmetries
+                  << " WL symmetries" << std::endl;
               best_h[i] = h;
             }
 
@@ -186,7 +187,10 @@ void MultiQueueGoose::print_statistics() const {
   search_space.print_statistics();
 }
 
-SearchStatus MultiQueueGoose::step() { return SOLVED; }
+SearchStatus MultiQueueGoose::step() {
+  goose_heuristic->print_statistics();
+  return SOLVED;
+}
 
 void MultiQueueGoose::dump_search_space() const { search_space.dump(task_proxy); }
 
