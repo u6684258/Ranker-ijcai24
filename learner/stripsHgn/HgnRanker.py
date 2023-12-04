@@ -122,6 +122,7 @@ class PlanRanker(torch.nn.Module):
         """
         # print(hypergraph_left)
         # self.show_countdown += 1
+        hypergraphs.to(self.hparams["device"])
         left = self.base_network(
             hypergraph=hypergraphs,
             steps=self.hparams["num_steps"],

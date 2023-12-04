@@ -109,6 +109,7 @@ def main():
             # args.in_feat = train_loader.dataset[0].x.shape[1]
             model_params = Namespace(
                 model=args.model,
+                device=device,
                 receiver_k=hyps[0],
                 sender_k=hyps[1],
                 num_actns=hyps[2],
