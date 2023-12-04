@@ -92,10 +92,6 @@ class PlanRanker(torch.nn.Module):
             f"{json.dumps(_get_debug_dict(params), indent=2)}"
         )
 
-        self.base_network.to(self.hparams["device"])
-        self.ranker.to(self.hparams["device"])
-        self.to(self.hparams["device"])
-
     def setup_prediction_mode(self):
         self._prediction_mode = True
         self.ranker.setup_prediction_mode()
@@ -122,7 +118,6 @@ class PlanRanker(torch.nn.Module):
         """
         # print(hypergraph_left)
         # self.show_countdown += 1
-        hypergraphs.to(self.hparams["device"])
         left = self.base_network(
             hypergraph=hypergraphs,
             steps=self.hparams["num_steps"],

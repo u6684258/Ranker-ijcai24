@@ -42,7 +42,7 @@ class DirectRanker(nn.Module):
             assert diff.size(0) + unique.size(0) == encodes.size(0)
             result = self._activation(self._ranker(diff)).squeeze(1)
             with torch.no_grad():
-                polarity = torch.ones(diff.size(0)).float()
+                polarity = torch.ones(diff.size(0)).float().to(data.get_device())
                 if torch.sum(torch.abs(diff)) / diff.shape[0] < 1e-3:
                     print(f"Warning: Encodings are very close to each other: {diff}")
 
