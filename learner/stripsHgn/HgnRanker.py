@@ -92,6 +92,9 @@ class PlanRanker(torch.nn.Module):
             f"{json.dumps(_get_debug_dict(params), indent=2)}"
         )
 
+        self.base_network.to(self.hparams["device"])
+        self.ranker.to(self.hparams["device"])
+        self.to(self.hparams["device"])
 
     def setup_prediction_mode(self):
         self._prediction_mode = True
