@@ -25,7 +25,7 @@ class EdgesToGlobalsAggregator(nn.Module):
         self._reducer = reducer
 
     def forward(self, hypergraph: HypergraphsTuple):
-        graph_index = torch.arange(hypergraph.num_hypergraphs)
+        graph_index = torch.arange(hypergraph.num_hypergraphs).to(hypergraph.get_device())
         indices = graph_index.repeat_interleave(hypergraph.n_edge, dim=0)
         return self._reducer(
             hypergraph.edges, indices, hypergraph.num_hypergraphs
