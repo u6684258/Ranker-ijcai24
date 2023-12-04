@@ -18,7 +18,7 @@ def _unsorted_segment_helper(
         repeats = torch.sum(segment_ids != -1, dim=1)
 
         # TODO: which one is better???
-        repeated_data = data.repeat_interleave(repeats, dim=0)
+        repeated_data = data.repeat_interleave(repeats, dim=0).to(data.get_device())
 
         # Divide hyperedge feature by the number of receivers/senders in the given hyperedge?
         # repeated_data = (data / repeats.reshape(-1, 1).float()).repeat_interleave(
@@ -26,11 +26,11 @@ def _unsorted_segment_helper(
         # )
 
         # Flatten list of Tensors into single Tensor
-        indices = segment_ids[segment_ids != -1]
+        indices = segment_ids[segment_ids != -1].to(data.get_device())
         assert repeated_data.shape[0] == indices.shape[0]
 
     # Placeholder for the segments
-    segments = torch.zeros((num_segments, repeated_data.shape[1]))
+    segments = torch.zeros((num_segments, repeated_data.shape[1])).to(data.get_device())
     return repeated_data, indices, segments
 
 
@@ -45,7 +45,9 @@ def torch_unsorted_segment_sum(
     repeated_data, indices, segments = _unsorted_segment_helper(
         data, segment_ids, num_segments
     )
-
+    repeated_data = repeated_data.to(data.get_device())
+    indices = indices.to(data.get_device())
+    segments = segments.to(data.get_device())
     # Do the summation, i.e. sum by index
     sum_results = segments.index_add(0, indices, repeated_data)
     return sum_results

@@ -169,7 +169,7 @@ class HypergraphsTuple(
         Returns nodes tensor with a zero feature vector appended. Used for
         zero padding broadcasting
         """
-        zero_row = torch.zeros(1, *self.nodes.shape[1:])  # .to(get_device())
+        zero_row = torch.zeros(1, *self.nodes.shape[1:]).to(self.get_device())
         return torch.cat((self.nodes, zero_row), 0)
 
     @property
@@ -201,3 +201,6 @@ class HypergraphsTuple(
                 P_IDX: self.p_idx.to(device),
             }
         )
+
+    def get_device(self):
+        return self.n_node.get_device()
