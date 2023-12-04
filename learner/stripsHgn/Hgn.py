@@ -69,7 +69,7 @@ class Hgn(torch.nn.Module):
                 edge_input_size=params.hyperedge_feature_mapper_cls.input_size(),
                 node_input_size=params.node_feature_mapper_cls.input_size(),
                 global_output_size=1,
-                last_relu=False
+                last_relu=True
             )
 
         elif self.hparams["model"] == "ffn":
@@ -99,16 +99,6 @@ class Hgn(torch.nn.Module):
         params = sum(dict((p.data_ptr(), p.numel()) for p in self.parameters() if p.requires_grad).values())
         # params = sum(p.numel() for p in self.parameters() if p.requires_grad)
         return params
-
-
-    def shift_heur(self, h, scale=1, shift=1e3):
-        result = h + shift
-        # print(f"result: {result}")
-        assert (2147483647 > result).all() and (
-                    result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
-        result = np.round(result * scale).astype("int32")
-        assert (2147483647 > result).all() and (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
-        return result
 
     def forward(self, hypergraphs: HypergraphsTuple):
         """
@@ -142,7 +132,7 @@ class Hgn(torch.nn.Module):
             return results, polaritys
 
         else:
-            pred, polarity = (self.shift_heur(left[-1].globals.detach().numpy()), hypergraphs.y_value)
+            pred, polarity = (left[-1].globals.detach().numpy(), hypergraphs.y_value)
 
         return pred, polarity
 

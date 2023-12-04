@@ -16,7 +16,7 @@ class DirectRanker(nn.Module):
     def setup_prediction_mode(self):
         self._prediction_mode = True
 
-    def shift_heur(self, h, scale=1e2, shift=1e4):
+    def shift_heur(self, h, scale=1e5, shift=1e3):
         result = h + shift
         # print(f"result: {result}")
         assert (2147483647 > result).all() and (
