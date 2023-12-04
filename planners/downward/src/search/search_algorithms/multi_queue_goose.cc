@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <set>
+#include <unordered_set>
 #include <utility>
 
 #include "../evaluation_context.h"
@@ -48,17 +49,24 @@ void MultiQueueGoose::initialize() {
     open_lists[i].insert(h, initial_state.get_id());
   }
 
+  std::unordered_set<int> already_opened;
+
   if (!symmetry_) {
     /* no using WL symmetry */
 
     // just assume solvable problems
     while (true) {
-      optional<SearchNode> node;
       StateID s_id = open_lists[q_cnt].remove_min();
+      int s_id_val = s_id.get_value();
+      if (already_opened.count(s_id_val)) {
+        continue;
+      }
+      already_opened.insert(s_id_val);
+      
       q_cnt = (q_cnt + 1) % n_linear_models_;
       State s = state_registry.lookup_state(s_id);
-      node.emplace(search_space.get_node(s));
-      node->close();
+      SearchNode node = search_space.get_node(s);
+      node.close();
       statistics.inc_expanded();
 
       vector<OperatorID> applicable_ops;
@@ -73,7 +81,7 @@ void MultiQueueGoose::initialize() {
 
         if (succ_node.is_new()) {
           statistics.inc_evaluated_states(n_linear_models_);
-          succ_node.open(*node, op, get_adjusted_cost(op));
+          succ_node.open(node, op, get_adjusted_cost(op));
 
           // must put here since we need to open the node before we can extract the plan
           if (check_goal_and_set_plan(succ_state)) {
