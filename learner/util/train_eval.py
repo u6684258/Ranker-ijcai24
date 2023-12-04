@@ -127,6 +127,7 @@ def train_hgn(model, device, train_loader, criterion, optimiser, fast_train):
 
     # for data in tqdm(train_loader):
     for data in train_loader:
+        data = data.to(device)
         # y = data.y.float().to(device)
         optimiser.zero_grad(set_to_none=True)
         # print(data.x.nelement() + 2*sum(e.shape[1] for e in data.edge_index) + data.batch.nelement() + y.nelement())
@@ -277,6 +278,7 @@ def evaluate_hgn(model, device, val_loader, criterion, fast_train, return_true_p
         y_index = torch.tensor([])
 
     for data in val_loader:
+        data = data.to(device)
         if data.globals.shape[0] < 2:
             continue
 

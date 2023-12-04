@@ -127,7 +127,7 @@ def main():
         best_val = None
         model_list = []
         for fold in range(5):
-            model = GNNS[args.model](params=model_params)
+            model = GNNS[args.model](params=model_params).to(device)
 
             lr = args.lr
             reduction = args.reduction
