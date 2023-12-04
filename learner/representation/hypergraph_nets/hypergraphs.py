@@ -185,4 +185,19 @@ class HypergraphsTuple(
         return self.n_node.shape[0]
 
     def to(self, device):
-        return self
+        return HypergraphsTuple(
+            **{
+                N_NODE: self.n_node.to(device),
+                N_EDGE: self.n_edge.to(device),
+                RECEIVERS: self.receivers.to(device),
+                SENDERS: self.senders.to(device),
+                NODES: self.nodes.to(device),
+                EDGES: self.edges.to(device),
+                GLOBALS: self.globals.to(device),
+                ZERO_PADDING: self.zero_padding,
+                Y_VALUE: self.y_value.to(device),
+                X_COORD: self.x_coord.to(device),
+                Y_COORD: self.y_coord.to(device),
+                P_IDX: self.p_idx.to(device),
+            }
+        )

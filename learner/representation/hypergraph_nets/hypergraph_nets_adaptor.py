@@ -214,7 +214,7 @@ def merge_hypergraphs_tuple(
     ]
     )
 
-    p_idx = [torch.tensor(getattr(tup, P_IDX), dtype=torch.float32).reshape(-1,) for tup in graphs_tuple_list]
+    p_idx = torch.tensor([torch.tensor(getattr(tup, P_IDX), dtype=torch.float32).reshape(-1,) for tup in graphs_tuple_list])
 
     # Need to increase indices for each hypergraph based on number of nodes
     # in previous hypergraphs
