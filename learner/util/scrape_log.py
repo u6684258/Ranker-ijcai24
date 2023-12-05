@@ -57,14 +57,15 @@ def scrape_search_log(file):
             stats["evaluated"] = int(toks[-1])
         elif "Initial heuristic value" in line:
             stats["first_h"] = int(toks[-1])
-        elif "Number of seen" in line:
-            stats["seen_colours"] = int(toks[-1])
-        elif "Number of unseen" in line:
-            stats["unseen_colours"] = int(toks[-1])
+        elif "seen/unseen colours in itr" in line:
+            stats["seen_colours"] += int(toks[-2])
+            stats["unseen_colours"] += int(toks[-1])
         elif "Computed std at initial state:" in line:
             stats["std"] = float(toks[-1])
 
     if stats["seen_colours"] != -1 and stats["unseen_colours"] != -1:
+        stats["seen_colours"] += 1
+        stats["unseen_colours"] += 1
         stats["ratio_seen_colours"] = stats["seen_colours"] / (
             stats["seen_colours"] + stats["unseen_colours"]
         )

@@ -399,6 +399,13 @@ class KernelModelWrapper:
 
     def get_hash(self) -> Dict[str, int]:
         return self._wl.get_hash()
+    
+    def get_reverse_hash(self) -> Dict[int, str]:
+        wl_hash = self.get_hash()
+        ret = {}
+        for k, v in wl_hash.items():
+            ret[v] = k
+        return ret
 
     def compute_histograms(
         self, graphs: CGraph, return_ratio_seen_counts: bool = False
