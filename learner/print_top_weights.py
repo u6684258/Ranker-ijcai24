@@ -24,13 +24,13 @@ for domain in IPC2023_LEARNING_DOMAINS:
     top_indices = sorted_indices[:_TOP_K]
     top_weights = weights[top_indices]
 
-    plt.hist(weights, bins=30, density=True)
-    plt.title(domain)
-    plt.yscale("log")
-    plt.xlabel('Weight Value')
-    plt.ylabel('Density')
-    plt.savefig(f"{PLOT_DIR}/{domain}.png", dpi=360)
-    plt.clf()
+    # plt.hist(weights, bins=30, density=True)
+    # plt.title(domain)
+    # plt.yscale("log")
+    # plt.xlabel('Weight Value')
+    # plt.ylabel('Density')
+    # plt.savefig(f"{PLOT_DIR}/{domain}.png", dpi=360)
+    # plt.clf()
 
     print(domain)
     print("top indices:", top_indices)
@@ -39,4 +39,6 @@ for domain in IPC2023_LEARNING_DOMAINS:
         w = f"{weights[index]:.2f}"
         print(f"{index:>5} {w:>5}  {reverse_hash[index]}")
 
-    # breakpoint()
+    model.debug_colour_information()
+
+    breakpoint()
