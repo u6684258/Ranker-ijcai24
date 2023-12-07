@@ -81,9 +81,9 @@ class InstanceLearningGraph(Representation, ABC):
         for k, v in tmp.items():
             k = str(tuple(self._one_hot_node(k).tolist()))
             self.debugging[k] = v
-        self.debugging[0] = "To"
-        self.debugging[1] = "T+"
-        self.debugging[2] = "T-"
+        self.debugging[0] = "true non-goal"
+        self.debugging[1] = "true pos-goal"
+        self.debugging[2] = "true neg-goal"
 
         # goal (state gets dealt with in state_to_tensor)
         if len(self.problem.goal.parts) == 0:

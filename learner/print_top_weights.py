@@ -16,11 +16,12 @@ os.makedirs(PLOT_DIR, exist_ok=True)
 for domain in IPC2023_LEARNING_DOMAINS:
     model : KernelModelWrapper = load_kernel_model(model_path(domain))
 
-    weights = np.abs(model.get_weights())
+    weights = model.get_weights()
+    abs_weights = abs(weights)
     wl_hash = model.get_hash()
     reverse_hash = model.get_reverse_hash()
 
-    sorted_indices = np.argsort(weights)[::-1]
+    sorted_indices = np.argsort(abs_weights)[::-1]
     top_indices = sorted_indices[:_TOP_K]
     top_weights = weights[top_indices]
 
@@ -33,6 +34,7 @@ for domain in IPC2023_LEARNING_DOMAINS:
     # plt.clf()
 
     print(domain)
+    print("num weights:", len(weights))
     print("top indices:", top_indices)
     print("top weights:", top_weights)
     for index in top_indices:

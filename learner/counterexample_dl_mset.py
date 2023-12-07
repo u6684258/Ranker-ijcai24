@@ -63,7 +63,7 @@ def split_prob_3_to_2(prob: Problem):
         new_props += split_fact_3_to_2s(prop)
     for prop in prob.goals:
         new_goals += split_fact_3_to_2s(prop)
-    return Problem(f"split_{prob.name}", list(set(new_props)), list(set(new_goals)))
+    return Problem(f"split_{prob.name}", new_props, new_goals)
 
 
 P1 = Problem(
@@ -75,7 +75,7 @@ P1 = Problem(
         Fact("P", ["c", "d", "a"]),
     ],
     goals=[
-        Fact("P", ["a", "b", "c"]),
+        Fact("Q", ["a", "b", "c"]),
     ],
 )
 
@@ -88,7 +88,7 @@ P2 = Problem(
         Fact("P", ["c", "d", "c"]),
     ],
     goals=[
-        Fact("P", ["a", "b", "c"]),
+        Fact("Q", ["a", "b", "c"]),
     ],
 )
 
