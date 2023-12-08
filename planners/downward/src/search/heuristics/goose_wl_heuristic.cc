@@ -171,25 +171,26 @@ CGraph WLGooseHeuristic::fact_pairs_to_graph(const std::vector<FactPair> &state)
 
     if (graph_.is_pos_goal_node(node_name)) {
       // std::cout<<node_name<<std::endl;
-      colours[graph_.get_node_index(node_name)] = graph_.TRUE_POS_GOAL_;
+      colours[graph_.get_node_index(node_name)] =
+          1 + 3 * graph_.pred_to_idx[pred] + graph_.T_POS_GOAL;
       continue;
     }
-    if (graph_.is_neg_goal_node(node_name)) {
-      colours[graph_.get_node_index(node_name)] = graph_.TRUE_NEG_GOAL_;
-      continue;
-    }
+    // if (graph_.is_neg_goal_node(node_name)) {
+    //   colours[graph_.get_node_index(node_name)] = graph_.TRUE_NEG_GOAL_;
+    //   continue;
+    // }
 
     // add new node
     cur_node_fact = new_idx;
     new_idx++;
-    colours.push_back(0);  // TRUE_FACT
+    colours.push_back(1 + 3 * graph_.pred_to_idx[pred] + graph_.T_NON_GOAL);  // TRUE_FACT
     std::vector<std::pair<int, int>> new_edges_fact;
     edges.push_back(new_edges_fact);
 
-    // connect fact to predicate
-    int pred_node = graph_.get_node_index(pred);
-    edges[cur_node_fact].push_back(std::make_pair(pred_node, graph_.GROUND_EDGE_LABEL_));
-    edges[pred_node].push_back(std::make_pair(cur_node_fact, graph_.GROUND_EDGE_LABEL_));
+    // // connect fact to predicate
+    // int pred_node = graph_.get_node_index(pred);
+    // edges[cur_node_fact].push_back(std::make_pair(pred_node, graph_.GROUND_EDGE_LABEL_));
+    // edges[pred_node].push_back(std::make_pair(cur_node_fact, graph_.GROUND_EDGE_LABEL_));
 
     for (size_t k = 0; k < args.size(); k++) {
       // connect fact to object

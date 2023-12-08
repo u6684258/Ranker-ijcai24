@@ -47,12 +47,12 @@ class InstanceLearningGraph2(Representation, ABC):
         for i, pred in enumerate(self.predicates):
             largest_predicate = max(largest_predicate, len(pred.arguments))
         self.largest_predicate = largest_predicate
-        self.n_edge_labels = largest_predicate + 1  # add one for -1 edge labels
+        self.n_edge_labels = largest_predicate  # no longer -1 edge labels
         assert largest_predicate > 0
 
         # debugging
         self.debugging = {
-            0: "0",
+            0: "O",  # object
         }
         # TODO make this mapping a bijective function
         for i, pred in enumerate(self.predicates):
@@ -145,11 +145,7 @@ class InstanceLearningGraph2(Representation, ABC):
             x[i][1 + 3 * self.pred_to_idx[pred] + T_NON_GOAL] = 1
             i += 1
 
-            # # connect fact to predicate
-            # append_edge_index[-1].append((true_node_i, self._node_to_i[pred]))
-            # append_edge_index[-1].append((self._node_to_i[pred], true_node_i))
-
-            # connect fact to objects (different from ILG: node position nodes)
+            # connect fact to objects 
             for k, arg in enumerate(args):
                 append_edge_index[k].append((true_node_i, self._node_to_i[arg]))
                 append_edge_index[k].append((self._node_to_i[arg], true_node_i))
@@ -185,11 +181,6 @@ class InstanceLearningGraph2(Representation, ABC):
 
             # else add node and corresponding edges to graph
             c_graph.add_node(node, colour=1 + 3 * self.pred_to_idx[pred] + T_NON_GOAL)
-
-            # # connect fact to predicate
-            # assert self._name_to_node[pred] in c_graph.nodes
-            # c_graph.add_edge(u_of_edge=node, v_of_edge=self._name_to_node[pred], edge_label=-1)
-            # c_graph.add_edge(v_of_edge=node, u_of_edge=self._name_to_node[pred], edge_label=-1)
 
             for k, obj in enumerate(args):
                 # connect fact to object

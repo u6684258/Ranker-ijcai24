@@ -39,7 +39,14 @@ configs = [
     # ("1wl", 4, 0, "ilg", "mip", "schema"),
     # ("1wl", 4, 0, "ilg", "linear-svr", "none"),
     # ("1wl", 4, 0, "ilg", "blr", "none"),
+    ### ilg2 ###
     ("1wl", 4, 0, "ilg2", "linear-svr", "none"),
+    ("2lwl", 4, 0, "ilg2", "linear-svr", "none"),
+    # ("1wl", 4, 0, "ilg2", "quadratic-svr", "none"),
+    # ("1wl", 4, 0, "ilg2", "cubic-svr", "none"),
+    ("1wl", 4, 0, "ilg2", "rbf-svr", "none"),
+    ("1wl", 4, 0, "ilg2", "gp", "none"),
+    ("1wl", 4, 0, "ilg2", "mip", "none"),
 ]
 
 # deadend_configs = [("H", "?"), ("D", "--deadends")]
@@ -52,8 +59,9 @@ for domain in DOMAINS:
             desc = f"{domain}_{r}_{k}_{l}_{p}_{m}_{schema_strategy}_{t}"
             save_file = f"{SAVE_DIR}/{desc}.pkl"
             log_file = f"{LOG_DIR}/{desc}.log"
-            # if os.path.exists(save_file) and os.path.exists(log_file):
-            #     continue
+            if os.path.exists(save_file) and os.path.exists(log_file):
+                print(f"skipping {save_file}")
+                continue
             cmd = f"python3 train_kernel.py -d {domain} -k {k} -l {l} -r {r} -m {m} {flag} --schema {schema_strategy} --model-save-file {save_file}"
             cmd = f"{cmd} > {log_file}"
             print(cmd)

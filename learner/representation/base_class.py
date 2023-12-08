@@ -234,6 +234,10 @@ class Representation(ABC):
             node_name = node_to_name(node_name)
             f.write(node_name + "\n")
 
+        f.write(f"{len(self.pred_to_idx)} predicates\n")
+        for pred, i in self.pred_to_idx.items():
+            f.write(f"{pred} {i}\n")
+
         f.close()
         # breakpoint()
         self._graph_file_path = file_path

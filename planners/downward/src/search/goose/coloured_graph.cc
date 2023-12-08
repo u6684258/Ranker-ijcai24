@@ -30,6 +30,8 @@ CGraph::CGraph(const std::string &path) {
   int n_neg_goal_nodes = -1;
   int pos_goal_cnt = 0;
   int neg_goal_cnt = 0;
+  int n_predicates = -1;
+  int predicate_cnt = 0;
 
   // collect graph information
   while (std::getline(infile, line)) {
@@ -84,6 +86,17 @@ CGraph::CGraph(const std::string &path) {
       std::string node_name = toks[0];
       neg_goal_nodes_.insert(node_name);
       neg_goal_cnt++;
+      continue;
+    }
+
+    // collect predicates and indices
+    if (n_predicates == -1) {
+      n_predicates = stoi(toks[0]);
+      continue;
+    }
+    if (predicate_cnt < n_predicates) {
+      pred_to_idx[toks[0]] = stoi(toks[1]);
+      predicate_cnt++;
       continue;
     }
   }

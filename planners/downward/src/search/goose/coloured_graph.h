@@ -54,11 +54,17 @@ class CGraph {  // mainly assumes GOOSE LLG
   // static const int TRUE_NEG_GOAL_ = 3;
   // static const int GROUND_EDGE_LABEL_ = 1;
 
-  // hard code colours
-  static const int TRUE_FACT_ = 0;
-  static const int TRUE_POS_GOAL_ = 1;
-  static const int TRUE_NEG_GOAL_ = 2;
-  static const int GROUND_EDGE_LABEL_ = -1;
+  // // hard code colours
+  // static const int TRUE_FACT_ = 0;
+  // static const int TRUE_POS_GOAL_ = 1;
+  // static const int TRUE_NEG_GOAL_ = 2;
+  // static const int GROUND_EDGE_LABEL_ = -1;
+
+  // ilg2 rep
+  static const int F_POS_GOAL = 0;
+  static const int T_POS_GOAL = 1;
+  static const int T_NON_GOAL = 2;
+  std::unordered_map<std::string, int> pred_to_idx;
 
  private:
   // represent edge labeled graph by linked list
