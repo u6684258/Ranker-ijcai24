@@ -58,6 +58,11 @@ class Representation(ABC):
             fdr=self.name == "flg",
         )
 
+        self.predicates = sorted([p for p in self.problem.predicates if p.name != "="])
+        self.pred_to_idx = {}
+        for i, pred in enumerate(self.predicates):
+            self.pred_to_idx[pred.name] = i
+
         t = time.time()
         self._pos_goal_nodes = set()
         self._neg_goal_nodes = set()
@@ -177,8 +182,8 @@ class Representation(ABC):
                 u_of_edge=u, v_of_edge=v, edge_label=self.G.edges[edge]["edge_label"]
             )
 
-        if hasattr(self, "debugging"):
-            self._colour_debug = {v:self.debugging[k] for k, v in colours.items()}
+        # if hasattr(self, "debugging"):
+        #     self._colour_debug = {v:self.debugging[k] for k, v in colours.items()}
         # for k, v in colours.items():
         #     print(v, self.debugging[k])
         # breakpoint()

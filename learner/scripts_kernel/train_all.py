@@ -35,10 +35,11 @@ configs = [
     # ("1wl", 4, 0, "ilg", "cubic-svr", "none"),
     # ("1wl", 4, 0, "ilg", "rbf-svr", "none"),
     # ("1wl", 4, 0, "ilg", "gp", "none"),
-    ("3lwl", 4, 0, "ilg", "linear-svr", "none"),
+    # ("3lwl", 4, 0, "ilg", "linear-svr", "none"),
     # ("1wl", 4, 0, "ilg", "mip", "schema"),
     # ("1wl", 4, 0, "ilg", "linear-svr", "none"),
     # ("1wl", 4, 0, "ilg", "blr", "none"),
+    ("1wl", 4, 0, "ilg2", "linear-svr", "none"),
 ]
 
 # deadend_configs = [("H", "?"), ("D", "--deadends")]
