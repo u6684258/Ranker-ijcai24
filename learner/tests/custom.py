@@ -53,7 +53,7 @@ if __name__ == "__main__":
         os.system(cmd)
 
     if args.run:
-        os.system(f"cd ../planners/downward && python3 build.py")
+        # os.system(f"cd ../planners/downward && python3 build.py")
         domain_file = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
         problem_file = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/testing/{difficulty}/{problem}.pddl"
         assert os.path.exists(problem_file), problem_file
