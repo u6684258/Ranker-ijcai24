@@ -6,9 +6,9 @@ from kernels.wrapper import KernelModelWrapper
 from util.save_load import load_kernel_model
 
 def model_path(domain):
-    return f"icaps24_wl_models/{domain}_ilg_1wl_4_0_gp_none_H.pkl"
+    return f"icaps24_wl_models/{domain}_ilg2_1wl_4_0_gp_none_H.pkl"
 
-_TOP_K = 5
+_TOP_K = 20
 
 PLOT_DIR = "plots_weights"
 os.makedirs(PLOT_DIR, exist_ok=True)
@@ -39,7 +39,9 @@ for domain in IPC2023_LEARNING_DOMAINS:
     print("top weights:", top_weights)
     for index in top_indices:
         w = f"{weights[index]:.2f}"
-        print(f"{index:>5} {w:>5}  {reverse_hash[index]}")
+        k = reverse_hash[index]
+        k = k.replace(",", " ")
+        print(f"{index:>5} {w:>5}  {k}")
 
     model.debug_colour_information()
 

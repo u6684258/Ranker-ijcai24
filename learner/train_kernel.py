@@ -114,6 +114,10 @@ def main():
     graphs_train, graphs_val, y_train, y_val = train_test_split(
         graphs, y_true, test_size=0.33, random_state=2023
     )
+    # graphs_train = graphs
+    # graphs_val = graphs
+    # y_train = y_true
+    # y_val = y_true
 
     if len(graphs) == 0:
         print(f"Empty dataset for {args.domain} and predict_deadends={predict_deadends}!")

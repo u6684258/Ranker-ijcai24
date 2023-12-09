@@ -54,7 +54,7 @@ LINEAR_MODELS = {
 _MAX_MODEL_ITER = 1000000
 _C = 1.0
 _ALPHA = 1.0
-_EPSILON = 0.1
+_EPSILON = 0.5
 
 
 class KernelModelWrapper:
@@ -140,7 +140,7 @@ class KernelModelWrapper:
                     return BayesianRidge()
                 if self.model_name == "gp":
                     return GaussianProcessRegressor(
-                        kernel=DotProduct(), alpha=1e-8 if args.domain == "sokoban" else 1e-10
+                        kernel=DotProduct(), alpha=1e-7
                     )
 
         self._models = {}

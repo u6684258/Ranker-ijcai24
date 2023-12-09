@@ -21,7 +21,7 @@ class InstanceLearningGraph2(Representation, ABC):
         super().__init__(domain_pddl, problem_pddl)
 
     def _get_to_coloured_graphs_init_colours(self):
-        return {}
+        return {k:k for k in range(self.n_node_features)}
 
     def _compute_graph_representation(self) -> None:
         """TODO: reference definition of this graph representation
@@ -40,7 +40,7 @@ class InstanceLearningGraph2(Representation, ABC):
 
         # objects
         for i, obj in enumerate(sorted(self.problem.objects)):
-            G.add_node(obj.name, x=self._one_hot_node(0))  # add object node
+            G.add_node(obj.name, colour=0)  # add object node
 
         # predicates
         largest_predicate = 0
@@ -50,16 +50,15 @@ class InstanceLearningGraph2(Representation, ABC):
         self.n_edge_labels = largest_predicate  # no longer -1 edge labels
         assert largest_predicate > 0
 
-        # debugging
-        self.debugging = {
-            0: "O",  # object
-        }
-        # TODO make this mapping a bijective function
-        for i, pred in enumerate(self.predicates):
-            self.debugging[1 + 3 * i + F_POS_GOAL] = f"F pos-goal {pred.name}"
-            self.debugging[1 + 3 * i + T_POS_GOAL] = f"T pos-goal {pred.name}"
-            self.debugging[1 + 3 * i + T_NON_GOAL] = f"T non-goal {pred.name}"
-        self.debugging = {}
+        # # debugging
+        # self.colours = {
+        #     0: "O",  # object
+        # }
+        # # TODO make this mapping a bijective function
+        # for i, pred in enumerate(self.predicates):
+        #     self.colours[1 + 3 * i + F_POS_GOAL] = f"F pos-goal {pred.name}"
+        #     self.colours[1 + 3 * i + T_POS_GOAL] = f"T pos-goal {pred.name}"
+        #     self.colours[1 + 3 * i + T_NON_GOAL] = f"T non-goal {pred.name}"
 
         # goal (state gets dealt with in state_to_tensor)
         if len(self.problem.goal.parts) == 0:
@@ -78,15 +77,10 @@ class InstanceLearningGraph2(Representation, ABC):
             args = fact.args
             goal_node = (pred, args)
 
-            x = self._one_hot_node(1 + 3 * self.pred_to_idx[pred] + F_POS_GOAL)
+            colour = 1 + 3 * self.pred_to_idx[pred] + F_POS_GOAL
+            G.add_node(goal_node, colour=colour)  # add fact node
+
             self._pos_goal_nodes.add(goal_node)
-
-            G.add_node(goal_node, x=x)  # add fact node
-
-            # # connect fact to predicate
-            # assert pred in G.nodes()
-            # G.add_edge(u_of_edge=goal_node, v_of_edge=pred, edge_label=-1)
-            # G.add_edge(v_of_edge=goal_node, u_of_edge=pred, edge_label=-1)
 
             for k, arg in enumerate(args):
                 # connect fact to object
@@ -172,7 +166,9 @@ class InstanceLearningGraph2(Representation, ABC):
             # activated proposition overlaps with a goal Atom
             if node in self._pos_goal_nodes:
                 idx = self._name_to_node[node]
+                assert c_graph.nodes[idx]["colour"] == 1 + 3 * self.pred_to_idx[pred] + F_POS_GOAL
                 c_graph.nodes[idx]["colour"] = 1 + 3 * self.pred_to_idx[pred] + T_POS_GOAL
+                # print(c_graph.nodes[idx]["colour"])
                 # print(node, idx)
                 continue
 

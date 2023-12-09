@@ -144,28 +144,16 @@ class Representation(ABC):
         """
 
         colours = self._get_to_coloured_graphs_init_colours()
+        # print(colours)
+        # breakpoint()
 
         self._name_to_node = {}
         self._node_to_name = {}
 
         c_graph = self._create_graph()
         for node in self.G.nodes:
-            feature = self.G.nodes[node]["x"].tolist()
-            feature = str(tuple(feature))
-            if (
-                self.name == "llg"
-                and type(node) == tuple
-                and len(node) == 2
-                and type(node[1]) == str
-                and "var-" in node[1]
-            ):
-                index = node[1].split("-")[-1]
-                colour = -int(index)  # colour of IF is negative of index
-            elif feature not in colours:
-                colour = len(colours)
-                colours[feature] = colour
-            else:
-                colour = colours[feature]
+            feature = self.G.nodes[node]["colour"]
+            colour = colours[feature]
 
             assert node not in c_graph.nodes
             idx = len(self._name_to_node)
