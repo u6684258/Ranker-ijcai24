@@ -2,6 +2,7 @@
  
 #PBS -P xb83
 #PBS -q normal
+#PBS -l walltime=00:33:00
 #PBS -l ncpus=4
 #PBS -l mem=16GB
 #PBS -l jobfs=20GB
@@ -11,6 +12,4 @@
 module load python3/3.10.4
 source /scratch/xb83/dc6693/venv_goose/bin/activate
 
-$CMD
-
-rm $LOCK_FILE
+python3 scripts_kernel/train_all.py

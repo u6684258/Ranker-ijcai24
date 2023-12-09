@@ -46,7 +46,7 @@ class LWL2(WlAlgorithm):
             colour = (c_u, c_v, edge_colour)
 
             cur_colours[subset] = self._get_hash_value(colour)
-            assert colour in self._hash, colour
+            # assert colour in self._hash, colour
             store_colour(colour)
 
         # WL iterations

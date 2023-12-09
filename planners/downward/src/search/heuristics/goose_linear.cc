@@ -21,6 +21,8 @@ GooseLinear::GooseLinear(const plugins::Options &opts) : goose_wl::WLGooseHeuris
   if (compute_std_) {
     State initial_state = task_proxy.get_initial_state();
     log << "Computed std at initial state: " << compute_std(initial_state) << std::endl;
+    log << "Terminating." << std::endl;
+    exit(-1);
   }
   model = pybind11::int_(0);  // release memory since we no longer need the python object
 }
