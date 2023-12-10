@@ -50,15 +50,15 @@ class InstanceLearningGraph2(Representation, ABC):
         self.n_edge_labels = largest_predicate  # no longer -1 edge labels
         assert largest_predicate > 0
 
-        # # debugging
-        # self.colours = {
-        #     0: "O",  # object
-        # }
-        # # TODO make this mapping a bijective function
-        # for i, pred in enumerate(self.predicates):
-        #     self.colours[1 + 3 * i + F_POS_GOAL] = f"F pos-goal {pred.name}"
-        #     self.colours[1 + 3 * i + T_POS_GOAL] = f"T pos-goal {pred.name}"
-        #     self.colours[1 + 3 * i + T_NON_GOAL] = f"T non-goal {pred.name}"
+        # debugging
+        self.colour_explanation = {
+            0: "ob",  # object
+        }
+        # TODO make this mapping a bijective function
+        for i, pred in enumerate(self.predicates):
+            self.colour_explanation[1 + 3 * i + F_POS_GOAL] = f"ug {pred.name}"
+            self.colour_explanation[1 + 3 * i + T_POS_GOAL] = f"ag {pred.name}"
+            self.colour_explanation[1 + 3 * i + T_NON_GOAL] = f"ap {pred.name}"
 
         # goal (state gets dealt with in state_to_tensor)
         if len(self.problem.goal.parts) == 0:

@@ -297,10 +297,13 @@ class KernelModelWrapper:
         domain_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/domain.pddl"
         problem_pddl = f"../benchmarks/ipc2023-learning-benchmarks/{domain}/training/easy/p01.pddl"
         self.update_representation(domain_pddl, problem_pddl)
-        debug_map = self._representation._colour_debug
+        debug_map = self._representation.colour_explanation
+        ret = {}
         for k, v in self.get_hash().items():
             if "," not in k and int(k) in debug_map:
-                print(f"{v} -> {debug_map[int(k)]}")
+                # print(f"{v} -> {debug_map[int(k)]}")
+                ret[v] = debug_map[int(k)]
+        return ret
 
     def write_model_data(self) -> None:
         print("Writing model data to file...", flush=True)

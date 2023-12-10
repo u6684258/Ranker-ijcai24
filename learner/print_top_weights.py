@@ -1,48 +1,182 @@
+from collections import OrderedDict
 import os
-from matplotlib import pyplot as plt
+import shutil
+import networkx as nx
+from typing import List
 import numpy as np
+from dataclasses import dataclass
+from matplotlib import pyplot as plt
 from dataset.ipc2023_learning_domain_info import IPC2023_LEARNING_DOMAINS
 from kernels.wrapper import KernelModelWrapper
 from util.save_load import load_kernel_model
 
+_TOP_K = 20
+_TOP_L = 3
+_ACC = f".6f"
+
+
+@dataclass
+class Node:
+    name: str
+    defn: str
+
+
 def model_path(domain):
     return f"icaps24_wl_models/{domain}_ilg2_1wl_4_0_gp_none_H.pkl"
 
-_TOP_K = 20
 
-PLOT_DIR = "plots_weights"
-os.makedirs(PLOT_DIR, exist_ok=True)
+def main():
+    PLOT_DIR = "plots_weights"
+    shutil.rmtree(PLOT_DIR)
+    os.makedirs(PLOT_DIR, exist_ok=True)
 
-for domain in IPC2023_LEARNING_DOMAINS:
-    model : KernelModelWrapper = load_kernel_model(model_path(domain))
+    for domain in IPC2023_LEARNING_DOMAINS:
+        model: KernelModelWrapper = load_kernel_model(model_path(domain))
 
-    weights = model.get_weights()
-    abs_weights = abs(weights)
-    wl_hash = model.get_hash()
-    reverse_hash = model.get_reverse_hash()
+        weights = model.get_weights()
+        abs_weights = abs(weights)
+        wl_hash = model.get_hash()
+        reverse_hash = model.get_reverse_hash()
+        debug_map = model.debug_colour_information()
 
-    sorted_indices = np.argsort(abs_weights)[::-1]
-    top_indices = sorted_indices[:_TOP_K]
-    top_weights = weights[top_indices]
+        nodes_set = {}
+        children_graph = OrderedDict()
+        parents_graph = OrderedDict()
 
-    # plt.hist(weights, bins=30, density=True)
-    # plt.title(domain)
-    # plt.yscale("log")
-    # plt.xlabel('Weight Value')
-    # plt.ylabel('Density')
-    # plt.savefig(f"{PLOT_DIR}/{domain}.png", dpi=360)
-    # plt.clf()
+        for i in range(len(weights)):
+            if i in nodes_set:
+                continue
+            defn = reverse_hash[i]
+            if "," not in defn and wl_hash[defn] in debug_map:
+                defn = debug_map[wl_hash[defn]]
+                parents = []
+            else:
+                defn = defn.split(",")
+                parents = [defn[0]] + [defn[j] for j in range(1, len(defn), 2)]
+                
+                ret = defn[0] + ' '
+                for j in range(1, len(defn)):
+                    ret += defn[j]
+                    if j % 2 == 1:
+                        ret += "_"
+                    else:
+                        ret += " "
+                defn = ret
+            node = f"{i:>5} = {defn}"
+            # print(node)
+            nodes_set[i] = node
 
-    print(domain)
-    print("num weights:", len(weights))
-    print("top indices:", top_indices)
-    print("top weights:", top_weights)
-    for index in top_indices:
-        w = f"{weights[index]:.2f}"
-        k = reverse_hash[index]
-        k = k.replace(",", " ")
-        print(f"{index:>5} {w:>5}  {k}")
+            for parent in parents:
+                parent = int(parent)
+                if parent not in children_graph:
+                    children_graph[parent] = set()
+                children_graph[parent].add(i)
+                parents_graph[i]=parents
 
-    model.debug_colour_information()
+        # G = nx.DiGraph()
 
-    breakpoint()
+        # for parent, children_set in children_graph.items():
+        #     if parent >= 10:
+        #         continue
+        #     for child in children_set:
+        #         G.add_edge(nodes_set[parent], nodes_set[child]) 
+        #     # print(parent, children_set)
+
+        # # print(G.nodes)
+        # # print(G.edges)
+
+        # # nx.draw(G, with_labels=True)
+        # # plt.show()
+        # nx.drawing.nx_pydot.write_dot(G, f"{domain}.dot")
+        
+
+        # breakpoint()
+
+        sorted_indices = np.argsort(abs_weights)[::-1]
+        top_indices = sorted_indices[:_TOP_K]
+        top_weights = weights[top_indices]
+
+        plt.hist(weights, bins=30, density=False)
+        plt.title(domain)
+        plt.yscale("log")
+        plt.xlabel('Weight Value')
+        plt.ylabel('Occurences')
+        plt.savefig(f"{PLOT_DIR}/{domain}.png", dpi=360)
+        plt.clf()
+
+        print(domain)
+        print("num weights:", len(weights))
+        print("top indices:", top_indices)
+        print("top weights:", top_weights)
+        sames = {}
+        expls = {}
+        expl_to_index = {}
+        for rank, index in enumerate(sorted_indices):
+            w = f"{weights[index]:{_ACC}}"
+            k = reverse_hash[index]
+            if "," not in k:
+                k = wl_hash[k]
+            k = str(k)
+            # k = k.replace(",", " ")
+            # print(f"{w:>5}  {index:>5} {k}")
+
+            if w not in sames:
+                sames[w] = 0
+                expls[w] = set()
+            sames[w] += 1
+            expls[w].add(k)
+            expl_to_index[k] = index
+
+            if rank >= _TOP_K:
+                continue
+
+            print(f"{w:>5}  {index:>5} {k}")
+
+        for k, v in debug_map.items():
+            print(f"{k} -> {v}")
+            
+        summs = []
+        mapp = {}
+        for w, cnt in sames.items():
+            combined = abs(float(w) * cnt)
+            summs.append(combined)
+            mapp[combined] = w
+
+        summs = sorted(summs, reverse=True)
+        print("top summed")
+        for i in range(_TOP_L):
+            w = mapp[summs[i]]
+            print(f"{summs[i]:{_ACC}} {w}")
+            print(f"  {len(expls[w])}")
+            print(f"  {repr([expl_to_index[expl] for expl in expls[w]])}")
+            for expl in expls[w]:
+                G = nx.DiGraph()
+                init_index=expl_to_index[expl]
+                print(f"    {init_index}  {expl}")
+                q=[init_index]
+                while len(q) > 0:
+                    index =int(q.pop(0))
+                    node = nodes_set[index] 
+                    if node not in G.nodes:
+                        G.add_node(node)
+                    if index not in parents_graph:
+                        continue
+                    for parent in parents_graph[index]:
+                        parent_node = nodes_set[int(parent)]
+                        # if parent_node in G.nodes:
+                        #     continue
+                        G.add_edge(parent_node,node)
+                        q.append(parent)
+
+                graph_save_dir = f"{PLOT_DIR}/{domain}/{w}"
+                os.makedirs(graph_save_dir, exist_ok=True)
+                nx.drawing.nx_pydot.write_dot(G, f"{graph_save_dir}/{init_index}  {expl}.dot")
+
+        print()
+
+        # breakpoint()
+        break
+
+
+if __name__ == "__main__":
+    main()
