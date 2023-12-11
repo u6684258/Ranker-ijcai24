@@ -160,37 +160,6 @@ def main():
             y_train_true[s].append(y_dict[s])
     print(f"Set up training data in {time.time()-t:.2f}s")
 
-    for indices in [
-        [4397, 4429, 4422, 4385, 4439, 4406, 4396, 4414, 4435, 4384, 4430, 4417],
-        [28, 49, 85, 10],
-        [
-            8538,
-            8540,
-            8534,
-            8542,
-            8545,
-            8546,
-            8539,
-            8533,
-            8547,
-            8541,
-            8544,
-            8537,
-            8536,
-            8543,
-            8532,
-            8535,
-        ],
-    ]:
-        for row in X_train:
-            limes = set(np.round(row[indices], 6))
-            if len(limes) == 1:
-                continue
-            print(indices)
-            print(row)
-            print(row[indices])
-            breakpoint()
-
     # validation data
     print(f"Setting up validation data...")
     model.eval()

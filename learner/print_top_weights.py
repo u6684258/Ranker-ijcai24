@@ -13,6 +13,7 @@ from util.save_load import load_kernel_model
 _TOP_K = 20
 _TOP_L = 3
 _ACC = f".6f"
+_DOMAIN = "blocksworld"
 
 
 @dataclass
@@ -53,8 +54,8 @@ def main():
             else:
                 defn = defn.split(",")
                 parents = [defn[0]] + [defn[j] for j in range(1, len(defn), 2)]
-                
-                ret = defn[0] + ' '
+
+                ret = defn[0] + " "
                 for j in range(1, len(defn)):
                     ret += defn[j]
                     if j % 2 == 1:
@@ -71,7 +72,7 @@ def main():
                 if parent not in children_graph:
                     children_graph[parent] = set()
                 children_graph[parent].add(i)
-                parents_graph[i]=parents
+                parents_graph[i] = parents
 
         # G = nx.DiGraph()
 
@@ -79,7 +80,7 @@ def main():
         #     if parent >= 10:
         #         continue
         #     for child in children_set:
-        #         G.add_edge(nodes_set[parent], nodes_set[child]) 
+        #         G.add_edge(nodes_set[parent], nodes_set[child])
         #     # print(parent, children_set)
 
         # # print(G.nodes)
@@ -88,21 +89,12 @@ def main():
         # # nx.draw(G, with_labels=True)
         # # plt.show()
         # nx.drawing.nx_pydot.write_dot(G, f"{domain}.dot")
-        
 
         # breakpoint()
 
         sorted_indices = np.argsort(abs_weights)[::-1]
         top_indices = sorted_indices[:_TOP_K]
         top_weights = weights[top_indices]
-
-        plt.hist(weights, bins=30, density=False)
-        plt.title(domain)
-        plt.yscale("log")
-        plt.xlabel('Weight Value')
-        plt.ylabel('Occurences')
-        plt.savefig(f"{PLOT_DIR}/{domain}.png", dpi=360)
-        plt.clf()
 
         print(domain)
         print("num weights:", len(weights))
@@ -134,11 +126,15 @@ def main():
 
         for k, v in debug_map.items():
             print(f"{k} -> {v}")
-            
+
         summs = []
+        summs_signed = []
         mapp = {}
         for w, cnt in sames.items():
-            combined = abs(float(w) * cnt)
+            combined = float(w) * cnt
+            summs_signed.append(combined)
+            combined = abs(combined)
+            summs.append(combined)
             summs.append(combined)
             mapp[combined] = w
 
@@ -146,17 +142,21 @@ def main():
         print("top summed")
         for i in range(_TOP_L):
             w = mapp[summs[i]]
-            print(f"{summs[i]:{_ACC}} {w}")
-            print(f"  {len(expls[w])}")
-            print(f"  {repr([expl_to_index[expl] for expl in expls[w]])}")
+            print(f"{summs[i]:{_ACC}} & {w} & ")
+            # print(f"  {len(expls[w])}")
+            # print(f"  {sorted(expls[w])}")
+            print(f"  {sorted([expl_to_index[expl] for expl in expls[w]])}")
             for expl in expls[w]:
                 G = nx.DiGraph()
-                init_index=expl_to_index[expl]
-                print(f"    {init_index}  {expl}")
-                q=[init_index]
+                init_index = expl_to_index[expl]
+                toks = expl.split(",")
+                tuples = [f"({toks[i]},{toks[i+1]})" for i in range(1, len(toks), 2)]
+                to_tex = r"(" + toks[0] + r",\mset{" + ",".join(tuples) + r"})"
+                print(f" & \\multicolumn{{2}}{{l}}${init_index} = \\hash{to_tex}$ \\\\")
+                q = [init_index]
                 while len(q) > 0:
-                    index =int(q.pop(0))
-                    node = nodes_set[index] 
+                    index = int(q.pop(0))
+                    node = nodes_set[index]
                     if node not in G.nodes:
                         G.add_node(node)
                     if index not in parents_graph:
@@ -165,17 +165,32 @@ def main():
                         parent_node = nodes_set[int(parent)]
                         # if parent_node in G.nodes:
                         #     continue
-                        G.add_edge(parent_node,node)
+                        G.add_edge(parent_node, node)
                         q.append(parent)
 
                 graph_save_dir = f"{PLOT_DIR}/{domain}/{w}"
                 os.makedirs(graph_save_dir, exist_ok=True)
                 nx.drawing.nx_pydot.write_dot(G, f"{graph_save_dir}/{init_index}  {expl}.dot")
 
+        bin_edges = np.linspace(-max(summs), max(summs), 10)
+        plt.hist(summs_signed, density=False, bins=bin_edges, edgecolor="black")
+        plt.title(domain + " " + str(len(summs_signed)))
+        plt.yscale("log")
+        plt.xlabel("Weight Value")
+        plt.ylabel("Occurences")
+        plt.savefig(f"{PLOT_DIR}/freq_{domain}.png", dpi=360)
+        plt.clf()
+        plt.hist(summs_signed, density=True, bins=bin_edges, edgecolor="black")
+        plt.title(domain + " " + str(len(summs_signed)))
+        # plt.yscale("log")
+        plt.xlabel("Weight Value")
+        plt.ylabel("Density")
+        plt.savefig(f"{PLOT_DIR}/dens_{domain}.png", dpi=360)
+        plt.clf()
         print()
 
         # breakpoint()
-        break
+        # break
 
 
 if __name__ == "__main__":
