@@ -1,0 +1,14 @@
+*~
+*.o
+*.pyc
+*.q
+*.log
+*.err
+*.swp
+output.sas
+output.dump
+sas_plan
+builds/
+*.venv
+data
+benchmarks/blocks_generator/blocks*

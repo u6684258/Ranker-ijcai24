@@ -86,6 +86,7 @@ if __name__ == "__main__":
     parser.add_argument("-r", "--representation", required=True, choices=["ilg", "llg"])
     parser.add_argument("-d", "--domain", required=True, choices=IPC2023_LEARNING_DOMAINS)
     parser.add_argument("-m", "--model", required=True, choices=["gnn", "gnn-rank"])
+    parser.add_argument("--train-only", action="store_true")
     args = parser.parse_args()
 
     rep = args.representation
@@ -124,48 +125,49 @@ if __name__ == "__main__":
 
         ###############################################################################################
         """ test """
-        failed = 0
+        if not args.train_only:
+            failed = 0
 
-        # warmup first
-        pf = f"{test_dir}/easy/p01.pddl"
-        assert os.path.exists(pf), pf
-        cmd, intermediate_file = fd_cmd(df=df, pf=pf, m=model_file, search=_SEARCH, timeout=30)
-        os.system("date")
-        os.system(f"echo warming up with {domain} {rep} {pf} {model_file}")
-        os.popen(cmd).readlines()
-        try:
-            os.remove(intermediate_file)
-        except OSError:
-            pass
-
-        # test on problems
-        for difficulty, problem_name in test_configs:
-            os.system("date")
-            pf = f"{test_dir}/{difficulty}/{problem_name}.pddl"
+            # warmup first
+            pf = f"{test_dir}/easy/p01.pddl"
             assert os.path.exists(pf), pf
-            test_log_file = f"{_TEST_LOG_DIR}/{domain}_{difficulty}_{problem_name}_{desc}.log"
-            finished_correctly = False
-            if os.path.exists(test_log_file):
-                finished_correctly = search_finished_correctly(test_log_file)
-            if not finished_correctly:
-                cmd, intermediate_file = fd_cmd(df=df, pf=pf, m=model_file, search=_SEARCH)
-                os.system(f"echo testing {domain} {rep}, see {test_log_file}")
-                os.system(f"{cmd} > {test_log_file}")
-                if os.path.exists(intermediate_file):
-                    os.remove(intermediate_file)
-            else:
-                os.system(f"echo already tested for {domain} {rep}, see {test_log_file}")
+            cmd, intermediate_file = fd_cmd(df=df, pf=pf, m=model_file, search=_SEARCH, timeout=30)
+            os.system("date")
+            os.system(f"echo warming up with {domain} {rep} {pf} {model_file}")
+            os.popen(cmd).readlines()
+            try:
+                os.remove(intermediate_file)
+            except OSError:
+                pass
 
-            # check if failed or not
-            assert os.path.exists(test_log_file)
-            log = open(test_log_file, "r").read()
-            solved = "Solution found." in log
-            if solved:
-                print("solved")
-                failed = 0
-            else:
-                print("failed")
-                failed += 1
-            if failed >= IPC2023_FAIL_LIMIT[domain]:
-                break
+            # test on problems
+            for difficulty, problem_name in test_configs:
+                os.system("date")
+                pf = f"{test_dir}/{difficulty}/{problem_name}.pddl"
+                assert os.path.exists(pf), pf
+                test_log_file = f"{_TEST_LOG_DIR}/{domain}_{difficulty}_{problem_name}_{desc}.log"
+                finished_correctly = False
+                if os.path.exists(test_log_file):
+                    finished_correctly = search_finished_correctly(test_log_file)
+                if not finished_correctly:
+                    cmd, intermediate_file = fd_cmd(df=df, pf=pf, m=model_file, search=_SEARCH)
+                    os.system(f"echo testing {domain} {rep}, see {test_log_file}")
+                    os.system(f"{cmd} > {test_log_file}")
+                    if os.path.exists(intermediate_file):
+                        os.remove(intermediate_file)
+                else:
+                    os.system(f"echo already tested for {domain} {rep}, see {test_log_file}")
+
+                # check if failed or not
+                assert os.path.exists(test_log_file)
+                log = open(test_log_file, "r").read()
+                solved = "Solution found." in log
+                if solved:
+                    print("solved")
+                    failed = 0
+                else:
+                    print("failed")
+                    failed += 1
+                if failed >= IPC2023_FAIL_LIMIT[domain]:
+                    break
     ###############################################################################################

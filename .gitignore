@@ -7,3 +7,4 @@
 *.idea*
 /logs/
 /planners/downward/src/cmake-build-debug/
+/planners/downward_gpu/src/cmake-build-debug/

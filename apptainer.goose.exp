@@ -2,6 +2,10 @@ Bootstrap: docker
 From: nvidia/cuda:11.8.0-runtime-ubuntu20.04
 Stage: build
 
+%files
+    learner
+    planners
+
 
 %post
    # These first few commands allow us to find the python3-pip package later
@@ -44,16 +48,50 @@ Stage: build
     pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
 
     cd /planners/downward
-    rm -rf /builds/release/
+    rm -rf builds/release/
     ./build.py release
     cd ..
 
     cd /planners/FD-Hypernet-master
-    rm -rf /builds/release/
+    rm -rf builds/release/
     ./build.py release
     cd ..
 
     cd /planners/downward_gpu
-    rm -rf /builds/release/
+    rm -rf builds/release/
     ./build.py release
     cd ..
+
+
+# Stage 2: Run the planner
+Bootstrap: docker
+From: nvidia/cuda:11.8.0-runtime-ubuntu20.04
+Stage: run
+
+%files from build
+    .
+
+%runscript
+    #! /bin/bash
+    set -euo pipefail
+    PYTHONPATH=/learner
+    cd /learner
+    AGGR="$1"
+    shift 1
+    LAYER="$1"
+    shift 1
+    REP="$1"
+    shift 1
+    MODEL="$1"
+    shift 1
+    DOMAIN="$1"
+    shift 1
+    TRAINONLY="$1"
+
+    if [[ $TRAINONLY -eq 1 ]]
+    then
+        python3 ranker/rank_train_test_ipc23.py -a "$AGGR" -l "$LAYER" -r "$REP" -m "$MODEL" -d "$DOMAIN" --train-only
+    else
+        python3 ranker/rank_train_test_ipc23.py -a "$AGGR" -l "$LAYER" -r "$REP" -m "$MODEL" -d "$DOMAIN"
+    fi
+
