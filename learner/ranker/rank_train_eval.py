@@ -34,7 +34,7 @@ def rank_evaluate(model, device, val_loader, criterion, return_true_preds=False)
         data = data.to(device)
         h_pred, h_true = model.forward(data)
         h_pred.to(device)
-        h_true.to(device)
+        h_true = h_true.to(device)
 
         loss = criterion.forward(h_pred, h_true)
         val_loss += loss.detach().cpu().item()
