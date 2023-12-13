@@ -3,6 +3,8 @@ import os
 import pickle
 import traceback
 
+from ranker.rank_model import RankModel
+
 
 def arg_to_params(args, in_feat=4, out_feat=1):
     # this is an artifact of legacy code, it could
@@ -87,7 +89,12 @@ def load_gnn_model(path, print_args=False):
         model_state_dict, args = torch.load(path)
     else:
         model_state_dict, args = torch.load(path, map_location=torch.device("cpu"))
-    model = Model(params=arg_to_params(args))
+    model_params = arg_to_params(args)
+    if args.model == "gnn-rank":
+        model_params["out_feat"] = args.nEmb
+        model = RankModel(params=model_params)
+    else:
+        model = Model(params=model_params)
     model.load_state_dict_into_gnn(model_state_dict)
     print("Model loaded!")
     if print_args:

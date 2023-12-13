@@ -1,0 +1,327 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%    Set of macros for displaying math symbols, shortcuts of symbols, etc
+%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%                            EXTRA MATH ALPHABET
+%%
+%\DeclareFontFamily{OT1}{pzc}{}
+%\DeclareFontShape{OT1}{pzc}{m}{it}%
+%              {<-> s * [1.20] pzcmi7t}{}
+%\DeclareMathAlphabet{\mathpzc}{OT1}{pzc}%
+%                                 {m}{it}
+
+%%%% Commands to display alphabets used
+%\newcommand{\al}{A~B~C~D~E~F~G~H~I~J~K~L~M~N~O~P~Q~R~S~T~U~V~W~X~Y~Z}
+
+%\newcommand{\showSetAlphabet}{\setSymbol{\al}}
+%\newcommand{\showTransfAlphabet}{\transfSymbol{\al}}
+%\newcommand{\showMathCalAlphabet}{$\mathcal{\al}$}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+
+%%%% Math packages
+\usepackage{amsfonts}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{amsthm}
+\usepackage{mathrsfs}
+
+
+%\usepackage{eulervm}
+
+%%%% Counters for the math environments
+%\theoremstyle{plain}  %% default: italic and space before and after
+\newcounter{def}
+% \newtheorem{definition}[def]{Definition}
+\newtheorem{definition}{Definition}
+\newcounter{teo}
+% \newtheorem{theorem}[teo]{Theorem}
+% \newtheorem{corollary}[teo]{Corollary}
+% \newtheorem{lemma}[teo]{Lemma}
+\newtheorem{theorem}{Theorem}
+\newtheorem{corollary}{Corollary}
+\newtheorem{lemma}{Lemma}
+\newcounter{assump}
+% \newtheorem{assumption}[assump]{Assumption}
+\newtheorem{assumption}{Assumption}
+\newtheorem{example}{Example}
+\newcounter{repTeo}
+\newtheorem{repeatedTeo}[repTeo]{Theorem}
+
+
+%%%% Pretty argmin and argmax operators
+\def\argmin{\mathop{\rm argmin}}
+\def\argmax{\mathop{\rm argmax}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%                              Notation Macros
+%%
+
+%% Font Face for SETs
+\newcommand{\setSymbol}[1]{\ensuremath{\mathsf{#1}}}
+%% Font Face for Problems Transformation
+\newcommand{\transfSymbol}[1]{\ensuremath{\mathpzc{#1}}}
+%% Font Face for problems, i.e., SSPs, Det. Problems
+\newcommand{\probSymbol}[1]{\ensuremath{\mathbb{#1}}}
+
+%% Macro for short-sighted object
+\newcommand{\shortsighted}[2]{\ensuremath{#1_{#2}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%%                             Notation Shortcuts
+%%
+%% Famous set and subsets
+\newcommand{\Reals}{\ensuremath{\mathbb{R}}\xspace}
+\newcommand{\Rnn}{\ensuremath{\Reals_{\le 0}}\xspace}
+\newcommand{\Rp}{\ensuremath{\Reals_{> 0}}\xspace}
+\newcommand{\Naturals}{\ensuremath{\mathbb{N}}\xspace}
+\newcommand{\Np}{\ensuremath{\Naturals_{> 0}}\xspace}
+
+
+%% Range from 1 to K
+\usepackage{stmaryrd}  %% for the double square bracket
+%\newcommand{\range}[1]{\ensuremath{\{1,\dots,#1\}}\xspace}
+\newcommand{\range}[1]{\ensuremath{\llbracket#1\rrbracket}\xspace}
+
+
+%% Trace
+\newcommand{\trace}{\ensuremath{\mathcal{T}}\xspace}
+
+
+%% A state
+\newcommand{\s}{\ensuremath{s}\xspace}
+\newcommand{\sZ}{\ensuremath{s_0}\xspace}
+\newcommand{\sP}{\ensuremath{s'}\xspace}
+
+%% Policy
+\newcommand{\p}{\ensuremath{\pi}\xspace}
+\newcommand{\ps}{\ensuremath{\p^{*}}\xspace}
+
+%% SSPs components, tuple and symbol
+%\newcommand{\ssp}{\probSymbol{S}\xspace}
+\newcommand{\ssp}[1][]{\ifthenelse{\equal{#1}{}}{\probSymbol{S}\xspace}{\ensuremath{\probSymbol{S}^{#1}}\xspace}}
+\newcommand{\Ss}{\setSymbol{S}\xspace}
+\newcommand{\Sg}{\St}
+\newcommand{\St}{\ensuremath{\setSymbol{G}}\xspace}
+\newcommand{\A}{\setSymbol{A}\xspace}
+\newcommand{\ac}{\ensuremath{a}\xspace}
+\newcommand{\pr}{\ensuremath{P}\xspace}
+\newcommand{\C}[1][]{\ifthenelse{\equal{#1}{}}{\ensuremath{C}}{\ensuremath{C_{#1}}}\xspace}
+\newcommand{\sspTuple}{\ensuremath{\langle \Ss, \sZ, \St, \A, \pr,\C\rangle}\xspace}
+
+
+%% Deterministic problem
+\newcommand{\detSP}{\probSymbol{D}\xspace}
+\newcommand{\detSPTuple}[1]{\ensuremath{\langle \Ss, \s_0, \St, \A#1, \C\rangle}\xspace}
+
+
+%% Heuristic names
+\newcommand{\hZero}{\ensuremath{h^0}\xspace}
+\newcommand{\hAdd}{\ensuremath{h^\text{add}}\xspace}
+\newcommand{\hMax}{\ensuremath{h^\text{max}}\xspace}
+\newcommand{\hVecMax}{\ensuremath{\vec{h}^\text{max}}\xspace}
+\newcommand{\hMin}{\ensuremath{h^\text{m-m}}\xspace}
+\newcommand{\hSl}{\ensuremath{h^\text{sl}}\xspace}
+\newcommand{\hFf}{\ensuremath{h\^text{ff}}\xspace}
+\newcommand{\hM}{\ensuremath{h^\text{m}}\xspace}
+\newcommand{\hT}{\ensuremath{h^\text{2}}\xspace}
+\newcommand{\hGoth}{\ensuremath{h^\text{goth}}\xspace}
+\mathchardef\mhyphen="2D
+%\newcommand{\hLMcut}{\ensuremath{h_\text{lm-cut}}\xspace}
+\newcommand{\hLMcut}{\ensuremath{h^\text{lmc}}\xspace}
+\newcommand{\hVecLMcut}{\ensuremath{h^\text{lmc-m}}\xspace}
+
+\newcommand{\hAddDet}{\ensuremath{h_\text{add}^\text{det}}\xspace}
+\newcommand{\hMaxDet}{\ensuremath{h_\text{max}^\text{det}}\xspace}
+\newcommand{\hAddSL}{\ensuremath{h_\text{add}^{sl}}\xspace}
+\newcommand{\hMaxSL}{\ensuremath{h_\text{max}^{sl}}\xspace}
+\newcommand{\hAddPr}{\ensuremath{h_\text{add}^{pr}}\xspace}
+\newcommand{\hMaxPr}{\ensuremath{h_\text{max}^{pr}}\xspace}
+
+\newcommand{\hDet}{\ensuremath{h_\oplus^\text{det}}\xspace}
+\newcommand{\hSL}{\ensuremath{h_\oplus^\text{sl}}\xspace}
+\newcommand{\hPr}{\ensuremath{h_\oplus^\text{pr}}\xspace}
+
+
+%% Algorithm stuff
+\newcommand{\alg}[1]{\ensuremath{\text{\textsc{#1}}}}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% Constraint SSPs notation
+%%
+%% Wrapper for optimal arguments
+\newcommand{\optPairSA}[1][]{\ifthenelse{\equal{#1}{}}{\s,\ac}{#1}}
+\newcommand{\optS}[1][]{\ifthenelse{\equal{#1}{}}{\s}{#1}}
+\newcommand{\optK}[1][]{\ifthenelse{\equal{#1}{}}{k}{#1}}
+
+%% C-SSPs components, tuple and symbol
+%% Upper bound on cost C
+\newcommand{\ubC}[1]{\ensuremath{u_{#1}}\xspace}
+\newcommand{\vecUbC}{\ensuremath{\vec{u}}\xspace}
+%
+\newcommand{\aF}{\ensuremath{\ac_F}}
+\newcommand{\cssp}{\probSymbol{C}\xspace}
+\newcommand{\csspTuple}{\ensuremath{\langle \Ss, \s_0, \St, \A, \pr, \vec{\C}, \vecUbC\rangle}\xspace}
+%% C-SSP with terminal cost
+\newcommand{\termC}[1][]{\ifthenelse{\equal{#1}{}}{\ensuremath{T}}{\ensuremath{T_{#1}}}\xspace}
+\newcommand{\vecTermC}{\ensuremath{\vec{T}}\xspace}
+\newcommand{\csspTupleTermCost}{\ensuremath{\langle \Ss, \s_0, \St, \A, \pr, \vec{\C},
+\vecUbC, \vecTermC\rangle}\xspace}
+\newcommand{\h}{\ensuremath{H}\xspace}
+\newcommand{\heurC}[1][]{\ifthenelse{\equal{#1}{}}{\ensuremath{H}}{\ensuremath{H_{#1}}}\xspace}
+\newcommand{\vecHeurC}{\ensuremath{\vec{H}}\xspace}
+\newcommand{\csspTupleHeurCost}{\ensuremath{\langle \Ss, \s_0, \St, \A, \pr, \vec{\C},
+\vecUbC, \vecHeurC\rangle}\xspace}
+
+\newcommand{\fringe}{\setSymbol{F}\xspace}
+
+
+%%% Occupation measure macros
+\newcommand{\xSymbol}{x}
+\newcommand{\xMandatory}[2][]{\ifthenelse{\equal{#1}{}}{\xSymbol_{#2}}{\xSymbol^{#1}_{#2}}}
+% Regular x
+\newcommand{\x}[1][]{\ensuremath{\xMandatory{\optPairSA[#1]}}\xspace}
+% x star (optimal x)
+\newcommand{\xS}[1][]{\ensuremath{\xMandatory[*]{\optPairSA[#1]}}\xspace}
+% x G for the goal sink
+\newcommand{\xG}[1][]{\ensuremath{\xMandatory[G]{\optS[#1]}}\xspace}
+% x D for the dead-end sink
+\newcommand{\xD}[1][]{\ensuremath{\xMandatory[D]{\optS[#1]}}\xspace}
+% x F for the fringe sink
+\newcommand{\xF}[1][]{\ensuremath{\xMandatory[F]{\optS[#1]}}\xspace}
+
+
+%%% Dead end cost
+\newcommand{\dCost}[1][]{\ifthenelse{\equal{#1}{}}{\ensuremath{d}}{\ensuremath{d_{#1}}}\xspace}
+
+%%% LP macros
+\newcommand{\IN}[1]{\ensuremath{in(#1)}\xspace}
+\newcommand{\OUT}[1]{\ensuremath{out(#1)}\xspace}
+\newcommand{\lpTemplate}{\eqref{dual:template:x} -- \eqref{dual:template:source}\xspace}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+%%% Makes the summation more compact by letting the argument overlap with the subscript
+\usepackage{mathtools}
+\newcommand{\sumB}[1]{\sum_{\mathclap{#1}}}
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+%% SAS+ macros
+\newcommand{\sas}{SAS$^+$\xspace}
+\newcommand{\setVars}{\setSymbol{\cal V}\xspace}
+\newcommand{\setVarss}{\ensuremath{\setSymbol{\cal V}_s}\xspace}
+\newcommand{\setOps}{\setSymbol{A}\xspace}
+\newcommand{\sInit}{\ensuremath{\s_0}\xspace}
+\newcommand{\sGoal}{\ensuremath{\s_\star}\xspace}
+\newcommand{\sCost}{\C}
+
+\newcommand{\sasTuple}{\ensuremath{\langle \setVars, \setOps, \sInit, \sGoal, \sCost \rangle}\xspace}
+\newcommand{\sasConstrTuple}{\ensuremath{\langle \setVars, \setOps, \sInit, \sGoal, \vec{\C}, \vecUbC\rangle}\xspace}
+\newcommand{\sasp}{\probSymbol{P}\xspace}
+\newcommand{\operator}{action\xspace}
+\newcommand{\operators}{actions\xspace}
+\newcommand{\sV}{\ensuremath{v}\xspace}
+\newcommand{\sDom}[1]{\ensuremath{\setSymbol{D}_{#1}}\xspace}
+\newcommand{\sOp}{\ensuremath{a}\xspace}
+\newcommand{\sPre}[1]{\ensuremath{pre(#1)}\xspace}
+\newcommand{\opPr}[1]{\ensuremath{\Pr_{#1}}\xspace}
+\newcommand{\opPrI}[1]{\ensuremath{\textstyle\Pr_{#1}}\displaystyle\xspace}
+\newcommand{\opSup}[1]{\ensuremath{e\!f\!f(#1)}\xspace}
+\newcommand{\eff}[1]{\opSup{#1}\xspace}
+
+\newcommand{\valVar}[2]{\ensuremath{#1[#2]}\xspace}
+\newcommand{\noVal}{\ensuremath{\bot}\xspace}
+
+\newcommand{\constrFlow}[1][]{\ifthenelse{\equal{#1}{}}{\setSymbol{C}\xspace}{\ensuremath{\setSymbol{C}^{#1}}\xspace}}
+\newcommand{\constrTying}[1][]{\ifthenelse{\equal{#1}{}}{\ensuremath{\setSymbol{Tying}^{s}}}{\ensuremath{\setSymbol{Tying}^{#1}}}\xspace}
+\newcommand{\constrNet}[1][]{\ifthenelse{\equal{#1}{}}{\setSymbol{N}\xspace}{\ensuremath{\setSymbol{N}^{#1}}\xspace}}
+\newcommand{\constrCost}{\setSymbol{CostUB}\xspace}
+
+\newcommand{\hOMC}{\ensuremath{h^\text{pom}}\xspace}
+\newcommand{\hConstrOMC}{\ensuremath{h^\text{c-pom}}\xspace}
+\newcommand{\hPMax}{\ensuremath{h^\text{pmax}}\xspace}
+
+\newcommand{\deWrapper}[1]{\ensuremath{#1_{\text{de}}}\xspace}
+\newcommand{\netchange}[1]{\ensuremath{\text{netchange}#1}\xspace}
+\newcommand{\AP}{\ensuremath{AP}\xspace}
+\newcommand{\AC}{\ensuremath{AC}\xspace}
+\newcommand{\SP}{\ensuremath{SP}\xspace}
+\newcommand{\SC}{\ensuremath{SC}\xspace}
+\newcommand{\constrRegroup}{\setSymbol{Regroup}\xspace}
+\newcommand{\hOpC}{\ensuremath{h^\text{net}}\xspace}
+\newcommand{\hROC}{\ensuremath{h^\text{roc}}\xspace}
+\newcommand{\hConstrROC}{\ensuremath{h^\text{c-roc}}\xspace}
+
+\newcommand{\sasIN}[2]{\ensuremath{in^{#1}(#2)}\xspace}
+\newcommand{\sasOUT}[2]{\ensuremath{out^{#1}(#2)}\xspace}
+
+\newcommand{\xPOM}{\ensuremath{\xMandatory[\sV,\s]{d,\ac}}\xspace}
+\newcommand{\xPOMargs}[2]{\ensuremath{\xMandatory[#1]{#2}}\xspace}
+
+\newcommand{\xProjArgs}[2]{\ensuremath{\hat{\xSymbol}^{#1}_{#2}}\xspace}
+\newcommand{\xProj}{\xProjArgs{\sV,\s}{d,\ac}\xspace}
+\newcommand{\xProjPrime}{\xProjArgs{\sV,\s}{d',\ac}\xspace}
+
+\newcommand{\projSSP}{\ensuremath{\ssp^{\sV,\s}}\xspace}
+
+\newcommand{\pInitArgs}[1]{\ensuremath{p^{#1}_0}\xspace}
+\newcommand{\pInit}{\pInitArgs{\sV}}
+
+%\newcommand{\atom}{\ensuremath{\omega}\xspace}
+%\newcommand{\pairAtm}{\{\atom,\delta\}}
+%\newcommand{\sOp}{\ensuremath{o}\xspace}
+%\newcommand{\Add}[1]{\ensuremath{add(#1)}\xspace}
+%\newcommand{\Del}[1]{\ensuremath{del(#1)}\xspace}
+%\newcommand{\Cost}[1]{\ensuremath{cost(#1)}\xspace}
+%\newcommand{\AddP}[2]{\ensuremath{add_#2(#1)}\xspace}
+%\newcommand{\DelP}[2]{\ensuremath{del_#2(#1)}\xspace}
+%%% Get the atoms true in the state s
+%\newcommand{\getAtoms}{\ensuremath{t}^{-1}}
+%%% Get the state in which the given atoms are true and all other are false
+%\newcommand{\getState}{\ensuremath{t}}
+
+%% H_max H_add notation
+%\newcommand{\gA}{\ensuremath{g}\xspace}
+%\newcommand{\gS}{\ensuremath{\dot{g}}\xspace}
+%\newcommand{\setAdds}[1]{\ensuremath{\setSymbol{O}^+_#1}}
+%\newcommand{\setDels}[1]{\ensuremath{\setSymbol{O}^-_#1}}
+%\newcommand{\setKeeps}[1]{\ensuremath{\setSymbol{O}^|_#1}}
+
+%% Non-xspace version
+%\newcommand{\Ss}[1]{\ensuremath{\setSymbol{S}#1}}
+%\newcommand{\St}[1]{\ensuremath{\setSymbol{G}#1}}
+%\newcommand{\A}[1]{\ensuremath{\setSymbol{A}#1}}
+%\newcommand{\ac}[1]{\ensuremath{a#1}}
+%\newcommand{\pr}[1]{\ensuremath{P#1}}
+%\newcommand{\C}[1]{\ensuremath{C#1}}
+%\newcommand{\sspTuple}{\ensuremath{\langle \Ss{}, \s{}_0, \St{}, \A{}, \pr{}, \C{}\rangle}}
+
+%% Factored Representation
+%\newcommand{\F}[1]{\ensuremath{\setSymbol{F}#1}}
+
+
+\newcommand{\bestCov}[1]{\textbf{#1}}
+\newcommand{\bestCPU}[1]{\textbf{#1}}
+\newcommand{\bestMem}[1]{\textbf{#1}}
+
+
+\newcommand{\yHat}{\ensuremath{\hat{Y}_{a,e}}\xspace}
+\newcommand{\xProof}[1]{\xMandatory[\sV,\s,*]{#1,a}}
+

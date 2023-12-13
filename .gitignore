@@ -3,3 +3,7 @@
 *.sif
 *.vscode*
 .stignore
+/data/ipc23/ranker/
+*.idea*
+/logs/
+/planners/downward/src/cmake-build-debug/
