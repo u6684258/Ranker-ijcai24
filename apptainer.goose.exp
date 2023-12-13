@@ -90,8 +90,8 @@ Stage: run
 
     if [[ $TRAINONLY -eq 1 ]]
     then
-        python3 ranker/rank_train_test_ipc23.py -a "$AGGR" -l "$LAYER" -r "$REP" -m "$MODEL" -d "$DOMAIN" --train-only
+        python3 ranker/rank_train_test_ipc2023.py -a "$AGGR" -l "$LAYER" -r "$REP" -m "$MODEL" -d "$DOMAIN" --train-only
     else
-        python3 ranker/rank_train_test_ipc23.py -a "$AGGR" -l "$LAYER" -r "$REP" -m "$MODEL" -d "$DOMAIN"
+        python3 ranker/rank_train_test_ipc2023.py -a "$AGGR" -l "$LAYER" -r "$REP" -m "$MODEL" -d "$DOMAIN"
     fi
 
