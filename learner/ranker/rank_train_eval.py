@@ -10,8 +10,7 @@ def rank_train(model, device, train_loader, criterion, optimiser):
 
         optimiser.zero_grad(set_to_none=True)
         h_pred, h_true = model.forward(data)
-        h_pred.to(device)
-        h_true.to(device)
+        h_true = h_true.to(device)
 
         loss = criterion.forward(h_pred, h_true)
         loss.backward()
