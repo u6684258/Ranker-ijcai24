@@ -121,10 +121,8 @@ class RGNN(nn.Module):
         x = self.emb(x)
         for layer in self.layers:
             x = layer(x, list_of_edge_index)
-            if hasattr(self, 'is_ranker'):
-                x = F.leaky_relu(x)
-            else:
-                x = F.relu(x)
+            x = F.leaky_relu(x)
+
         return x
 
     def graph_embedding(

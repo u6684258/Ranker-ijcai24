@@ -1,5 +1,6 @@
 import os
 import sys
+import itertools
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -95,6 +96,7 @@ def get_tensor_graphs_from_plans(args):
     plans_dir = args.plans_dir
 
     for plan_file in sorted(list(os.listdir(plans_dir))):
+        problem_set = []
         problem_pddl = f"{tasks_dir}/{plan_file.replace('.plan', '.pddl')}"
         assert os.path.exists(problem_pddl), problem_pddl
         plan_file = f"{plans_dir}/{plan_file}"
@@ -107,7 +109,8 @@ def get_tensor_graphs_from_plans(args):
             x, edge_index = rep.state_to_tensor(state)
             y = sum(schema_cnt.values())
             graph = Data(x=x, edge_index=edge_index, y=y)
-            graphs.append(graph)
+            problem_set.append(graph)
+        graphs.append(problem_set)
 
     print("Graphs generated!")
     return graphs
@@ -120,11 +123,12 @@ def get_loaders_from_args_gnn(args):
     dataset = get_tensor_graphs_from_plans(args)
     if small_train:
         random.seed(123)
-        dataset = random.sample(dataset, k=1000)
+        dataset = random.sample(dataset, k=10)
 
-    trainset, valset = train_test_split(dataset, test_size=0.15, random_state=4550)
-
-    get_stats(dataset=dataset, desc="Whole dataset")
+    trainset, valset = train_test_split(dataset, test_size=0.10, random_state=4550)
+    trainset = list(itertools.chain.from_iterable(trainset))
+    valset = list(itertools.chain.from_iterable(valset))
+    get_stats(dataset=list(itertools.chain.from_iterable(dataset)), desc="Whole dataset")
     get_stats(dataset=trainset, desc="Train set")
     get_stats(dataset=valset, desc="Val set")
     print("train size:", len(trainset))

@@ -12,7 +12,6 @@ from gnns.gnn import Model
 class RankModel(Model):
     def __init__(self, params):
         super().__init__(params)
-        self.model.is_ranker = True
         self.model.mlp_h = nn.Sequential(
             nn.Linear(self.model.nhid, self.model.out_feat),
         )

@@ -75,8 +75,8 @@ def fd_cmd(df, pf, m, search, timeout=2000):  # 1800s + overhead for timeout
     return cmd, sas_file
 
 
-def get_model_desc(rep, domain, L, H, aggr, repeat):
-    return f"{domain}_{rep}_L{L}_H{H}_{aggr}_r{repeat}_rank"
+def get_model_desc(rep, domain, L, H, aggr, repeat, model):
+    return f"{domain}_{rep}_L{L}_H{H}_{aggr}_r{repeat}_{model}"
 
 
 if __name__ == "__main__":
@@ -111,7 +111,7 @@ if __name__ == "__main__":
         """train"""
         os.system("date")
 
-        desc = get_model_desc(rep, domain, L, H, aggr, repeat)
+        desc = get_model_desc(rep, domain, L, H, aggr, repeat, model)
         model_file = f"{_MODEL_DIR}/{desc}.dt"
 
         train_log_file = f"{_TRAIN_LOG_DIR}/{desc}.log"
