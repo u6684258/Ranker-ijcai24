@@ -64,6 +64,8 @@ Stage: build
     ./build.py release
     cd ..
 
+    pip install -e mdpsim
+
 
 # Stage 2: Run the planner
 Bootstrap: docker

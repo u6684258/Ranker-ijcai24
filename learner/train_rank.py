@@ -7,6 +7,15 @@ import representation
 from gnns.loss import BCELoss, MSELoss
 from gnns.gnn import Model
 from gnns.train_eval import train, evaluate
+from hgn.dataset_hgn import get_loaders_from_args_hgn
+from hgn.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
+from hgn.hypergraph_nets.features.hyperedge_features import ComplexHyperedgeFeatureMapper
+from hgn.hypergraph_nets.features.node_features import PropositionInStateAndGoal
+from hgn.model_hgn import HgnModel, HGNLoss
+from hgn.rank_dataset_hgn import get_loaders_from_args_hgn_rank
+from hgn.rank_model_hgn import HgnRankModel
+from hgn.rank_train_eval_hgn import hgn_rank_evaluate, hgn_rank_train
+from hgn.train_eval_hgn import hgn_train, hgn_evaluate
 from ranker.rank_dataset import get_loaders_from_args_rank
 from ranker.rank_model import RankModel
 from ranker.rank_train_eval import rank_train, rank_evaluate
@@ -22,7 +31,7 @@ def parse_args():
 
     # model params
     parser.add_argument("-m", "--model",
-                        choices=["gnn", "gnn-rank"],
+                        choices=["gnn", "gnn-rank", "hgn", "hgn-rank"],
                         default="gnn"
                         )
     parser.add_argument("-L", "--nlayers", type=int, default=4)
@@ -109,16 +118,57 @@ if __name__ == "__main__":
         train_loader, val_loader = get_loaders_from_args_gnn(args)
     elif args.model == "gnn-rank":
         train_loader, val_loader = get_loaders_from_args_rank(args)
+    elif args.model == "hgn":
+        train_loader, val_loader, m_re, m_se = get_loaders_from_args_hgn(args)
+    elif args.model == "hgn-rank":
+        train_loader, val_loader, m_re, m_se = get_loaders_from_args_hgn_rank(args)
+
     else:
         assert False, f"Invalid model type: {args.model}"
-    args.n_edge_labels = len(train_loader.dataset[0].edge_index)
-    args.in_feat = train_loader.dataset[0].x.shape[1]
-    model_params = arg_to_params(args)
+
     if args.model == "gnn":
+        args.n_edge_labels = len(train_loader.dataset[0].edge_index)
+        args.in_feat = train_loader.dataset[0].x.shape[1]
+        model_params = arg_to_params(args)
         model = Model(params=model_params).to(device)
     elif args.model == "gnn-rank":
+        args.n_edge_labels = len(train_loader.dataset[0].edge_index)
+        args.in_feat = train_loader.dataset[0].x.shape[1]
+        model_params = arg_to_params(args)
         model_params["out_feat"] = args.nEmb
         model = RankModel(params=model_params).to(device)
+    elif args.model == "hgn":
+        model_params = {
+            "model":args.model,
+            "device":device,
+            "receiver_k":m_re,
+            "sender_k":m_se,
+            "hidden_size":args.nEmb,
+            "latent_size":args.nEmb,
+            "antisymmetric_activation":torch.nn.Sigmoid(),
+            "batch_size":args.batch_size,
+            "num_steps":args.nlayers,
+            "global_feature_mapper_cls":EmptyGlobalFeatureMapper,
+            "node_feature_mapper_cls":PropositionInStateAndGoal,
+            "hyperedge_feature_mapper_cls":ComplexHyperedgeFeatureMapper,
+        }
+        model = HgnModel(params=model_params).to(device)
+    elif args.model == "hgn-rank":
+        model_params = {
+            "model": args.model,
+            "device": device,
+            "receiver_k": m_re,
+            "sender_k": m_se,
+            "hidden_size": args.nEmb,
+            "latent_size": args.nEmb,
+            "antisymmetric_activation": torch.nn.Sigmoid(),
+            "batch_size": args.batch_size,
+            "num_steps": args.nlayers,
+            "global_feature_mapper_cls": EmptyGlobalFeatureMapper,
+            "node_feature_mapper_cls": PropositionInStateAndGoal,
+            "hyperedge_feature_mapper_cls": ComplexHyperedgeFeatureMapper,
+        }
+        model = HgnRankModel(params=model_params).to(device)
     else:
         assert False, f"Invalid model type: {args.model}"
 
@@ -131,7 +181,14 @@ if __name__ == "__main__":
     epochs = args.epochs
 
     # init optimiser
-    criterion = MSELoss()
+    if args.model == "gnn":
+        criterion = MSELoss()
+    if args.model == "gnn-rank":
+        criterion = MSELoss()
+    elif args.model == "hgn":
+        criterion = HGNLoss()
+    elif args.model == "hgn-rank":
+        criterion = HGNLoss()
     optimiser = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimiser, mode="min", verbose=True, factor=reduction, patience=patience
@@ -154,6 +211,15 @@ if __name__ == "__main__":
                 train_stats = rank_train(
                     model, device, train_loader, criterion, optimiser
                 )
+
+            elif args.model == "hgn":
+                train_stats = hgn_train(
+                    model, device, train_loader, criterion, optimiser
+                )
+            elif args.model == "hgn-rank":
+                train_stats = hgn_rank_train(
+                    model, device, train_loader, criterion, optimiser
+                )
             else:
                 assert False, f"Invalid model type: {args.model}"
             train_loss = train_stats["loss"]
@@ -161,6 +227,14 @@ if __name__ == "__main__":
                 val_stats = evaluate(model, device, val_loader, criterion)
             elif args.model == "gnn-rank":
                 val_stats = rank_evaluate(model, device, val_loader, criterion)
+            elif args.model == "hgn":
+                val_stats = hgn_evaluate(
+                    model, device, train_loader, criterion, optimiser
+                )
+            elif args.model == "hgn-rank":
+                train_stats = hgn_rank_evaluate(
+                    model, device, train_loader, criterion, optimiser
+                )
             else:
                 assert False, f"Invalid model type: {args.model}"
             val_loss = val_stats["loss"]
@@ -170,7 +244,7 @@ if __name__ == "__main__":
             combined_metric = (train_loss + 2 * val_loss) / 3
             if combined_metric < best_metric:
                 best_metric = combined_metric
-                best_dict = model.model.state_dict()
+                best_dict = model.state_dict()
                 best_epoch = e
 
             desc = f"epoch {e}, " \
