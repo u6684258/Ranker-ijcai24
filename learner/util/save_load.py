@@ -138,3 +138,28 @@ def load_kernel_model_and_setup(path, domain_file, problem_file):
     except Exception:
         print(traceback.format_exc(), flush=True)
     return model
+
+
+def save_hgn_model(model, args):
+    import torch
+    if not hasattr(args, "save_file") or args.save_file is None:
+        return
+    save_file = args.save_file
+    save_dir = os.path.dirname(save_file)
+    if len(save_dir) > 0:
+        os.makedirs(save_dir, exist_ok=True)
+    print(f"Saving model at {save_file}...")
+    torch.save(model, save_file)
+    print("Model saved!")
+    print("Model parameter file:", save_file)
+    return
+
+
+def load_hgn_model(path, print_args=False, jit=False, ignore_subdir=False):
+    print("Loading model...")
+    import torch
+    model = torch.load(path)
+    # update legacy naming
+    print("Model loaded!")
+    model.eval()
+    return model

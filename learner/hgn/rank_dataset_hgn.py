@@ -20,11 +20,11 @@ sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import random
 from torch.utils.data import DataLoader
-from sklearn.model_selection import train_test_split
 
 _DOWNWARD = "./../planners/downward/fast-downward.py"
 _POWERLIFTED = "./../planners/powerlifted/powerlifted.py"
 DATA_DIR = "./../data/ipc23/hgn-rank"
+Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 
 def get_plan_info(problems, problem_pddl, plan_file, args):

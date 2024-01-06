@@ -6,6 +6,7 @@ Main script for running GOOSE experiments for ICAPS-24. The experiment pipeline 
 import itertools
 import os
 import sys
+from pathlib import Path
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 import re
@@ -17,9 +18,9 @@ from util.scrape_log import scrape_search_log, scrape_train_log, search_finished
 
 _SEARCH = "gbbfs"
 
-_MODEL_DIR = "./../logs/ranker_gnn_models"
-_TRAIN_LOG_DIR = f"./../logs/ranker_train_logs"
-_TEST_LOG_DIR = f"./../logs/ranker_test_logs"
+_MODEL_DIR = "./../logs/hgn_gnn_models"
+_TRAIN_LOG_DIR = f"./../logs/hgn_train_logs"
+_TEST_LOG_DIR = f"./../logs/hgn_test_logs"
 os.makedirs(_MODEL_DIR, exist_ok=True)
 os.makedirs(_TRAIN_LOG_DIR, exist_ok=True)
 os.makedirs(_TEST_LOG_DIR, exist_ok=True)
@@ -28,8 +29,8 @@ _AUX_DIR = "./../logs/aux"
 _PLAN_DIR = "./../logs/plans"
 os.makedirs(_AUX_DIR, exist_ok=True)
 os.makedirs(_PLAN_DIR, exist_ok=True)
-
-BENCHMARK_DIR = "./../benchmarks/ipc2023-learning-benchmarks"
+CUR_DIR = Path(os.getcwd())
+BENCHMARK_DIR = f"{CUR_DIR.parent.absolute()}/benchmarks/ipc2023-learning-benchmarks"
 
 IPC2023_FAIL_LIMIT = {
     "blocksworld": 15,
@@ -47,7 +48,8 @@ IPC2023_FAIL_LIMIT = {
 REPEATS = 5
 
 DOWNWARD_GPU_CMD = "./../planners/downward_gpu/fast-downward.py"
-
+os.environ['STRIPS_HGN_NEW'] = f'{os.getcwd()}'
+os.environ['FD_HGN'] = f'{os.getcwd()}/../planners/FD-Hypernet-master'
 
 def sorted_nicely(l):
     """Sort the given iterable in the way that humans expect."""
@@ -56,7 +58,8 @@ def sorted_nicely(l):
     return sorted(l, key=alphanum_key)
 
 
-def fd_cmd(df, pf, m, search, timeout=2000):  # 1800s + overhead for timeout
+def fd_cmd(df, pf, m, search, model="hgn", timeout=2000):  # 1800s + overhead for timeout
+
     if search == "gbbfs":
         search = "batch_eager_greedy"
     elif search == "gbfs":
@@ -64,28 +67,29 @@ def fd_cmd(df, pf, m, search, timeout=2000):  # 1800s + overhead for timeout
     else:
         raise NotImplementedError
 
-    description = f"fd_{pf.replace('.pddl','').replace('/','-')}_{search}_{os.path.basename(m).replace('.dt', '')}"
+    description = f"fd_{pf.replace('.pddl', '').replace('/', '-')}_{search}_{os.path.basename(m).replace('.dt', '')}"
     sas_file = f"{_AUX_DIR}/{description}.sas_file"
     plan_file = f"{_PLAN_DIR}/{description}.plan"
-    cmd = (
-        f"{DOWNWARD_GPU_CMD} --search-time-limit {timeout} --sas-file {sas_file} --plan-file {plan_file} "
-        + f'{df} {pf} --search \'{search}([goose(model_path="{m}", domain_file="{df}", instance_file="{pf}")])\''
-    )
-    cmd = f"export GOOSE={os.getcwd()} && {cmd}"
+    cmd = f"./../planners/FD-Hypernet-master/fast-downward.py --search-time-limit {timeout} --sas-file {sas_file} --plan-file {plan_file} " + \
+          f"{df} {pf} --translate-options --full-encoding --search-options " \
+          f"--search \"eager(single(hgn2(network_file={m}," \
+          f"domain_file={df}," \
+          f"instance_file={pf}," \
+          f"type={model})))\""
     return cmd, sas_file
 
 
-def get_model_desc(rep, domain, L, H, aggr, repeat):
-    return f"{domain}_{rep}_L{L}_H{H}_{aggr}_r{repeat}_rank"
+def get_model_desc(rep, domain, L, H, aggr, repeat, model):
+    return f"{domain}_{rep}_L{L}_H{H}_{aggr}_r{repeat}_{model}"
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("-a", "--aggregation", required=True, choices=["mean", "max"])
     parser.add_argument("-l", "--layers", required=True, type=int, choices=[4, 8])
-    parser.add_argument("-r", "--representation", required=True, choices=["ilg", "llg"])
+    parser.add_argument("-r", "--representation", required=True, choices=["llg"])
     parser.add_argument("-d", "--domain", required=True, choices=IPC2023_LEARNING_DOMAINS)
-    parser.add_argument("-m", "--model", required=True, choices=["gnn", "gnn-rank"])
+    parser.add_argument("-m", "--model", required=True, choices=["hgn", "hgn-rank"])
     parser.add_argument("--train-only", action="store_true")
     args = parser.parse_args()
 
@@ -111,7 +115,7 @@ if __name__ == "__main__":
         """train"""
         os.system("date")
 
-        desc = get_model_desc(rep, domain, L, H, aggr, repeat)
+        desc = get_model_desc(rep, domain, L, H, aggr, repeat, model)
         model_file = f"{_MODEL_DIR}/{desc}.dt"
 
         train_log_file = f"{_TRAIN_LOG_DIR}/{desc}.log"
@@ -131,7 +135,7 @@ if __name__ == "__main__":
             # warmup first
             pf = f"{test_dir}/easy/p01.pddl"
             assert os.path.exists(pf), pf
-            cmd, intermediate_file = fd_cmd(df=df, pf=pf, m=model_file, search=_SEARCH, timeout=30)
+            cmd, intermediate_file = fd_cmd(df=df, pf=pf, m=model_file, model=model, search=_SEARCH, timeout=30)
             os.system("date")
             os.system(f"echo warming up with {domain} {rep} {pf} {model_file}")
             os.popen(cmd).readlines()
@@ -150,7 +154,7 @@ if __name__ == "__main__":
                 if os.path.exists(test_log_file):
                     finished_correctly = search_finished_correctly(test_log_file)
                 if not finished_correctly:
-                    cmd, intermediate_file = fd_cmd(df=df, pf=pf, m=model_file, search=_SEARCH)
+                    cmd, intermediate_file = fd_cmd(df=df, pf=pf, m=model_file, model=model, search=_SEARCH)
                     os.system(f"echo testing {domain} {rep}, see {test_log_file}")
                     os.system(f"{cmd} > {test_log_file}")
                     if os.path.exists(intermediate_file):

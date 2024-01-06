@@ -1,12 +1,15 @@
 
 import logging
+import os
+
 import torch
-from dataset.graphs_hgn import create_input_and_target_hypergraphs_tuple
-from representation.hypergraph_nets.delete_relaxation import DeleteRelaxationHypergraphView
-from stripsHgn.Hgn import Hgn
-from stripsHgn.HgnRanker import PlanRanker
-from util.pyperplan_api import STRIPSProblem
-from util.save_load import load_hgn_model
+
+from hgn.dataset_hgn import create_input_and_target_hypergraphs_tuple
+from hgn.hypergraph_nets.delete_relaxation import DeleteRelaxationHypergraphView
+from hgn.model_hgn import HgnModel
+from hgn.rank_model_hgn import HgnRankModel
+from util.mdpsim_api import STRIPSProblem
+from util.save_load import load_hgn_model, load_gnn_model
 
 
 class HGNEvaluator:
@@ -20,18 +23,19 @@ class HGNEvaluator:
         # Set logging level to info
         logging.basicConfig(level=logging.INFO)
         # Generate the STRIPSProblem and get the DeleteRelaxationHypergraphView
-        problem: STRIPSProblem = STRIPSProblem(domain_file, problem_file)
+        problem = STRIPSProblem(domain_file, [problem_file])
+        problem.change_problem(problem_file)
         self.hypergraph = (
             DeleteRelaxationHypergraphView(problem)
         )
 
         # Load STRIPS-HGN model and setup evaluation mode
         if model == "hgn":
-            self.model: Hgn = load_hgn_model(checkpoint)
+            self.model: HgnModel = load_hgn_model(checkpoint)
             self.type = "hgn"
-        if model == "ranker":
+        if model == "hgn-rank":
             # print(checkpoint)
-            self.model: PlanRanker = load_hgn_model(checkpoint)
+            self.model: HgnRankModel = load_hgn_model(checkpoint)
             self.type = "ranker"
         self.model.setup_prediction_mode()
 
@@ -44,15 +48,15 @@ class HGNEvaluator:
             output_h, _ = self.model(input_h_tuple)
             assert output_h.item() > 0
             return output_h
-        elif self.type == "ranker":
+        elif self.type == "hgn-rank":
             output_h, _ = self.model(input_h_tuple)
             assert output_h.item() > 0
             return output_h
 
 
 if __name__ == "__main__":
-    domain = "/home/ming/PycharmProjects/DirectRankerNew/Data/exp_set/blocks/domain.pddl"
-    problem = "/home/ming/PycharmProjects/DirectRankerNew/Data/exp_set/blocks/train/blocks3-task01.pddl"
-    checkpoint = "/home/ming/PycharmProjects/DirectRankerNew/experiments/2023-07-10T22:31:31.501143/train-hgn-ranker-2023-07-13T01:32:06.002717/model-mix-best.ckpt"
-    evaluator = HGNEvaluator(domain, problem, checkpoint, model="ranker")
+    domain = "/home/ming/PycharmProjects/goose/benchmarks/ipc2023-learning-benchmarks/blocksworld/domain.pddl"
+    problem = "/home/ming/PycharmProjects/goose/benchmarks/ipc2023-learning-benchmarks/blocksworld/testing/easy/p01.pddl"
+    checkpoint = "/home/ming/PycharmProjects/goose/logs/hgn_gnn_models/blocksworld_llg_L4_H64_mean_r0_hgn.dt"
+    evaluator = HGNEvaluator(domain, problem, checkpoint, model="hgn")
     print(evaluator.evaluate_state({}, 10))

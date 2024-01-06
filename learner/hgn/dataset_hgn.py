@@ -24,7 +24,7 @@ from sklearn.model_selection import train_test_split
 _DOWNWARD = "./../planners/downward/fast-downward.py"
 _POWERLIFTED = "./../planners/powerlifted/powerlifted.py"
 DATA_DIR = "./../data/ipc23/hgn"
-
+Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 def get_plan_info(problems, problem_pddl, plan_file, args):
 
@@ -36,7 +36,7 @@ def get_plan_info(problems, problem_pddl, plan_file, args):
 
 
 def create_input_and_target_hypergraphs_tuple(
-        state: State, hypergraph: HypergraphView,
+        state, hypergraph: HypergraphView,
         max_receivers, max_senders, coords, heu_value
 ) -> HypergraphsTuple:
 
@@ -57,7 +57,7 @@ def create_input_and_target_hypergraphs_tuple(
         node_features=torch.tensor(
             hypergraph.node_features(
                 PropositionInStateAndGoal(
-                    state.to_frozen_tuple(), set([f"({i.unique_ident})" for i in hypergraph.problem.problem_meta.goal_props])
+                    state, set([f"({i.unique_ident})" for i in hypergraph.problem.problem_meta.goal_props])
                 )
             ),
             dtype=torch.float32,
@@ -100,7 +100,7 @@ def get_tensor_graphs_from_plans(args):
         problem_to_delete_relaxation_hypergraph = DeleteRelaxationHypergraphView(problems)
         for state, schema_cnt in plan:
             graph = create_input_and_target_hypergraphs_tuple(
-                state,
+                state.to_frozen_tuple(),
                 problem_to_delete_relaxation_hypergraph,
                 problems.max_receivers,
                 problems.max_senders,
