@@ -2,6 +2,7 @@ import os
 import sys
 import itertools
 from pathlib import Path
+from typing import List
 
 import torch
 
@@ -9,17 +10,17 @@ from hgn.hypergraph_nets.delete_relaxation import DeleteRelaxationHypergraphView
 from hgn.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
 from hgn.hypergraph_nets.features.hyperedge_features import ComplexHyperedgeFeatureMapper
 from hgn.hypergraph_nets.features.node_features import PropositionInStateAndGoal
-from hgn.hypergraph_nets.hypergraph_nets_adaptor import hypergraph_view_to_hypergraphs_tuple, merge_hypergraphs_tuple
+from hgn.hypergraph_nets.hypergraph_nets_adaptor import hypergraph_view_to_hypergraphs_tuple, merge_hypergraphs_tuple, \
+    merge_hypergraphs_with_states
 from hgn.hypergraph_nets.hypergraph_view import HypergraphView
 from hgn.hypergraph_nets.hypergraphs import HypergraphsTuple
-from ranker.rank_dataset import BatchSampler, ByProblemDataset
 from util import mdpsim_api
 from util.mdpsim_api import State
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
 import random
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Dataset
 
 _DOWNWARD = "./../planners/downward/fast-downward.py"
 _POWERLIFTED = "./../planners/powerlifted/powerlifted.py"
@@ -102,14 +103,14 @@ def get_tensor_graphs_from_plans(args):
         for i, (state, pairs) in enumerate(plan):
             for j, pair in enumerate([state] + pairs):
                 graph = create_input_and_target_hypergraphs_tuple(
-                    state,
+                    pair,
                     problem_to_delete_relaxation_hypergraph,
                     problems.max_receivers,
                     problems.max_senders,
                     coords=[i, j],
                     heu_value=0
                 )
-                problem_set.append(graph)
+                problem_set.append((graph, pair))
         graphs.append(problem_set)
 
     print("Graphs generated!")
@@ -139,12 +140,12 @@ def get_loaders_from_args_hgn_rank(args):
         feature_set = []
         if i % val_interval == 0:
             for data in problem:
-                feature_set.append(data.replace(p_idx=val_valid_count))
+                feature_set.append((data[0].replace(p_idx=val_valid_count), data[1]))
             valset.extend(feature_set)
             val_valid_count += 1
         else:
             for data in problem:
-                feature_set.append(data.replace(p_idx=train_valid_count))
+                feature_set.append((data[0].replace(p_idx=train_valid_count), data[1]))
             trainset.extend(feature_set)
             train_valid_count += 1
 
@@ -155,7 +156,7 @@ def get_loaders_from_args_hgn_rank(args):
         trainset,
         pin_memory=True,
         batch_sampler=train_batch_sampler,
-        collate_fn=merge_hypergraphs_tuple
+        collate_fn=merge_hypergraphs_with_states
     )
     val_batch_sampler = BatchSampler(ByProblemDataset(valset,
                                                       val_valid_count).per_class_sample_indices(),
@@ -165,7 +166,7 @@ def get_loaders_from_args_hgn_rank(args):
         valset,
         pin_memory=True,
         batch_sampler=val_batch_sampler,
-        collate_fn=merge_hypergraphs_tuple
+        collate_fn=merge_hypergraphs_with_states
     )
     # get_stats(dataset=list(itertools.chain.from_iterable(dataset)), desc="Whole dataset")
     # get_stats(dataset=trainset, desc="Train set")
@@ -174,3 +175,64 @@ def get_loaders_from_args_hgn_rank(args):
     print("validation size:", len(valset))
 
     return train_loader, val_loader, m_re, m_se
+
+
+class ByProblemDataset(Dataset):
+    def __init__(self, data: List, num_classes):
+        super().__init__()
+        self.data = data
+        self.data_len = len(data)
+
+        indices = [[] for _ in range(num_classes)]
+
+        # for i, point in tqdm(enumerate(data), total=len(data), miniters=1,
+        #                      desc='Building class indices dataset..'):
+        # print('Building class indices dataset..')
+        for i, point in enumerate(data):
+            indices[point[0].p_idx].append(i)
+
+        self.indices = indices
+
+    def per_class_sample_indices(self):
+        return self.indices
+
+    def __getitem__(self, index):
+        return self.data[index]
+
+    def __len__(self):
+        return self.data_len
+
+
+class BatchSampler:
+    def __init__(self, per_class_sample_indices, batch_size):
+        # classes is a list of lists where each sublist refers to a class and contains
+        # the sample ids that belond to this class
+        self.per_class_sample_indices = per_class_sample_indices
+        # self.n_batches = sum([len(x) for x in per_class_sample_indices]) // batch_size
+        self.n_batches = len(per_class_sample_indices)
+        self.min_class_size = min([len(x) for x in per_class_sample_indices])
+        assert self.min_class_size > 0, "some problems with no samples"
+        self.batch_size = batch_size
+        self.class_range = list(range(len(self.per_class_sample_indices)))
+        random.shuffle(self.class_range)
+
+    def __iter__(self):
+        for j in range(self.n_batches):
+            if j < len(self.class_range):
+                batch_class = self.class_range[j]
+            else:
+                batch_class = random.choice(self.class_range)
+            # if self.batch_size <= len(self.per_class_sample_indices[batch_class]):
+            #     batch = np.random.choice(self.per_class_sample_indices[batch_class], self.batch_size, replace=False)
+            # else:
+            batch = self.per_class_sample_indices[batch_class]
+            yield batch
+
+    def __len__(self):
+        return self.n_batches
+
+    def n_batches(self):
+        return self.n_batches
+
+    def n_samples(self):
+        return sum([len(x) for x in self.per_class_sample_indices])

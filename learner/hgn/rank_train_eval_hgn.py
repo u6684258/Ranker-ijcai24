@@ -6,7 +6,8 @@ def hgn_rank_train(model, device, train_loader, criterion, optimiser):
     train_loss = 0
 
     for data in train_loader:
-        data = data.to(device)
+        state = data[1]
+        data = data[0].to(device)
 
         optimiser.zero_grad(set_to_none=True)
         h_pred, h_true = model.forward(data)
@@ -31,7 +32,8 @@ def hgn_rank_evaluate(model, device, val_loader, criterion, return_true_preds=Fa
     #     y_pred = torch.tensor([])
 
     for data in val_loader:
-        data = data.to(device)
+        state = data[1]
+        data = data[0].to(device)
         h_pred, h_true = model.forward(data)
         h_pred = [h_t.to(device) for h_t in h_pred]
         h_true = [h_t.to(device) for h_t in h_true]

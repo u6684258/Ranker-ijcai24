@@ -173,6 +173,13 @@ def set_p_idx(graphs_tuple_list: List[HypergraphsTuple], p_idx):
     return new_list
 
 
+def merge_hypergraphs_with_states(tuple_list):
+    graphs_tuple_list = [l[0] for l in tuple_list]
+    states_tuple_list = [l[1] for l in tuple_list]
+
+    return merge_hypergraphs_tuple(graphs_tuple_list), states_tuple_list
+
+
 def merge_hypergraphs_tuple(
         graphs_tuple_list: List[HypergraphsTuple]
 ) -> HypergraphsTuple:
