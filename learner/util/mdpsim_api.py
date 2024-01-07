@@ -228,40 +228,40 @@ class STRIPSProblem:
         return new_pair_set
 
     def get_hgn_data(self, domain_pddl):
-        max_receivers = 0
         max_senders = 0
+        max_receivers = 0
         with open(domain_pddl) as f:
             lines = f.read().split(":")
 
             for line in lines:
                 if "precondition" in line:
-                    num_receivers = line.count(")")
+                    num_senders = line.count(")")
                     # remove (and ...)
-                    if num_receivers > 1:
-                        num_receivers -= 1
-                    # print(num_receivers)
+                    if num_senders > 1:
+                        num_senders -= 1
+                    # print(num_senders)
                     # print(line)
-                    if num_receivers > max_receivers:
-                        max_receivers = num_receivers
+                    if num_senders > max_senders:
+                        max_senders = num_senders
 
                 elif "effect" in line:
                     # remove delete effects
-                    num_senders = 0
+                    num_receivers = 0
                     left = 0
                     for c in line:
                         if c == "(":
                             left += 1
                         elif c == ")" and left > 0:
-                            num_senders += 1
+                            num_receivers += 1
                             left -= 1
 
-                    num_senders -= 1
-                    num_senders -= 2 * line.count("not")
+                    num_receivers -= 1
+                    num_receivers -= 2 * line.count("not")
 
-                    # print(num_senders)
+                    # print(num_receivers)
                     # print(line)
-                    if num_senders > max_senders:
-                        max_senders = num_senders
+                    if num_receivers > max_receivers:
+                        max_receivers = num_receivers
 
         return max_receivers, max_senders
 
