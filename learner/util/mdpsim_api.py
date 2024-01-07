@@ -256,7 +256,7 @@ class STRIPSProblem:
                             left -= 1
 
                     num_receivers -= 1
-                    num_receivers -= 2 * line.count("not")
+                    num_receivers -= 2 * line.count("(not ")
 
                     # print(num_receivers)
                     # print(line)
