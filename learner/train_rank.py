@@ -232,7 +232,7 @@ if __name__ == "__main__":
                     model, device, train_loader, criterion, optimiser
                 )
             elif args.model == "hgn-rank":
-                train_stats = hgn_rank_evaluate(
+                val_stats = hgn_rank_evaluate(
                     model, device, train_loader, criterion, optimiser
                 )
             else:
