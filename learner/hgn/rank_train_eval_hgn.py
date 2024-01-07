@@ -10,7 +10,7 @@ def hgn_rank_train(model, device, train_loader, criterion, optimiser):
 
         optimiser.zero_grad(set_to_none=True)
         h_pred, h_true = model.forward(data)
-        # h_true = h_true.to(device)
+        h_true = [h_t.to(device) for h_t in h_true]
 
         loss = criterion.forward(h_pred, h_true)
         loss.backward()
@@ -33,8 +33,8 @@ def hgn_rank_evaluate(model, device, val_loader, criterion, return_true_preds=Fa
     for data in val_loader:
         data = data.to(device)
         h_pred, h_true = model.forward(data)
-        # h_pred.to(device)
-        # h_true = h_true.to(device)
+        h_pred = [h_t.to(device) for h_t in h_pred]
+        h_true = [h_t.to(device) for h_t in h_true]
 
         loss = criterion.forward(h_pred, h_true)
         val_loss += loss.detach().cpu().item()
