@@ -9,7 +9,7 @@
 ;;   #  #  #  #  #  #  #
 ;;
 
-(define (problem sokoban-07)
+(define (problem sokoban-08)
  (:domain sokoban)
  (:objects
     loc_1_1 loc_1_2 loc_1_3 loc_1_4 loc_1_5 loc_1_6 loc_1_7

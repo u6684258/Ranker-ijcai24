@@ -1,4 +1,4 @@
-(define (problem miconic-01)
+(define (problem miconic-02)
  (:domain miconic)
  (:objects
     p1 - passenger

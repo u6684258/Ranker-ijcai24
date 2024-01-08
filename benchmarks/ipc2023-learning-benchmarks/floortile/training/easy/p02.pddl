@@ -1,6 +1,6 @@
 ;; base case
 ;;
-(define (problem floortile-01)
+(define (problem floortile-02)
  (:domain floortile)
  (:objects
     tile_0_1

@@ -1,6 +1,6 @@
 ;; base cases
 ;;
-(define (problem rover-01)
+(define (problem rover-05)
  (:domain rover)
  (:objects
     general - lander
