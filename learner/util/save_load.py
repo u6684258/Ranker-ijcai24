@@ -158,7 +158,11 @@ def save_hgn_model(model, args):
 def load_hgn_model(path, print_args=False, jit=False, ignore_subdir=False):
     print("Loading model...")
     import torch
-    model = torch.load(path)
+    if torch.cuda.is_available():
+        model = torch.load(path)
+    else:
+        model = torch.load(path, map_location=torch.device("cpu"))
+
     # update legacy naming
     print("Model loaded!")
     model.eval()
