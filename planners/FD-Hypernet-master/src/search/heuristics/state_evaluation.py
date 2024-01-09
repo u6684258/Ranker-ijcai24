@@ -46,11 +46,11 @@ class HGNEvaluator:
                                                                   self.model.hparams["sender_k"], [0,0], 0)
         if self.type == "hgn":
             output_h, _ = self.model(input_h_tuple)
-            assert output_h.item() > 0
+            assert output_h.item() >= 0
             return output_h
         elif self.type == "hgn-rank":
             output_h, _ = self.model(input_h_tuple)
-            assert output_h.item() > 0
+            assert output_h.item() >= 0
             return output_h
 
 
