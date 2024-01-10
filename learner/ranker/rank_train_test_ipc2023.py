@@ -85,7 +85,7 @@ if __name__ == "__main__":
     parser.add_argument("-l", "--layers", required=True, type=int, choices=[4, 8])
     parser.add_argument("-r", "--representation", required=True, choices=["ilg", "llg"])
     parser.add_argument("-d", "--domain", required=True, choices=IPC2023_LEARNING_DOMAINS)
-    parser.add_argument("-m", "--model", required=True, choices=["gnn", "gnn-rank"])
+    parser.add_argument("-m", "--model", required=True, choices=["gnn", "gnn-rank", "gnn-loss"])
     parser.add_argument("--train-only", action="store_true")
     args = parser.parse_args()
 

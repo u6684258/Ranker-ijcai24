@@ -16,9 +16,12 @@ from hgn.rank_dataset_hgn import get_loaders_from_args_hgn_rank
 from hgn.rank_model_hgn import HgnRankModel
 from hgn.rank_train_eval_hgn import hgn_rank_evaluate, hgn_rank_train
 from hgn.train_eval_hgn import hgn_train, hgn_evaluate
+from ranker.gnn_loss_model import LossModel
+from ranker.gnn_losstrain_eval import gnn_loss_train, gnn_loss_evaluate
 from ranker.rank_dataset import get_loaders_from_args_rank
 from ranker.rank_model import RankModel
 from ranker.rank_train_eval import rank_train, rank_evaluate
+from ranker.rankloss import RankLoss
 from util.stats import *
 from util.save_load import *
 from dataset.dataset_gnn import get_loaders_from_args_gnn
@@ -31,7 +34,7 @@ def parse_args():
 
     # model params
     parser.add_argument("-m", "--model",
-                        choices=["gnn", "gnn-rank", "hgn", "hgn-rank"],
+                        choices=["gnn", "gnn-rank", "hgn", "hgn-rank", "gnn-loss"],
                         default="gnn"
                         )
     parser.add_argument("-L", "--nlayers", type=int, default=4)
@@ -122,6 +125,8 @@ if __name__ == "__main__":
         train_loader, val_loader, m_re, m_se = get_loaders_from_args_hgn(args)
     elif args.model == "hgn-rank":
         train_loader, val_loader, m_re, m_se = get_loaders_from_args_hgn_rank(args)
+    elif args.model == "gnn-loss":
+        train_loader, val_loader = get_loaders_from_args_rank(args)
 
     else:
         assert False, f"Invalid model type: {args.model}"
@@ -169,6 +174,11 @@ if __name__ == "__main__":
             "hyperedge_feature_mapper_cls": ComplexHyperedgeFeatureMapper,
         }
         model = HgnRankModel(params=model_params).to(device)
+    elif args.model == "gnn-loss":
+        args.n_edge_labels = len(train_loader.dataset[0].edge_index)
+        args.in_feat = train_loader.dataset[0].x.shape[1]
+        model_params = arg_to_params(args)
+        model = LossModel(params=model_params).to(device)
     else:
         assert False, f"Invalid model type: {args.model}"
 
@@ -183,12 +193,14 @@ if __name__ == "__main__":
     # init optimiser
     if args.model == "gnn":
         criterion = MSELoss()
-    if args.model == "gnn-rank":
+    elif args.model == "gnn-rank":
         criterion = MSELoss()
     elif args.model == "hgn":
         criterion = HGNLoss()
     elif args.model == "hgn-rank":
         criterion = HGNLoss()
+    elif args.model == "gnn-loss":
+        criterion = RankLoss()
     optimiser = torch.optim.Adam(model.parameters(), lr=lr)
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimiser, mode="min", verbose=True, factor=reduction, patience=patience
@@ -220,6 +232,10 @@ if __name__ == "__main__":
                 train_stats = hgn_rank_train(
                     model, device, train_loader, criterion, optimiser
                 )
+            elif args.model == "gnn-loss":
+                train_stats = gnn_loss_train(
+                    model, device, train_loader, criterion, optimiser
+                )
             else:
                 assert False, f"Invalid model type: {args.model}"
             train_loss = train_stats["loss"]
@@ -235,6 +251,10 @@ if __name__ == "__main__":
                 val_stats = hgn_rank_evaluate(
                     model, device, train_loader, criterion, optimiser
                 )
+            elif args.model == "gnn-loss":
+                val_stats = gnn_loss_evaluate(
+                    model, device, train_loader, criterion, optimiser
+                )
             else:
                 assert False, f"Invalid model type: {args.model}"
             val_loss = val_stats["loss"]
@@ -247,7 +267,7 @@ if __name__ == "__main__":
                 if args.model == "hgn" or args.model == "hgn-rank":
                     best_dict = model
                 else:
-                    best_dict = model.state_dict()
+                    best_dict = model.model.state_dict()
                 best_epoch = e
 
             desc = f"epoch {e}, " \
