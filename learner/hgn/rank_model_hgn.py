@@ -53,6 +53,7 @@ class HgnRankModel(nn.Module):
 
     def setup_prediction_mode(self):
         self._prediction_mode = True
+        self.ranker.setup_prediction_mode()
 
     def get_num_parameters(self) -> int:
         """ Count number of weight parameters """
@@ -144,3 +145,13 @@ class DirectRanker(nn.Module):
 
     def trace(self, features):
         return torch.jit.trace(self, features[0])
+
+
+    def shift_heur(self, h, scale=1e5, shift=1e3):
+        result = h + shift
+        # print(f"result: {result}")
+        assert (2147483647 > result).all() and (
+                result > 0).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
+        result = np.round(result * scale).astype("int32")
+        assert (2147483647 > result).all() and (result > 0).all(), f"Invalid heuristic value: {result}; Origin: {h}"
+        return result

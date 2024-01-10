@@ -47,11 +47,12 @@ class HGNEvaluator:
         if self.type == "hgn":
             output_h, _ = self.model(input_h_tuple)
             assert output_h.item() >= 0
-            return output_h
+            return output_h.item()
         elif self.type == "hgn-rank":
             output_h, _ = self.model(input_h_tuple)
             assert output_h.item() >= 0
-            return output_h
+            print(output_h)
+            return output_h.item()
 
 
 if __name__ == "__main__":
