@@ -295,7 +295,7 @@ if __name__ == "__main__":
             combined_metric = (train_loss + 2 * val_loss) / 3
             if combined_metric < best_metric:
                 best_metric = combined_metric
-                if args.model == "hgn" or args.model == "hgn-rank":
+                if args.model == "hgn" or args.model == "hgn-rank" or args.model == "hgn-loss":
                     best_dict = model
                 else:
                     best_dict = model.model.state_dict()
@@ -318,7 +318,7 @@ if __name__ == "__main__":
     if best_dict is not None:
         print(f"best_avg_loss {best_metric:.8f} at epoch {best_epoch}")
         args.best_metric = best_metric
-        if args.model == "hgn" or args.model == "hgn-rank":
+        if args.model == "hgn" or args.model == "hgn-rank" or args.model == "hgn-loss":
             save_hgn_model(best_dict, args)
         else:
             save_gnn_model_from_dict(best_dict, args)
