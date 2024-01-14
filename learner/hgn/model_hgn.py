@@ -120,3 +120,41 @@ class HGNLoss():
                     ):
 
     return self.calc_avg_loss(preds, target)
+
+
+class HGNRankLoss():
+  def __init__(self) -> None:
+    self._criterion = torch.nn.MSELoss()
+  def forward(self, predss: List[Tensor],
+              target: HypergraphsTuple,
+              ):
+      total_loss = torch.tensor([0.0]).to(predss[0].device)
+      for preds in predss:
+          loss = torch.tensor([0.0]).to(preds.device)
+          x_coord = torch.max(target.x_coord)
+          y_coord = target.y_coord
+          remove_indices = []
+          for i in range(torch.max(target.x_coord).int()):
+              optimal_idx = ((target.x_coord == i) & (target.y_coord == 0)).nonzero(as_tuple=True)[0]
+              remove_indices.append(optimal_idx)
+              if i == torch.max(target.x_coord):
+                  next_idx = target.x_coord.shape[0]
+              else:
+                  next_idx = ((target.x_coord == i + 1) & (target.y_coord == 0)).nonzero(as_tuple=True)[0]
+              to_compare = []
+              for j, p in enumerate(remove_indices):
+                  if j == len(remove_indices) - 1:
+                      if p + 1 != next_idx:
+                          to_compare.append(preds[p + 1:next_idx])
+                  else:
+                      if p + 1 != remove_indices[j + 1]:
+                          to_compare.append(preds[p + 1:remove_indices[j + 1]])
+
+              if not to_compare:
+                  continue
+              loss += torch.sum(torch.log(1 + torch.exp(preds[optimal_idx] - torch.concatenate(to_compare))))
+
+          if loss == 0:
+              loss = torch.sum(preds - preds)
+          total_loss = torch.add(total_loss, loss)
+      return total_loss

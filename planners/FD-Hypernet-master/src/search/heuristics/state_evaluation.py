@@ -36,7 +36,7 @@ class HGNEvaluator:
         if model == "hgn-rank":
             # print(checkpoint)
             self.model: HgnRankModel = load_hgn_model(checkpoint)
-            self.type = "ranker"
+            self.type = "hgn-rank"
         self.model.setup_prediction_mode()
 
     def evaluate_state(self, state, num_steps: int = 10):
@@ -58,6 +58,7 @@ class HGNEvaluator:
 if __name__ == "__main__":
     domain = "/home/ming/PycharmProjects/goose/benchmarks/ipc2023-learning-benchmarks/blocksworld/domain.pddl"
     problem = "/home/ming/PycharmProjects/goose/benchmarks/ipc2023-learning-benchmarks/blocksworld/testing/easy/p01.pddl"
-    checkpoint = "/home/ming/PycharmProjects/goose/logs/hgn_gnn_models/blocksworld_llg_L4_H64_mean_r0_hgn.dt"
-    evaluator = HGNEvaluator(domain, problem, checkpoint, model="hgn")
-    print(evaluator.evaluate_state({}, 10))
+    checkpoint = "/home/ming/PycharmProjects/goose/logs/hgn_gnn_models/blocksworld_llg_L4_H64_mean_r0_hgn-rank.dt"
+    evaluator = HGNEvaluator(domain, problem, checkpoint, model="hgn-rank")
+    print(evaluator.evaluate_state({'(on b3 b5)', '(on b2 b1)', '(clear b2)', '(arm-empty )', '(on-table b1)', '(on-table b4)', '(clear b3)', '(on b5 b4)'}
+, 10))

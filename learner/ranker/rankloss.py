@@ -10,7 +10,7 @@ class RankLoss():
     def forward(self, preds: Tensor,
                     target: Data,
                     ):
-        loss = torch.tensor([0.0])
+        loss = torch.tensor([0.0]).to(preds.device)
         coord_x = target.coord_x
         coord_y = target.coord_y
         remove_indices = []
