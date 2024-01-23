@@ -147,7 +147,7 @@ class DirectRanker(nn.Module):
         return torch.jit.trace(self, features[0])
 
 
-    def shift_heur(self, h, scale=1e5, shift=1e3):
+    def shift_heur(self, h, scale=1e10, shift=1):
         result = h + shift
         # print(f"result: {result}")
         assert (2147483647 > result).all() and (

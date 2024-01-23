@@ -1,5 +1,6 @@
 import os
 from numbers import Number
+import random
 from types import ModuleType
 from typing import TypeVar, List, Dict, Tuple, Any
 
@@ -203,7 +204,7 @@ class STRIPSProblem:
         return len(plan)
 
 
-    def generate_extended_state_dataset(self, origin_state_pairs, step=1):
+    def generate_extended_state_dataset(self, origin_state_pairs, step=1, toy_set=False):
 
         successor_set = {}
         by_index_state = {}
@@ -225,6 +226,9 @@ class STRIPSProblem:
             for i in range(heu + 1, min(max_heu + 1, heu + 1 + step)):
                 new_pair_set[state] += successor_set[by_index_state[i]]
             new_pair_set[state].remove(state)
+            if toy_set and len(new_pair_set[state]) > 4:
+                new_pair_set[state] = random.sample(new_pair_set[state], 4)
+
         return new_pair_set
 
     def get_hgn_data(self, domain_pddl):

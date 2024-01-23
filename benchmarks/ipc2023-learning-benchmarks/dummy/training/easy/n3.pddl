@@ -1,0 +1,16 @@
+(define (problem n-3)
+(:domain dummy)
+(:objects n1 r1 n2 r2 n3)
+(:init
+(at n1)
+(connected n1 n2)
+(connected n1 r1)
+(connected r1 n2)
+(connected n2 n3)
+(connected n2 r2)
+(connected r2 n3)
+)
+(:goal
+(at n3)
+)
+)

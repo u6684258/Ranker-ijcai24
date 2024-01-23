@@ -152,9 +152,11 @@ class HGNRankLoss():
 
               if not to_compare:
                   continue
+              # log(1 + exp(h(si, θ) − h(sj, θ)))
               loss += torch.sum(torch.log(1 + torch.exp(preds[optimal_idx] - torch.concatenate(to_compare))))
-
+          # if loss == torch.inf:
+          #     loss = torch.zeros(1).to(preds.device)
           if loss == 0:
               loss = torch.sum(preds - preds)
-          total_loss = torch.add(total_loss, loss)
+          total_loss = total_loss + loss
       return total_loss

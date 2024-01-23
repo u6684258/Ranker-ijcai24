@@ -1,0 +1,7 @@
+(go n1 n2)
+(go n2 n3)
+(go n3 n4)
+(go n4 n5)
+(go n5 n6)
+(go n6 n7)
+; cost = 6 (unit cost)

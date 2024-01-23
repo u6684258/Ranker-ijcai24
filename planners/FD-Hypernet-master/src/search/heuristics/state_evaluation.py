@@ -30,7 +30,7 @@ class HGNEvaluator:
         )
 
         # Load STRIPS-HGN model and setup evaluation mode
-        if model == "hgn":
+        if model == "hgn" or  model == "hgn-loss":
             self.model: HgnModel = load_hgn_model(checkpoint)
             self.type = "hgn"
         if model == "hgn-rank":
@@ -51,7 +51,7 @@ class HGNEvaluator:
         elif self.type == "hgn-rank":
             output_h, _ = self.model(input_h_tuple)
             assert output_h.item() >= 0
-            print(output_h)
+            # print(output_h)
             return output_h.item()
 
 

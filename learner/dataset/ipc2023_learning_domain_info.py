@@ -14,6 +14,7 @@ IPC2023_LEARNING_DOMAINS = [  # 90 test instances each
     "sokoban",
     "spanner",
     "transport",
+    # "dummy"
 ]
 
 DIFFICULTIES = ["easy", "medium", "hard"]

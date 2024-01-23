@@ -1,0 +1,3 @@
+(go n1 n2)
+(go n2 n3)
+; cost = 2 (unit cost)
