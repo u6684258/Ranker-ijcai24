@@ -1,80 +1,54 @@
-# <span style="font-weight:normal">**GOOSE**: **G**raphs **O**ptimised f**O**r **S**earch **E**valuation</span>
+# Guiding GBFS through Learned Pairwise Rankings
 
-## Table of contents
-- [**GOOSE**: **G**raphs **O**ptimised f**O**r **S**earch **E**valuation](#goose-graphs-optimised-for-search-evaluation)
-  - [Table of contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
-  - [GNNs](#gnns)
-    - [Search (singularity method)](#search-singularity-method)
-    - [Training](#training)
-      - [Loading the training dataset](#loading-the-training-dataset)
-      - [Domain-dependent training](#domain-dependent-training)
-  - [Kernels](#kernels)
-    - [Search](#search)
-    - [Training](#training-1)
+This repository contains source code for the paper [Guiding GBFS through Learned Pairwise Rankings](https://github.com/u6684258/Ranker-ijcai24). The implementation is based on [**GOOSE**: **G**raphs **O**ptimised f**O**r **S**earch **E**valuation](https://github.com/DillonZChen/goose). 
 
-## Prerequisites
-You can either use `singularity` or a virtual environment to manage packages. ***TODO*** write this part up
+## Repository Structure
 
-*In either case, you should make sure that you build `downward` or `powerlifted` with your choice of package manager, otherwise you will get runtime errors stating that packages are not found due to using different pybind11 setups.*
+```
+|-benchmarks
+  |-ipc2023-learning-benchmarks
+|-learner
+  |-dataset
+  |-gnn
+  |-hgn
+  |-models
+  |-scripts
+  |--train_rank.py
+|-apptainer.goose.exp
+|-apptainer.hgn.exp
+```
+- The `benchmark` folder contains planning problems from the IPC23-learning track.
+- The `learner` folder contains the main experiment scripts. 
+  - `train_rank.py`: The training script entry point.   
+  - `dataset`: Scripts to generate training data and cache them under `root/data/`.
+  - `gnn` & `hgn`: Implementation of training/validation steps.
+  - `models`: Implementation of gnn and hgn models.
+  - `scripts`: Full experiment scripts (train + test).
+- The `planner` folder contains planners that use the learnt configurations to solve problems.
+- The `apptainer.*.exp` are definition files for building containers. 
 
-## GNNs
-### Search (singularity method)
-For all commands here, make sure ***not*** to have any python virtual environment activated (e.g. with Anaconda)
+## Running Experiments
 
-We use `downward` or `powerlifted` as the search engine which calls code in the `learner` repository for computing heuristics
-using `pybind11`. To make things simple, we use singularity to contain all our requirements. This ensures you have
-singularity installed, see [here](https://github.com/apptainer/singularity). Build the singularity container and both
-Downward and Powerlifted by running in the root repository
-```
-sh setup.sh
-```
+1. Build the corresponding container, e.g. :
+  ```
+  singularity build experiment.sif apptainer.goose.exp
+  ```
+2. Run the container, e.g.:
+  ```
+  singularity run -B <path_to_repo>/data/:/data -B <path_to_repo>/logs/:/logs <path_to_repo>/experiment.sif <aggr> <nlayer> <encode> <model> <domain> <train-only>
+  ```
+  The container file takes 6 inputs:
+  - "aggr": The aggregation function for GOOSE. HGN ignores this parameter, however, for consistency HGN also requires this input as a placeholder. 
+  - "nlayer": number of message passing layers in the GNN. 
+  - "encode": Input encoding method. We used 'llg' in our experiments for GOOSE. HGN ignores this parameter.
+  - "model": The neural network model. Choose from:
+    - \*, for the original regression model
+    - \*-rank, for the Ranking model
+    - \*-loss, for the original regression model with [ranking based loss function](https://arxiv.org/abs/2310.19463).
+    - "\*" can be either "gnn" for GOOSE or "hgn" for HGN. 
+  - "train-only": Set 1 to skip the testing phases. Set 0 otherwise. 
+Example command:
+  ```
+  singularity run -B <path_to_repo>/data/:/data -B <path_to_repo>/logs/:/logs <path_to_repo>/experiment.sif mean 4 llg gnn-rank blocksworld 0
+  ```
 
-Then to run search go into the `learner` directory and execute the `run_gnn.py` script with singularity, for example:
-```
-cd learner
-singularity exec --nv ../goose.sif python3 run_gnn.py ../benchmarks/goose/gripper/domain.pddl ../benchmarks/goose/gripper/test/gripper-n20.pddl -m saved_models/dd_llg_gripper.dt -r llg
-```
-
-The second command can also be called by running `test_gnn.sh`
-
-If you do not want to use/have a GPU, you can remove the `--nv` flag. 
-
-Use `-h` for help with arguments or refer to the description below:
-```
-python3 run_gnn.py <DOMAIN_PDDL> <TASK_PDDL> -m <WEIGHTS_FILE> -r <REPRESENTATION>
-```
-
-### Training
-#### Loading the training dataset
-Requires access to `plan_objects.zip`. Also requires packages in `requirements.txt` using for example a virtual environment
-and `pip install -r requirements.txt`, or alternatively use the singularity container as in [Search](#search). Perform the
-following steps
-- enter the `learner` directory
-- create `data` directory in the `learner` directory
-- unzip `plan_objects.zip` and put into `data` (there should now be a directory
-  `path_to_goose/learner/data/plan_objects`)
-- run the following while in the  `learner` directory:
-```
-python3 scripts_gnn/generate_graphs_gnn.py --regenerate <REPRESENTATION>
-```
-for `<REPRESENTATION>` from `llg, dlg, slg, glg, flg` or generate them all at once with
-```
-sh scripts_gnn/generate_all_graphs_gnn.sh
-```
-
-#### Domain-dependent training
-Requires packages in `requirements.txt` or alternatively use the singularity container as in [Search](#search). To train, go
-into ```learner``` directory (`cd learner`) and run
-```
-python3 train_gnn.py -m RGNN -r <REPRESENTATION> -d goose-<DOMAIN> --save-file <SAVE_FILE>
-```
-where you replace `<DOMAIN>` by any domain from `blocks, ferry, gripper, n-puzzle, sokoban, spanner, visitall,
-visitsome` and `<SAVE_FILE>` is the name of the save file ending in `.dt` for the trained weights of the models which
-would then be located in `trained_models/<SAVE_FILE>` after training.
-
-## Kernels
-### Search
-TODO
-### Training
-TODO
