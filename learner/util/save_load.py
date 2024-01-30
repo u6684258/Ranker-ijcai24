@@ -3,7 +3,7 @@ import os
 import pickle
 import traceback
 
-from ranker.rank_model import RankModel
+from models.rank_model import RankModel
 
 
 def arg_to_params(args, in_feat=4, out_feat=1):
@@ -79,7 +79,7 @@ def save_kernel_model(model, args):
 def load_gnn_model(path, print_args=False):
     # returns (GNN, Args)
     import torch
-    from gnns.gnn import Model
+    from models.gnn import Model
 
     print(f"Loading model from {path}...")
     if not os.path.exists(path):

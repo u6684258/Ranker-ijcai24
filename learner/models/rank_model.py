@@ -6,7 +6,7 @@ from torch import nn
 import torch
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
-from gnns.gnn import Model
+from models.gnn import Model
 
 
 class RankModel(Model):
