@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List
 
-from hgn.hypergraph_nets import Node, Hyperedge, Number
+from util.hypergraph_nets import Node, Hyperedge, Number
 
 class AbstractFeatureMapper(ABC):
     @classmethod

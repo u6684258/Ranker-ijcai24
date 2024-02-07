@@ -1,7 +1,7 @@
 from typing import List, Type
 
-from hgn.hypergraph_nets import Node, Hyperedge, Number
-from hgn.hypergraph_nets.features import HyperedgeFeatureMapper
+from util.hypergraph_nets import Node, Hyperedge, Number
+from util.hypergraph_nets.features import HyperedgeFeatureMapper
 
 
 class HyperedgeWeightOnly(HyperedgeFeatureMapper):

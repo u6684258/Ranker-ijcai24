@@ -1,20 +1,20 @@
 import torch
 from torch import nn
 
-from hgn.hypergraph_nets.aggregators import (
+from util.hypergraph_nets.aggregators import (
     EdgesToGlobalsAggregator,
     NodesToGlobalsAggregator,
     ReceivedEdgesToNodesAggregator,
     SentEdgesToNodesAggregator,
 )
-from hgn.hypergraph_nets.broadcast import (
+from util.hypergraph_nets.broadcast import (
     broadcast_globals_to_edges,
     broadcast_globals_to_nodes,
     broadcast_receiver_nodes_to_edges,
     broadcast_sender_nodes_to_edges,
 )
-from hgn.hypergraph_nets.hypergraphs import HypergraphsTuple
-from hgn.hypergraph_nets.reducers import torch_unsorted_segment_sum
+from util.hypergraph_nets.hypergraphs import HypergraphsTuple
+from util.hypergraph_nets.reducers import torch_unsorted_segment_sum
 
 
 """

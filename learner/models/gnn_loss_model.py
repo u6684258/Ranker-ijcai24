@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import time
 import warnings
 
-from gnns.gnn import Model
+from models.gnn import Model
 from planning import Proposition, State
 from representation import REPRESENTATIONS, Representation
 from torch_geometric.nn import global_add_pool, global_max_pool, global_mean_pool

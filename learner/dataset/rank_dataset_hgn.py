@@ -6,14 +6,14 @@ from typing import List
 
 import torch
 
-from hgn.hypergraph_nets.delete_relaxation import DeleteRelaxationHypergraphView
-from hgn.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
-from hgn.hypergraph_nets.features.hyperedge_features import ComplexHyperedgeFeatureMapper
-from hgn.hypergraph_nets.features.node_features import PropositionInStateAndGoal
-from hgn.hypergraph_nets.hypergraph_nets_adaptor import hypergraph_view_to_hypergraphs_tuple, merge_hypergraphs_tuple, \
+from util.hypergraph_nets.delete_relaxation import DeleteRelaxationHypergraphView
+from util.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
+from util.hypergraph_nets.features.hyperedge_features import ComplexHyperedgeFeatureMapper
+from util.hypergraph_nets.features.node_features import PropositionInStateAndGoal
+from util.hypergraph_nets.hypergraph_nets_adaptor import hypergraph_view_to_hypergraphs_tuple, merge_hypergraphs_tuple, \
     merge_hypergraphs_with_states
-from hgn.hypergraph_nets.hypergraph_view import HypergraphView
-from hgn.hypergraph_nets.hypergraphs import HypergraphsTuple
+from util.hypergraph_nets.hypergraph_view import HypergraphView
+from util.hypergraph_nets.hypergraphs import HypergraphsTuple
 from util import mdpsim_api
 from util.mdpsim_api import State
 

@@ -1,7 +1,7 @@
 from typing import FrozenSet, List, Type
 
-from hgn.hypergraph_nets import Node, Hyperedge, Number
-from hgn.hypergraph_nets.features import NodeFeatureMapper
+from util.hypergraph_nets import Node, Hyperedge, Number
+from util.hypergraph_nets.features import NodeFeatureMapper
 from util.mdpsim_api import Proposition
 
 

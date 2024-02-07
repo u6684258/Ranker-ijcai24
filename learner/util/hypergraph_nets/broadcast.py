@@ -1,6 +1,6 @@
 import torch
 
-from hgn.hypergraph_nets.hypergraphs import HypergraphsTuple
+from util.hypergraph_nets.hypergraphs import HypergraphsTuple
 
 
 """

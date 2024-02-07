@@ -1,8 +1,8 @@
 from typing import Dict
 from typing import List
 
-from hgn.hypergraph_nets import Node, Hyperedge
-from hgn.hypergraph_nets.hypergraph_view import HypergraphView
+from util.hypergraph_nets import Node, Hyperedge
+from util.hypergraph_nets.hypergraph_view import HypergraphView
 from util.mdpsim_api import STRIPSProblem
 
 

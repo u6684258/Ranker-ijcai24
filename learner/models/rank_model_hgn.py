@@ -6,8 +6,8 @@ from torch import nn, Tensor
 import torch
 from torch_geometric.loader import DataLoader
 from torch_geometric.data import Data
-from hgn.hypergraph_nets.hypergraphs import HypergraphsTuple
-from hgn.hypergraph_nets.models import EncodeProcessDecode
+from util.hypergraph_nets.hypergraphs import HypergraphsTuple
+from util.hypergraph_nets.models import EncodeProcessDecode
 
 
 def _get_debug_dict(hparams):

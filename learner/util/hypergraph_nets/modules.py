@@ -1,7 +1,7 @@
 from torch import nn
 
-from hgn.hypergraph_nets.blocks import EdgeBlock, GlobalBlock, NodeBlock
-from hgn.hypergraph_nets.hypergraphs import HypergraphsTuple
+from util.hypergraph_nets.blocks import EdgeBlock, GlobalBlock, NodeBlock
+from util.hypergraph_nets.hypergraphs import HypergraphsTuple
 
 
 """

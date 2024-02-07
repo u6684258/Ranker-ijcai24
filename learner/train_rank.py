@@ -4,25 +4,24 @@ import time
 import torch
 import argparse
 import representation
-from gnns.loss import BCELoss, MSELoss
-from gnns.gnn import Model
-from gnns.train_eval import train, evaluate
-from hgn.dataset_hgn import get_loaders_from_args_hgn
+from models.loss import BCELoss, MSELoss
+from models.gnn import Model
+from gnn.train_eval import train, evaluate
+from dataset.dataset_hgn import get_loaders_from_args_hgn
 from hgn.hgn_loss_train_eval import hgn_loss_train, hgn_loss_evaluate
-from hgn.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
-from hgn.hypergraph_nets.features.hyperedge_features import ComplexHyperedgeFeatureMapper
-from hgn.hypergraph_nets.features.node_features import PropositionInStateAndGoal
-from hgn.model_hgn import HgnModel, HGNLoss, HGNRankLoss
-from hgn.rank_dataset_hgn import get_loaders_from_args_hgn_rank
-from hgn.rank_model_hgn import HgnRankModel
+from util.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
+from util.hypergraph_nets.features.hyperedge_features import ComplexHyperedgeFeatureMapper
+from util.hypergraph_nets.features.node_features import PropositionInStateAndGoal
+from models.model_hgn import HgnModel, HGNLoss, HGNRankLoss
+from dataset.rank_dataset_hgn import get_loaders_from_args_hgn_rank
+from models.rank_model_hgn import HgnRankModel
 from hgn.rank_train_eval_hgn import hgn_rank_evaluate, hgn_rank_train
 from hgn.train_eval_hgn import hgn_train, hgn_evaluate
-from ranker.gnn_loss_model import LossModel
-from ranker.gnn_losstrain_eval import gnn_loss_train, gnn_loss_evaluate
-from ranker.rank_dataset import get_loaders_from_args_rank
-from ranker.rank_model import RankModel
-from ranker.rank_train_eval import rank_train, rank_evaluate
-from ranker.rankloss import RankLoss
+from models.gnn_loss_model import LossModel
+from gnn.gnn_losstrain_eval import gnn_loss_train, gnn_loss_evaluate
+from dataset.rank_dataset_gnn import get_loaders_from_args_rank
+from gnn.rank_train_eval import rank_train, rank_evaluate
+from models.rankloss import RankLoss
 from util.stats import *
 from util.save_load import *
 from dataset.dataset_gnn import get_loaders_from_args_gnn

@@ -1,7 +1,7 @@
 from typing import List, Type
 
-from hgn.hypergraph_nets import Node, Hyperedge, Number
-from hgn.hypergraph_nets.features import GlobalFeatureMapper
+from util.hypergraph_nets import Node, Hyperedge, Number
+from util.hypergraph_nets.features import GlobalFeatureMapper
 
 
 class EmptyGlobalFeatureMapper(GlobalFeatureMapper):

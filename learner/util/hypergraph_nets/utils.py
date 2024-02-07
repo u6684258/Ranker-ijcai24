@@ -2,7 +2,7 @@ from typing import List
 
 import torch
 
-from hgn.hypergraph_nets.hypergraphs import HypergraphsTuple
+from util.hypergraph_nets.hypergraphs import HypergraphsTuple
 
 
 def concat(input_hypergraphs: List[HypergraphsTuple], axis):

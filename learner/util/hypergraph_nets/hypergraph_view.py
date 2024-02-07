@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING, List
 
 from util.mdpsim_api import STRIPSProblem
 
-from hgn.hypergraph_nets import Node, Hyperedge, Number
+from util.hypergraph_nets import Node, Hyperedge, Number
 
-from hgn.hypergraph_nets.features import (
+from util.hypergraph_nets.features import (
         HyperedgeFeatureMapper,
         NodeFeatureMapper,
         GlobalFeatureMapper,

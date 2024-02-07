@@ -4,7 +4,7 @@ from typing import Callable, List, Optional
 
 import torch
 
-from hgn.hypergraph_nets.hypergraphs import (
+from util.hypergraph_nets.hypergraphs import (
     EDGES,
     GLOBALS,
     N_EDGE,
@@ -15,7 +15,7 @@ from hgn.hypergraph_nets.hypergraphs import (
     ZERO_PADDING,
     HypergraphsTuple, Y_COORD, X_COORD, P_IDX, Y_VALUE
 )
-from hgn.hypergraph_nets.hypergraph_view import HypergraphView
+from util.hypergraph_nets.hypergraph_view import HypergraphView
 
 def _validate_features(features, expected_size, label):
     """

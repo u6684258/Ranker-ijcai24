@@ -1,8 +1,8 @@
 from torch import nn
 
-from hgn.hypergraph_nets.hypergraphs import HypergraphsTuple
-from hgn.hypergraph_nets.modules import GraphIndependent, GraphNetwork
-from hgn.hypergraph_nets.utils import concat
+from util.hypergraph_nets.hypergraphs import HypergraphsTuple
+from util.hypergraph_nets.modules import GraphIndependent, GraphNetwork
+from util.hypergraph_nets.utils import concat
 
 """
 General models using graph network modules that utilise MDPs as intermediate learnable functions
