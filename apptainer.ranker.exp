@@ -1,5 +1,5 @@
 Bootstrap: docker
-From: nvidia/cuda:11.8.0-devel-ubuntu22.04
+From: nvidia/cuda:11.8.0-devel-ubuntu20.04
 Stage: build
 
 %files
@@ -8,29 +8,21 @@ Stage: build
     mdpsim
 
 %post
-   # These first few commands allow us to find the python3-pip package later
-    # on.
-    apt-get update --yes --quiet && DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
-    software-properties-common \
-    build-essential apt-utils \
-    wget curl vim git ca-certificates kmod \
-    nvidia-driver-525 \
-    && rm -rf /var/lib/apt/lists/*
-
+    apt-get update -y
+    # Using "noninteractive" mode runs apt-get while ensuring that there are
+    # no user prompts that would cause the `singularity build` command to hang.
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        software-properties-common
+    add-apt-repository universe
+    # Downloads the latest package lists (important).
+    apt-get update -y
     # python3-tk is required by matplotlib.
-    add-apt-repository --yes ppa:deadsnakes/ppa && apt-get update --yes --quiet
-    DEBIAN_FRONTEND=noninteractive apt-get install --yes --quiet --no-install-recommends \
-    python3.10 \
-    python3.10-dev \
-    python3.10-distutils \
-    python3.10-lib2to3 \
-    python3.10-gdbm \
-    python3.10-tk \
-    pip
-
-    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 999 \
-    && update-alternatives --config python3 && ln -s /usr/bin/python3 /usr/bin/python
-
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        python3 \
+        python3-tk \
+        python3-pip \
+        python3-distutils \
+        python3-setuptools
 
     # cpp packages
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -48,7 +40,7 @@ Stage: build
     pip install matplotlib networkx config numpy pytest scikit_learn scipy
     pip3 install torch --index-url https://download.pytorch.org/whl/cu118
     pip install torch_geometric
-    pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.1.0+cu118.html
+    pip install pyg_lib torch_scatter torch_sparse torch_cluster torch_spline_conv -f https://data.pyg.org/whl/torch-2.0.0+cu118.html
 
     cd /planners/downward
     rm -rf builds/release/
@@ -65,12 +57,12 @@ Stage: build
     ./build.py release
     cd ..
 
-    pip install -e mdpsim
+    pip install -e /mdpsim
 
 
 # Stage 2: Run the planner
 Bootstrap: docker
-From: nvidia/cuda:11.8.0-devel-ubuntu22.04
+From: nvidia/cuda:11.8.0-devel-ubuntu20.04
 Stage: run
 
 %files from build

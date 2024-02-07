@@ -191,7 +191,7 @@ def main():
     parser.add_argument("-r", "--rep", default="llg", choices=["ilg", "llg"], help="representation")
     parser.add_argument("-a", "--aggregation", default="mean", choices=["mean", "max"], help="aggregation")
     parser.add_argument("-l", "--layers", type=int, default=4, choices=[4, 8])
-    parser.add_argument("-m", "--model", default="gnn", choices=["gnn", "gnn-rank", "gnn-loss"])
+    parser.add_argument("-m", "--model", default="gnn", choices=["gnn", "gnn-rank", "gnn-loss", "hgn", "hgn-rank", "hgn-loss"])
     parser.add_argument("--train-only", action="store_true")
     parser.add_argument("--p_num", type=int, default=5, help="process number")
     parser.add_argument("--timeout", type=int, default=300, help="timeout seconds")
