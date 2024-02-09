@@ -6,7 +6,7 @@ from the MDPSim extension) can't be easily pickled, so passing around
 information taken *straight* from the extension would not work."""
 
 from functools import lru_cache, total_ordering
-from typing import Any, Dict, Iterable, List, Set, Tuple
+from typing import Any, Dict, Iterable, List, Set, Tuple, Union
 from typing_extensions import Self
 
 
@@ -335,7 +335,7 @@ class UnboundAction:
         """
         return hash(self._ident_tup())
 
-    def bind(self, arguments: List[str] | str) -> BoundAction:
+    def bind(self, arguments: Union[List[str], str]) -> BoundAction:
         """Bind the action to a list of arguments.
 
         Args:

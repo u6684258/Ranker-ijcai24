@@ -218,7 +218,7 @@ class CanonicalState(object):
 
 
 def get_action_name(planner_exts, action_id: int) \
-        -> str | None:
+        -> Optional[str]:
     """Returns the name of the action with the given ID.
 
     Returns:
