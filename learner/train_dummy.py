@@ -3,26 +3,21 @@
 import time
 import torch
 import argparse
-import representation
-from gnns.loss import BCELoss, MSELoss
-from gnns.gnn import Model
-from gnns.train_eval import train, evaluate
-from hgn.dataset_hgn import get_loaders_from_args_hgn
-from hgn.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
-from hgn.hypergraph_nets.features.hyperedge_features import ComplexHyperedgeFeatureMapper
-from hgn.hypergraph_nets.features.node_features import PropositionInStateAndGoal
-from hgn.model_hgn import HgnModel, HGNLoss
-from hgn.rank_dataset_hgn import get_loaders_from_args_hgn_rank
-from hgn.rank_model_hgn import HgnRankModel
+from dataset.rank_dataset_gnn import get_loaders_from_args_rank
+from models.loss import BCELoss, MSELoss
+from models.gnn import Model
+from gnn.train_eval import train, evaluate
+from util.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
+from util.hypergraph_nets.features.hyperedge_features import ComplexHyperedgeFeatureMapper
+from util.hypergraph_nets.features.node_features import PropositionInStateAndGoal
+from models.model_hgn import HgnModel, HGNLoss
+from models.rank_model_hgn import HgnRankModel
 from hgn.rank_train_eval_hgn import hgn_rank_evaluate, hgn_rank_train
 from hgn.train_eval_hgn import hgn_train, hgn_evaluate
-from ranker.gnn_loss_model import LossModel
-from ranker.gnn_losstrain_eval import gnn_loss_train, gnn_loss_evaluate
-from ranker.rank_dataset import get_loaders_from_args_rank
-from ranker.rank_model import RankModel
-from ranker.rank_train_eval import rank_train, rank_evaluate
-from ranker.rankloss import RankLoss
-from util.stats import *
+from models.gnn_loss_model import LossModel
+from gnn.gnn_losstrain_eval import gnn_loss_train, gnn_loss_evaluate
+from gnn.rank_train_eval import rank_train, rank_evaluate
+from models.rankloss import RankLoss
 from util.save_load import *
 from dataset.dataset_gnn import get_loaders_from_args_gnn
 from dataset.ipc2023_learning_domain_info import IPC2023_LEARNING_DOMAINS
@@ -136,38 +131,6 @@ if __name__ == "__main__":
         model_params = arg_to_params(args)
         model_params["out_feat"] = args.nEmb
         model = RankModel(params=model_params).to(device)
-    elif args.model == "hgn":
-        model_params = {
-            "model":args.model,
-            "device":device,
-            "receiver_k":m_re,
-            "sender_k":m_se,
-            "hidden_size":args.nEmb,
-            "latent_size":args.nEmb,
-            "antisymmetric_activation":torch.nn.Sigmoid(),
-            "batch_size":args.batch_size,
-            "num_steps":args.nlayers,
-            "global_feature_mapper_cls":EmptyGlobalFeatureMapper,
-            "node_feature_mapper_cls":PropositionInStateAndGoal,
-            "hyperedge_feature_mapper_cls":ComplexHyperedgeFeatureMapper,
-        }
-        model = HgnModel(params=model_params).to(device)
-    elif args.model == "hgn-rank":
-        model_params = {
-            "model": args.model,
-            "device": device,
-            "receiver_k": m_re,
-            "sender_k": m_se,
-            "hidden_size": args.nEmb,
-            "latent_size": args.nEmb,
-            "antisymmetric_activation": torch.nn.Sigmoid(),
-            "batch_size": args.batch_size,
-            "num_steps": args.nlayers,
-            "global_feature_mapper_cls": EmptyGlobalFeatureMapper,
-            "node_feature_mapper_cls": PropositionInStateAndGoal,
-            "hyperedge_feature_mapper_cls": ComplexHyperedgeFeatureMapper,
-        }
-        model = HgnRankModel(params=model_params).to(device)
     elif args.model == "gnn-loss":
         args.n_edge_labels = len(train_loader.dataset[0].edge_index)
         args.in_feat = train_loader.dataset[0].x.shape[1]

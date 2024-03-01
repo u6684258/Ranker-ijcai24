@@ -4,9 +4,9 @@ import time
 import torch
 import argparse
 import representation
-from gnns.loss import BCELoss, MSELoss
-from gnns.gnn import Model
-from gnns.train_eval import train, evaluate
+from models.loss import BCELoss, MSELoss
+from models.gnn import Model
+from gnn.train_eval import train, evaluate
 from util.stats import *
 from util.save_load import *
 from dataset.dataset_gnn import get_loaders_from_args_gnn
