@@ -159,8 +159,9 @@ def run_eval(df, pf, domain, difficulty, problem_name, model_file, test_log_file
 
     with open(test_log_file, 'w', encoding='utf-8') as log_file:
         try:
+            model_type = model_file.split("_")[-1].split(".")[0]
             # os.system(f"{cmd} > {test_log_file}")
-            cmd, _ = fd_cmd(df=df, pf=pf, m=model_file, search=_SEARCH, timeout=timeout)
+            cmd, _ = fd_cmd(df=df, pf=pf, model_type=model_type, m=model_file, search=_SEARCH, timeout=timeout)
             subprocess.run(cmd, shell=True, check=True, stdout=log_file, stderr=subprocess.STDOUT)
         except subprocess.CalledProcessError as e:
             print(getTime(), "Child was terminated by signal -" + str(e.returncode), file=sys.stderr)
@@ -193,8 +194,8 @@ def main():
     parser.add_argument("-l", "--layers", type=int, default=4, choices=[4, 8])
     parser.add_argument("-m", "--model", default="gnn", choices=["gnn", "gnn-rank", "gnn-loss", "hgn", "hgn-rank", "hgn-loss"])
     parser.add_argument("--train-only", action="store_true")
-    parser.add_argument("--p_num", type=int, default=5, help="process number")
-    parser.add_argument("--timeout", type=int, default=300, help="timeout seconds")
+    parser.add_argument("--p_num", type=int, default=2, help="process number")
+    parser.add_argument("--timeout", type=int, default=1800, help="timeout seconds")
     args = parser.parse_args()
 
     train(args)
