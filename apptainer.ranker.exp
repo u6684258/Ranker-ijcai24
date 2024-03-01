@@ -1,0 +1,93 @@
+Bootstrap: docker
+From: nvidia/cuda:12.2.0-devel-ubuntu20.04
+Stage: build
+
+%files
+    learner
+    planners
+    mdpsim
+
+%post
+    apt-get update -y
+    # Using "noninteractive" mode runs apt-get while ensuring that there are
+    # no user prompts that would cause the `singularity build` command to hang.
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        software-properties-common
+    add-apt-repository universe
+    # Downloads the latest package lists (important).
+    apt-get update -y
+    # python3-tk is required by matplotlib.
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        python3.8 \
+        python3-tk \
+        python3-pip \
+        python3-distutils \
+        python3-setuptools
+
+    # cpp packages
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+        cmake \
+        build-essential \
+        libboost-all-dev
+
+    # Reduce the size of the image by deleting the package lists we downloaded,
+    # which are useless now.
+    rm -rf /var/lib/apt/lists/*
+
+    # Install Python modules.
+    pip install "pybind11[global]"
+
+    pip install matplotlib networkx config numpy pytest scikit_learn scipy
+    pip install torch==1.13.1+cu116 --extra-index-url https://download.pytorch.org/whl/cu116
+    pip install torch-scatter torch-sparse torch-cluster torch-spline-conv torch-geometric -f https://data.pyg.org/whl/torch-1.13.1+cu116.html
+
+    cd /planners/downward
+    rm -rf builds/release/
+    ./build.py release
+    cd ..
+
+    cd /planners/FD-Hypernet-master
+    rm -rf builds/release/
+    ./build.py release
+    cd ..
+
+    cd /planners/downward_gpu
+    rm -rf builds/release/
+    ./build.py release
+    cd ..
+
+    pip install -e /mdpsim
+
+
+# Stage 2: Run the planner
+Bootstrap: docker
+From: nvidia/cuda:12.2.0-devel-ubuntu20.04
+Stage: run
+
+%files from build
+    .
+
+%runscript
+    #! /bin/bash
+    set -euo pipefail
+    PYTHONPATH=/learner
+    cd /learner
+    AGGR="$1"
+    shift 1
+    LAYER="$1"
+    shift 1
+    REP="$1"
+    shift 1
+    MODEL="$1"
+    shift 1
+    DOMAIN="$1"
+    shift 1
+    TRAINONLY="$1"
+
+    if [[ $TRAINONLY -eq 1 ]]
+    then
+        python3 scripts/train_test_multi.py -a "$AGGR" -l "$LAYER" -r "$REP" -m "$MODEL" -d "$DOMAIN" --train-only
+    else
+        python3 scripts/train_test_multi.py -a "$AGGR" -l "$LAYER" -r "$REP" -m "$MODEL" -d "$DOMAIN"
+    fi
+
