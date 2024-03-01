@@ -1,8 +1,0 @@
-/home/ming/PycharmProjects/DirectRankerNew/src/FD-Hypernet-master/src/cmake-build-debug/CMakeFiles/translate.dir
-/home/ming/PycharmProjects/DirectRankerNew/src/FD-Hypernet-master/src/cmake-build-debug/CMakeFiles/edit_cache.dir
-/home/ming/PycharmProjects/DirectRankerNew/src/FD-Hypernet-master/src/cmake-build-debug/CMakeFiles/rebuild_cache.dir
-/home/ming/PycharmProjects/DirectRankerNew/src/FD-Hypernet-master/src/cmake-build-debug/search/CMakeFiles/downward.dir
-/home/ming/PycharmProjects/DirectRankerNew/src/FD-Hypernet-master/src/cmake-build-debug/search/CMakeFiles/edit_cache.dir
-/home/ming/PycharmProjects/DirectRankerNew/src/FD-Hypernet-master/src/cmake-build-debug/search/CMakeFiles/rebuild_cache.dir
-/home/ming/PycharmProjects/DirectRankerNew/src/FD-Hypernet-master/src/cmake-build-debug/search/pybind11/CMakeFiles/edit_cache.dir
-/home/ming/PycharmProjects/DirectRankerNew/src/FD-Hypernet-master/src/cmake-build-debug/search/pybind11/CMakeFiles/rebuild_cache.dir
