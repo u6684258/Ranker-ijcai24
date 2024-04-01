@@ -118,6 +118,51 @@ def gen_ff_dataset(log_path):
     return df
 
 
+def gen_astar_dataset(log_path):
+    df = pd.DataFrame(columns=["domain", "difficulty", "num", "encodes",
+                               "layers", "hidden", "method", "model_num", "model",
+                               "length", "expand", "evaluated", "time"])
+    for file in os.listdir(log_path):
+        if file == "statistics.py":
+            continue
+        domain, difficulty, num, _ = file.split("_")
+        encodes = "hff"
+        layers = 0
+        hidden = 0
+        method = "NaN"
+        model_num = "r0"
+        model = "astar"
+        length = 0
+        expand = 0
+        eval = 0
+        time = 0
+        with open(f"{log_path}/{file}") as f:
+            for line in f.readlines():
+                if "Plan length: " in line:
+                    length = line.split("Plan length: ")[1].split(" step(s).")[0]
+                if "KB] Expanded " in line:
+                    expand = line.split("KB] Expanded ")[1].split(" state(s).")[0]
+                if "KB] Evaluated " in line:
+                    eval = line.split("KB] Evaluated ")[1].split(" state(s).")[0]
+                if " KB] Search time: " in line:
+                    time = line.split(" KB] Search time: ")[1].split("s")[0]
+                if "Time limit has been reached." in line:
+                    break
+
+
+        df = pd.concat([df, pd.DataFrame([[domain, difficulty, num, encodes,
+                                           layers, hidden, method, model_num, model,
+                                           length, expand, eval, time]], columns=df.columns)])
+
+
+    print(df.head())
+    print(len(df))
+
+    df.to_csv("../results_astar.csv")
+    return df
+
+
+
 def count_memory(log_path):
     df = pd.DataFrame(columns=["file", "m"])
 
@@ -975,7 +1020,56 @@ def try_box_plot(df_conv_path):
     plt.savefig("convergence.png")
     plt.show()
 
+def compare_optimal(df_path, astar_path):
+    df = pd.read_csv(df_path)
+    astar_scores = pd.read_csv(astar_path)
+    ratios = [[],[],[]]
+    for domain in IPC2023_FAIL_LIMIT.keys():
+        if domain == "floortile":
+            continue
+        print(domain)
+        sum_scores = [[],[],[]]
+        for diff in ["easy"]:
+            for i in range(1, 10):
+                problem = f"p0{i}" if i < 10 else f"p{i}"
+                gnn_len = df[((df["domain"] == domain) &
+                                 (df["model"] == "gnn") &
+                                 (df["model_num"] == "r0") &
+                                 (df["difficulty"] == diff) &
+                                 (df["num"] == problem))]["length"]
+                if gnn_len.empty:
+                    gnn_len = 0
+                else:
+                    gnn_len = int(gnn_len.iloc[0])
+                rank_len = df[((df["domain"] == domain) &
+                              (df["model"] == "gnn-rank") &
+                              (df["model_num"] == "r0") &
+                              (df["difficulty"] == diff) &
+                              (df["num"] == problem))]["length"]
+                if rank_len.empty:
+                    rank_len = 0
+                else:
+                    rank_len = int(rank_len.iloc[0])
 
+                optimal_len = astar_scores[(
+                                (astar_scores["domain"] == domain) &
+                                 (astar_scores["num"] == problem))]["length"].iloc[0]
+                sum_scores[0].append(gnn_len)
+                sum_scores[1].append(rank_len)
+                sum_scores[2].append(optimal_len)
+
+        for i in range(len(sum_scores[0])):
+            print(f"gnn:{sum_scores[0][i]}, rnk:{sum_scores[1][i]}, opt:{sum_scores[2][i]},")
+        print("\hline")
+
+        ratios[0].append(np.sum(sum_scores[0]) / np.sum(sum_scores[2]))
+        ratios[1].append(np.sum(sum_scores[1]) / np.sum(sum_scores[2]))
+
+    print(np.mean(ratios[0]))
+    print(np.mean(ratios[1]))
+
+    print(np.std(ratios[0]))
+    print(np.std(ratios[1]))
 
 
 if __name__ == "__main__":
@@ -988,6 +1082,9 @@ if __name__ == "__main__":
     log_t_path = "/home/ming/PycharmProjects/goose/logs/server_logs/ranker_train_logs"
     log_hgn_t_path = "/home/ming/PycharmProjects/goose/logs/server_logs/hgn_train_logs"
     df_conv_path = "../convergence.csv"
+
+    # gen_astar_dataset("/home/ming/PycharmProjects/goose/logs/astar_test_logs")
+    compare_optimal(df_path, "../results_astar.csv")
     # df_ff = gen_ff_dataset(log_ff_path)
     # df = gen_dataset(log_path)
     # df = gen_hgn_dataset(log_hgn_path)
@@ -999,7 +1096,7 @@ if __name__ == "__main__":
     # both_scores_all(df_path, df_hgn_path)
     # plot_stats(df_path)
     # plot_stats_with_ff(df_path, df_ff_path)
-    plot_stats_with_loss(df_path, df_ff_path)
+    # plot_stats_with_loss(df_path, df_ff_path)
     # plot_hgn_stats_with_ff(df_hgn_path, df_ff_path)
     # get_convergence(log_t_path, log_hgn_t_path)
     # play_with_convergence(df_conv_path)
