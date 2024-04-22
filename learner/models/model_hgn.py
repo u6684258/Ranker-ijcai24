@@ -159,4 +159,4 @@ class HGNRankLoss():
           if loss == 0:
               loss = torch.sum(preds - preds)
           total_loss = total_loss + loss
-      return total_loss
+      return total_loss / len(predss)

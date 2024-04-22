@@ -128,7 +128,7 @@ if __name__ == "__main__":
     elif args.model == "gnn-loss":
         train_loader, val_loader = get_loaders_from_args_rank(args)
     elif args.model == "hgn-loss":
-        train_loader, val_loader, m_re, m_se  = get_loaders_from_args_hgn_rank(args)
+        train_loader, val_loader, m_re, m_se = get_loaders_from_args_hgn_rank(args)
 
     else:
         assert False, f"Invalid model type: {args.model}"

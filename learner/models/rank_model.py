@@ -52,7 +52,7 @@ class RankModel(Model):
 
     def h(self, state) -> float:
         with torch.no_grad():
-            x, edge_index = self.rep.state_to_tensor(state)
+            x, edge_index = self.rep.state_to_tgraph(state)
             x = x.to(self.device)
             for i in range(len(edge_index)):
                 edge_index[i] = edge_index[i].to(self.device)
@@ -65,7 +65,7 @@ class RankModel(Model):
         with torch.no_grad():
             data_list = []
             for state in states:
-                x, edge_index = self.rep.state_to_tensor(state)
+                x, edge_index = self.rep.state_to_tgraph(state)
                 data_list.append(Data(x=x, edge_index=edge_index))
             loader = DataLoader(dataset=data_list, batch_size=min(len(data_list), 32))
             hs_all = []

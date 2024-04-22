@@ -106,7 +106,7 @@ def get_tensor_graphs_from_plans(args):
 
         for state, schema_cnt in plan:
             state = rep.str_to_state(state)
-            x, edge_index = rep.state_to_tensor(state)
+            x, edge_index = rep.state_to_tgraph(state)
             y = sum(schema_cnt.values())
             graph = Data(x=x, edge_index=edge_index, y=y)
             problem_set.append(graph)

@@ -172,7 +172,7 @@ def get_tensor_graphs_from_plans_by_prob(args):
         for i, (states, schema_cnt) in enumerate(plan):
             for j, state in enumerate(states):
                 state = rep.str_to_state(state)
-                x, edge_index = rep.state_to_tensor(state)
+                x, edge_index = rep.state_to_tgraph(state)
                 y = sum(schema_cnt.values())
                 graph = Data(x=x, edge_index=edge_index, y=y, coord_x=i, coord_y=j)
                 graph_per_prob.append(graph)
@@ -185,7 +185,7 @@ def get_tensor_graphs_from_plans_by_prob(args):
 def get_loaders_from_args_rank(args):
     batch_size = args.batch_size
     small_train = args.small_train
-    data_dir = Path(f"{DATA_DIR}/{args.domain_pddl.split('/')[-2]}.data")
+    data_dir = Path(f"{DATA_DIR}/{args.domain_pddl.split('/')[-2]}-{args.rep}.data")
     if data_dir.is_file():
         print(f"Loading graphs from {data_dir}...")
         dataset = torch.load(data_dir)

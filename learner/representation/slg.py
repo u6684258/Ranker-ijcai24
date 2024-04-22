@@ -1,39 +1,68 @@
-from .base_class import *
-from planning.translate.pddl import Literal, Atom, NegatedAtom, PropositionalAction
-from planning.translate.instantiate import explore
+""" SLG from AAAI-24 submission. """
 from enum import Enum
+from .planning.translate.pddl import Literal, Atom, NegatedAtom
+from .planning.translate.instantiate import explore
+from .base_class import (
+    Representation,
+    GroundedState,
+    CGraph,
+    TGraph,
+    Tensor,
+    AaaiAchievedWlColours,
+)
 
 
-class SLG_FEATURES(Enum):
+class SlgFeatures(Enum):
     ACTION = 0
-    POSITIVE_GOAL = 1
-    NEGATIVE_GOAL = 2
-    STATE = 3
+    POS_GOAL = 1
+    NEG_GOAL = 2
+    NON_GOAL = 3
+    ACH_PROP = 4
 
 
-class SLG_EDGE_LABELS(Enum):
+class SlgEdgeLabels(Enum):
     PRE_EDGE = 0
     ADD_EDGE = 1
     DEL_EDGE = 2
 
 
-""" Extended by GroundedLearningGraph and DeleteLearningGraph """
-
-
-class StripsLearningGraph(Representation, ABC):
+class StripsLearningGraph(Representation):
     name = "slg"
-    n_node_features = len(SLG_FEATURES)
-    n_edge_labels = len(SLG_EDGE_LABELS)
-    directed = False
     lifted = False
 
     def __init__(self, domain_pddl: str, problem_pddl: str):
-        super().__init__(domain_pddl, problem_pddl)
+        super().__init__(
+            domain_pddl,
+            problem_pddl,
+            n_node_features=len(SlgFeatures),
+            n_edge_labels=len(SlgEdgeLabels),
+        )
+
+    def str_to_state(self, state) -> GroundedState:
+        return state
+
+    def state_to_tgraph(self, state: GroundedState) -> TGraph:
+        x = self.x.clone()
+        for p in state:
+            # assert p in self._node_to_i
+            x[self._node_to_i[p]][SlgFeatures.ACH_PROP.value] = 1
+        return x, self.edge_indices
+
+    def state_to_cgraph(self, state: GroundedState) -> CGraph:
+        c_graph = self.G.copy()
+        for p in state:
+            if p in self._pos_goal_nodes:
+                colour = AaaiAchievedWlColours.ACH_POS_GOAL
+            elif p in self._neg_goal_nodes:
+                colour = AaaiAchievedWlColours.ACH_NEG_GOAL
+            else:
+                colour = AaaiAchievedWlColours.ACH_NON_GOAL
+            c_graph.nodes[p]["x"] = colour.value
+        return c_graph
 
     def _get_grounded_problem_info(self):
-        """Ground the parsed lifted pddl representation and return
-        propositions, actions, positive and negative goals, and predicates.
-        Predicates stores predicate names for both propositions and actions.
+        """Ground the parsed lifted pddl representation
+        and return propositions, actions, positive and negative goals.
 
         This can be potentially optimised by letting the planner send the grounded information here.
         """
@@ -59,19 +88,12 @@ class StripsLearningGraph(Representation, ABC):
             else:
                 raise TypeError(goal)
 
-        predicates = set()
-        for prop in propositions:
-            predicates.add(self._get_predicate_from_proposition(prop))
-        for action in actions:
-            predicates.add(self._get_predicate_from_action(action))
-
-        return propositions, actions, positive_goals, negative_goals, predicates
-
-    def _get_predicate_from_proposition(self, proposition: Proposition) -> str:
-        return proposition.predicate
-
-    def _get_predicate_from_action(self, action: PropositionalAction) -> str:
-        return action.name.replace("(", "").replace(")", "").split()[0]
+        return (
+            propositions,
+            actions,
+            positive_goals,
+            negative_goals,
+        )
 
     def _proposition_to_str(self, proposition: Literal) -> str:
         predicate = proposition.predicate
@@ -85,36 +107,32 @@ class StripsLearningGraph(Representation, ABC):
         return ret
 
     def _compute_graph_representation(self) -> None:
-        """TODO: reference definition of this graph representation"""
-
-        G = self._create_graph()
+        G = self._init_graph()
 
         (
             propositions,
             actions,
             positive_goals,
             negative_goals,
-            _,
         ) = self._get_grounded_problem_info()
 
         """ nodes """
         for proposition in propositions:
             node_p = self._proposition_to_str(proposition)
-            # these features may get updated in state encoding
             if proposition in positive_goals:
-                x_p = self._one_hot_node(SLG_FEATURES.POSITIVE_GOAL.value)
+                x_p = SlgFeatures.POS_GOAL
                 self._pos_goal_nodes.add(node_p)
             elif proposition in negative_goals:
-                x_p = self._one_hot_node(SLG_FEATURES.NEGATIVE_GOAL.value)
+                x_p = SlgFeatures.NEG_GOAL
                 self._neg_goal_nodes.add(node_p)
             else:
-                x_p = self._zero_node()
-            G.add_node(node_p, x=x_p)
+                x_p = SlgFeatures.NON_GOAL
+            G.add_node(node_p, x=x_p.value)
 
         for action in actions:
             node_a = action.name
-            x_a = self._one_hot_node(SLG_FEATURES.ACTION.value)
-            G.add_node(node_a, x=x_a)
+            x_a = SlgFeatures.ACTION
+            G.add_node(node_a, x=x_a.value)
 
         """ edges """
         for action in actions:
@@ -126,25 +144,27 @@ class StripsLearningGraph(Representation, ABC):
                 G.add_edge(
                     u_of_edge=p_node,
                     v_of_edge=a_node,
-                    edge_label=SLG_EDGE_LABELS.PRE_EDGE.value,
+                    edge_label=SlgEdgeLabels.PRE_EDGE.value,
                 )
-            for _, proposition in action.add_effects:  # ignoring conditional effects
+            # ignoring conditional effects
+            for _, proposition in action.add_effects:
                 p_node = self._proposition_to_str(proposition)
                 assert p_node in G.nodes, f"{p_node} not in nodes"
                 assert a_node in G.nodes, f"{a_node} not in nodes"
                 G.add_edge(
                     u_of_edge=p_node,
                     v_of_edge=a_node,
-                    edge_label=SLG_EDGE_LABELS.ADD_EDGE.value,
+                    edge_label=SlgEdgeLabels.ADD_EDGE.value,
                 )
-            for _, proposition in action.del_effects:  # ignoring conditional effects
+            # ignoring conditional effects
+            for _, proposition in action.del_effects:
                 p_node = self._proposition_to_str(proposition)
                 assert p_node in G.nodes, f"{p_node} not in nodes"
                 assert a_node in G.nodes, f"{a_node} not in nodes"
                 G.add_edge(
                     u_of_edge=p_node,
                     v_of_edge=a_node,
-                    edge_label=SLG_EDGE_LABELS.DEL_EDGE.value,
+                    edge_label=SlgEdgeLabels.DEL_EDGE.value,
                 )
 
         # map node name to index
@@ -152,36 +172,7 @@ class StripsLearningGraph(Representation, ABC):
         for i, node in enumerate(G.nodes):
             self._node_to_i[node] = i
         self.G = G
-
         return
 
-    def state_to_tensor(self, state: State) -> Tuple[Tensor, Tensor]:
-        x = self.x.clone()  # not time nor memory efficient, but no other way in Python
-        for p in state:
-            if p in self._node_to_i:
-                x[self._node_to_i[p]][SLG_FEATURES.STATE.value] = 1
-
-        return x, self.edge_indices
-
-    def state_to_cgraph(self, state: State) -> CGraph:
-        """States are represented as a list of (pred, [args])"""
-        c_graph = self.c_graph.copy()
-
-        for p in state:
-            node = self._name_to_node[p]
-
-            # activated proposition overlaps with a goal Atom or NegatedAtom or by itself
-            if p in self._pos_goal_nodes:
-                c_graph.nodes[node]["colour"] = (
-                    c_graph.nodes[node]["colour"] + ACTIVATED_POS_GOAL_COLOUR
-                )
-            elif p in self._neg_goal_nodes:
-                c_graph.nodes[node]["colour"] = (
-                    c_graph.nodes[node]["colour"] + ACTIVATED_NEG_GOAL_COLOUR
-                )
-            else:
-                c_graph.nodes[node]["colour"] = (
-                    c_graph.nodes[node]["colour"] + ACTIVATED_COLOUR
-                )
-
-        return c_graph
+    def _colour_to_tensor(self, colour: int) -> Tensor:
+        return self._one_hot_node(colour)
