@@ -21,8 +21,8 @@ from util.scrape_log import scrape_search_log, scrape_train_log, search_finished
 
 _SEARCH = "gbbfs"
 _MODEL_DIR = "./../logs/gnn_models"
-_TRAIN_LOG_DIR = "./../logs/train_logs"
-_TEST_LOG_DIR = "./../logs/test_logs"
+_TRAIN_LOG_DIR = "./../logs/train_ilg_logs"
+_TEST_LOG_DIR = "./../logs/test_ilg_logs"
 os.makedirs(_MODEL_DIR, exist_ok=True)
 os.makedirs(_TRAIN_LOG_DIR, exist_ok=True)
 os.makedirs(_TEST_LOG_DIR, exist_ok=True)
@@ -35,16 +35,16 @@ os.makedirs(_PLAN_DIR, exist_ok=True)
 BENCHMARK_DIR = "./../benchmarks/ipc2023-learning-benchmarks"
 
 IPC2023_FAIL_LIMIT = {
-    "blocksworld": 15,
-    "childsnack": 15,
-    "ferry": 15,
+    "blocksworld": 5,
+    "childsnack": 5,
+    "ferry": 5,
     "floortile": 3,
-    "miconic": 15,
-    "rovers": 15,
-    "satellite": 15,
-    "sokoban": 15,
-    "spanner": 15,
-    "transport": 15,
+    "miconic": 5,
+    "rovers": 5,
+    "satellite": 5,
+    "sokoban": 5,
+    "spanner": 5,
+    "transport": 5,
 }
 
 DOWNWARD_GPU_CMD = "./../planners/downward_gpu/fast-downward.py"
@@ -137,7 +137,7 @@ def evaluate(args):
         while True:
             # print("not execute num:", results)
             num_not_finish = len([re for re in multi_re if not re.ready()])
-            if failed.value >= args.p_num:
+            if failed.value >= IPC2023_FAIL_LIMIT[args.domain]:
                 print(getTime(), "Too many failed, stop evaluating more!!!")
                 pool.terminate()
                 pool.join()

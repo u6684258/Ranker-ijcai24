@@ -4,10 +4,10 @@ import os
 
 import torch
 
-from hgn.dataset_hgn import create_input_and_target_hypergraphs_tuple
-from hgn.hypergraph_nets.delete_relaxation import DeleteRelaxationHypergraphView
-from hgn.model_hgn import HgnModel
-from hgn.rank_model_hgn import HgnRankModel
+from dataset.dataset_hgn import create_input_and_target_hypergraphs_tuple
+from util.hypergraph_nets.delete_relaxation import DeleteRelaxationHypergraphView
+from models.model_hgn import HgnModel
+from models.rank_model_hgn import HgnRankModel
 from util.mdpsim_api import STRIPSProblem
 from util.save_load import load_hgn_model, load_gnn_model
 
