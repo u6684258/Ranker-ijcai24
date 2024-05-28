@@ -58,7 +58,7 @@ class LossModel(Model):
                 hs = hs.detach().cpu().numpy()  # annoying error with jit
                 hs_all.append(hs)
             hs_all = np.concatenate(hs_all)
-            hs_all = np.rint(hs_all)
+            # hs_all = np.rint(hs_all)
             hs_all = self.shift_heu(hs_all).tolist()
             return hs_all
 

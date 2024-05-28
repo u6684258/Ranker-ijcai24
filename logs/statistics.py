@@ -43,7 +43,7 @@ def gen_dataset(log_path):
         length = 0
         expand = 0
         eval = 0
-        time = 0
+        time = -1
         if file not in OUT_OF_MEMORY:
             with open(f"{log_path}/{file}") as f:
                 for line in f.readlines():
@@ -69,7 +69,7 @@ def gen_dataset(log_path):
     print(df.head())
     print(len(df))
 
-    df.to_csv("../results.csv")
+    df.to_csv("../results-ilg.csv")
     return df
 
 
@@ -236,7 +236,7 @@ def gen_hgn_dataset(log_path):
     print(df.head())
     print(len(df))
 
-    df.to_csv("../results_hgn.csv")
+    df.to_csv("../results_hgn_new.csv")
     return df
 
 
@@ -246,22 +246,24 @@ def coverage_table(df_path):
     for domain in IPC2023_FAIL_LIMIT.keys():
         # domain_data = [IPC2023_FAIL_LIMIT[domain]]
         domain_data = []
-        m_sums = []
-        # for model in ["gnn", "gnn-loss", "gnn-rank"]:
-        for model in ["hgn", "hgn-loss", "hgn-rank"]:
-            for model_num in range(1):
-                solved = []
-                model_indx = f"r{model_num}"
-                for diff in ["easy", "medium", "hard"]:
+        # m_sums = []
+        for model in ["gnn", "gnn-loss", "gnn-rank"]:
+        # for model in ["hgn", "hgn-loss", "hgn-rank"]:
+            solved = []
+            for diff in ["easy", "medium", "hard"]:
+                solved_all = []
+                for model_num in range(0,3):
+                    model_indx = f"r{model_num}"
                     sub_df = df[((df["domain"] == domain) &
                                  (df["model"] == model) &
                                  (df["model_num"] == model_indx) &
                                  (df["difficulty"] == diff))]
-                    solved.append(len(sub_df) - (sub_df["length"] == 0).sum())
-                    # print(f"{domain} | {model} | {model_indx} | {diff} : {len(sub_df)}, {(sub_df['length'] == 0).sum()}")
-                domain_data.extend(solved)
-                domain_data.append(sum(solved))
-                m_sums.append(sum(solved))
+                    solved_all.append(len(sub_df) - (sub_df["length"] == 0).sum())
+                solved.append(round(sum(solved_all)/3))
+                # print(f"{domain} | {model} | {model_indx} | {diff} : {len(sub_df)}, {(sub_df['length'] == 0).sum()}")
+            domain_data.extend(solved)
+            domain_data.append(sum(solved))
+                # m_sums.append(sum(solved))
         # domain_data.append(m_sums[1] - m_sums[0])
 
         if not position_sums:
@@ -270,13 +272,52 @@ def coverage_table(df_path):
         for ind, i in enumerate(domain_data):
             data_str += f" & {i}"
             position_sums[ind] += i
-        print(f"{domain}{data_str} \\\\")
+        print(f"{domain} & {data_str} \\\\")
     sum_str = ""
     for ind, i in enumerate(position_sums):
         sum_str += f" & {i}"
     print("\hline")
     print(f"Sum{sum_str} \\\\")
 
+def coverage_table_vertical(df_path):
+    df = pd.read_csv(df_path)
+    # for model in ["gnn", "gnn-loss", "gnn-rank"]:
+    for model in ["hgn", "hgn-loss", "hgn-rank"]:
+        # domain_data = [IPC2023_FAIL_LIMIT[domain]]
+        domain_data = []
+        model_str = f"{model}"
+        for diff in ["easy", "medium", "hard"]:
+        # for model in ["hgn", "hgn-loss", "hgn-rank"]:
+            solved = []
+            for domain in IPC2023_FAIL_LIMIT.keys():
+                solved_all = []
+                for model_num in range(0,1):
+                    model_indx = f"r{model_num}"
+                    sub_df = df[((df["domain"] == domain) &
+                                 (df["model"] == model) &
+                                 (df["model_num"] == model_indx) &
+                                 (df["difficulty"] == diff))]
+                    solved_all.append(len(sub_df) - (sub_df["length"] == 0).sum())
+                solved.append(round(sum(solved_all)/1))
+                # print(f"{domain} | {model} | {model_indx} | {diff} : {len(sub_df)}, {(sub_df['length'] == 0).sum()}")
+            # domain_data.extend(solved)
+            total_sum = sum(solved)
+            data_str = ""
+            for ind, i in enumerate(solved):
+                data_str += f" & {i}"
+            print(f"{model_str} & {diff} {data_str} & {total_sum}\\\\")
+            model_str = ""
+            domain_data.append(solved)
+                # m_sums.append(sum(solved))
+        # domain_data.append(m_sums[1] - m_sums[0])
+        data_str = ""
+        data_matrix = np.array(domain_data)
+        data_list = data_matrix.sum(axis=0).reshape(-1, 1)
+        total_sum = sum(data_list)[0]
+        for ind, i in enumerate(data_list):
+            data_str += f" & {i[0]}"
+        print(f"& sum {data_str} & {total_sum}\\\\")
+        print("\hline")
 
 def quality_score(df_path):
     df = pd.read_csv(df_path)
@@ -612,7 +653,7 @@ def plot_stats_with_ff(df_path, df_ff_path):
 def plot_hgn_stats_with_ff(df_path, df_ff_path):
     colors = list(matplotlib.colors.TABLEAU_COLORS)
     size = 25
-    markers = ["x" for _ in range(len(IPC2023_FAIL_LIMIT))]
+    markers = ["X" for _ in range(len(IPC2023_FAIL_LIMIT))]
     ax1_limit = 200
     ax2_limit = 400
     ax3_limit = 600
@@ -773,14 +814,14 @@ def both_scores_all(df_path, df_hgn_path):
     print(f"Sum{sum_str} \\\\")
 
 
-def plot_stats_with_loss(df_path, df_ff_path):
+def plot_stats_with_loss(df_path, df_ff_path, r):
     colors = list(matplotlib.colors.TABLEAU_COLORS)
     size = 100
     textsize = 25
     markers = ["X" for _ in range(len(IPC2023_FAIL_LIMIT))]
     ax1_limit = 1e5
     ax2_limit = 400
-    ax3_limit = 1e3
+    ax3_limit = 1.8e3
     matplotlib.rcParams.update({'font.size': 20})
 
     df = pd.read_csv(df_path)
@@ -795,13 +836,13 @@ def plot_stats_with_loss(df_path, df_ff_path):
                        (df["model_num"] == "r0"))]
         gnn_data = df[((df["domain"] == domain) &
                       (df["model"] == "gnn") &
-                      (df["model_num"] == "r0"))]
+                      (df["model_num"] == f"r0"))]
         rank_data = df[((df["domain"] == domain) &
                         (df["model"] == "gnn-rank") &
-                        (df["model_num"] == "r0"))]
+                        (df["model_num"] == f"r0"))]
         loss_data = df[((df["domain"] == domain) &
                         (df["model"] == "gnn-loss") &
-                        (df["model_num"] == "r0"))]
+                        (df["model_num"] == f"r0"))]
         combine_diffs = [[],[],[], []]
         for diff in ["easy", "medium", "hard"]:
             diff_ff_data = ff_data[(ff_data["difficulty"] == diff)].sort_values('num')
@@ -814,18 +855,19 @@ def plot_stats_with_loss(df_path, df_ff_path):
             combine_diffs[1].append(diff_gnn_data)
 
         for m in combine_diffs:
+            constant = 0
             es = [d["expand"].to_numpy() for d in m]
             ls = [d["length"].to_numpy() for d in m]
             ts = [d["time"].to_numpy() for d in m]
-            es = [np.pad(e, (0, 30-e.shape[0])) for e in es]
-            ls = [np.pad(e, (0, 30-e.shape[0])) for e in ls]
-            ts = [np.pad(e, (0, 30-e.shape[0])) for e in ts]
+            es = [np.pad(e, (0, 30-e.shape[0]), constant_values=(constant,)) for e in es]
+            ls = [np.pad(e, (0, 30-e.shape[0]), constant_values=(constant,)) for e in ls]
+            ts = [np.pad(e, (0, 30-e.shape[0]), constant_values=(constant,)) for e in ts]
             npes = np.concatenate(es, axis=0)
             npls = np.concatenate(ls, axis=0)
             npts = np.concatenate(ts, axis=0)
-            npes[npes == 0] = ax1_limit
-            npls[npls == 0] = ax2_limit
-            npts[npts == 0] = ax3_limit
+            npes[npes == constant] = ax1_limit
+            npls[npls == constant] = ax2_limit
+            npts[npts == constant] = ax3_limit
             nodes_expands.append(npes)
             plan_lengths.append(npls)
             search_times.append(npts)
@@ -858,22 +900,22 @@ def plot_stats_with_loss(df_path, df_ff_path):
         plot_subplots(i, 2, 4*i+3, 4*i, domain)
 
     for i in range(3):
-        ax[0,i].set_xlim([10, ax1_limit])
-        ax[0,i].set_ylim([10, ax1_limit])
-        ax[1,i].set_xlim([1, ax2_limit])
-        ax[1,i].set_ylim([1, ax2_limit])
-        ax[2,i].set_xlim([1, ax3_limit])
-        ax[2,i].set_ylim([1, ax3_limit])
+        ax[0,i].set_xlim([3, ax1_limit])
+        ax[0,i].set_ylim([3, ax1_limit])
+        ax[1,i].set_xlim([0, ax2_limit])
+        ax[1,i].set_ylim([0, ax2_limit])
+        ax[2,i].set_xlim([0.001, ax3_limit])
+        ax[2,i].set_ylim([0.001, ax3_limit])
         ax[0,i].set_yscale('log')
         ax[0,i].set_xscale('log')
         ax[2, i].set_yscale('log')
         ax[2, i].set_xscale('log')
         ax[0,i].xaxis.set_ticks([1e1, 1e2, 1e3, 1e4])
         ax[1,i].xaxis.set_ticks([100, 200, 300])
-        ax[2,i].xaxis.set_ticks([1e1, 1e2])
-        ax[i,0].set_ylabel("OptRank(GOOSE)", size=textsize)
-    ax[2,0].set_xlabel("GOOSE", size=textsize)
-    ax[2,1].set_xlabel("PerfRank(GOOSE)", size=textsize)
+        ax[2,i].xaxis.set_ticks([1e-2, 1e-1, 1, 1e1, 1e2])
+        ax[i,0].set_ylabel("OptRank(ILG)", size=textsize)
+    ax[2,0].set_xlabel("ILG", size=textsize)
+    ax[2,1].set_xlabel("PerfRank(ILG)", size=textsize)
     ax[2,2].set_xlabel("h-FF", size=textsize)
     handles, labels = ax[2,2].get_legend_handles_labels()
     legend = fig.legend(handles, labels, ncol=5,
@@ -888,6 +930,9 @@ def plot_stats_with_loss(df_path, df_ff_path):
     ax[0,1].set_title("Nodes Expanded", size=textsize)
     ax[1,1].set_title("Plan Cost",size=textsize)
     ax[2,1].set_title("Search Time", size=textsize)
+
+    ax[2, 2].set_xlim([1e-3, ax3_limit])
+    ax[2, 2].set_ylim([1e-3, ax3_limit])
     # box = gs.get_position()
     # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
     # plt.legend(bbox_to_anchor=(2, 1),loc='center right',prop={'size': 18})
@@ -906,13 +951,15 @@ def plot_stats_with_loss(df_path, df_ff_path):
     return df
 
 
-def get_convergence(log_gnn_path, log_hgn_path):
+def get_convergence(log_t_paths):
     df = pd.DataFrame(columns=["domain", "model", "model_num", "epoch",
                                "time", "train_loss", "eval_loss"])
-    for log_path in [log_gnn_path, log_hgn_path]:
+    for log_path in log_t_paths:
         for file in os.listdir(log_path):
             domain, _, _, _, _, num, model = file.split("_")
             model = model.split(".")[0]
+            if "ilg" in file.split("_"):
+                model = f"ilg-{model}"
             if model == "rank":
                 continue
             with open(f"{log_path}/{file}") as f:
@@ -928,7 +975,7 @@ def get_convergence(log_gnn_path, log_hgn_path):
     print(df.head())
     print(len(df))
 
-    df.to_csv("../convergence.csv")
+    df.to_csv("../convergence_ilg.csv")
     return df
 
 
@@ -971,11 +1018,12 @@ def try_box_plot(df_conv_path):
     df = pd.read_csv(df_conv_path, index_col=0)
 
     # for domain in df["domain"].unique():
-    #     fig = plt.figure(figsize=(15, 30))
-    #     gs = fig.add_gridspec(6, 3, wspace=0, hspace=0)
+    #     fig = plt.figure(figsize=(10, 30))
+    #     gs = fig.add_gridspec(2, 5, wspace=0, hspace=0)
     #     ax = gs.subplots(sharey='row', sharex='col')
-    #     for i, model in enumerate(df["model"].unique()):
-    #         for j,model_num in enumerate(["r0", "r1", "r2"]):
+    #     # for i, model in enumerate(df["model"].unique()):
+    #     for i, model in enumerate(["hgn-loss"]):
+    #         for j,model_num in enumerate(["r0", "r1", "r2", "r3", "r4"]):
     #             xdf = df[((df["domain"] == domain) &
     #                                 (df["model"] == model) &
     #                                 (df["model_num"] == model_num))]
@@ -986,26 +1034,48 @@ def try_box_plot(df_conv_path):
     #     fig.suptitle(domain)
     #     plt.show()
 
+    converge_count = {}
     datas = []
-    labels = ["GOOSE", "PerfRank\n(GOOSE)", "OptRank\n(GOOSE)",
-              "HGN", "PerfRank\n(HGN)", "OptRank\n(HGN)"]
-    for i, model in enumerate(["gnn", "gnn-loss", "gnn-rank", "hgn", "hgn-loss", "hgn-rank"]):
+    labels = ["ILG", "PerfRank\n(ILG)", "OptRank\n(ILG)",
+              "LLG", "PerfRank\n(LLG)", "OptRank\n(LLG)",
+              "HGN", "PerfRank\n(HGN)", "OptRank\n(HGN)",
+              ]
+    cov_per_domain = {}
+    for i, model in enumerate(["ilg-gnn", "ilg-gnn-loss", "ilg-gnn-rank",
+                                "gnn", "gnn-loss", "gnn-rank",
+                               "hgn", "hgn-loss", "hgn-rank",
+                               ]):
         data = []
+        converge_count[model] = 0
+        cov_per_domain[model] = {}
         for domain in df["domain"].unique():
             # print(domain)
+            domain_data = []
             for j, model_num in enumerate(["r0", "r1", "r2"]):
                 dfx = df[((df["domain"] == domain) &
                           (df["model"] == model) &
                           (df["model_num"] == model_num))]
                 m = dfx["time"].max()
+                # dfx = dfx.fillna(method="ffill")
+                # domain_data.append(m)
                 if dfx.shape[0] > 0:
                     init_loss = (dfx[dfx["epoch"] < 0.5]["train_loss"]).item()
                     final_loss = (dfx.loc[dfx["epoch"] >= dfx["epoch"].max()]["train_loss"]).item()
                     if (init_loss - final_loss) / init_loss > 0.1 or final_loss < 1:
                         data.append(m)
+                        domain_data.append(m)
+                        converge_count[model] += 1
+                    # domain_data.append(final_loss)
+            domain_data = np.array(domain_data).reshape((-1))
+            if np.isnan(domain_data).all():
+                cov_per_domain[model][domain] = np.nan
+            else:
+                cov_per_domain[model][domain] = round(np.nanmean(domain_data))
+            # print(f"{domain} | {model} | {round(np.nanmean(domain_data))}")
         data = np.array(data).reshape((-1))
         datas.append(data)
-        # print(data.mean())
+        # print(data)
+
         # print(data.min())
         # labels.append(model)
         # print(len(data))
@@ -1015,10 +1085,18 @@ def try_box_plot(df_conv_path):
     # ax.set_title('Convergence time per model')
     ax.boxplot(datas, labels=labels)
     ax.set_yscale('log')
-    # plt.xticks(rotation=35)
+    plt.xticks(rotation=35)
     fig.tight_layout()
     plt.savefig("convergence.png")
     plt.show()
+
+    print(converge_count)
+    for domain in IPC2023_FAIL_LIMIT.keys():
+        sum_str = f"{domain}"
+        for model in cov_per_domain.keys():
+            sum_str += f" & {cov_per_domain[model][domain]}"
+        print(sum_str + "\\\\")
+    # print(f"Sum{sum_str} \\\\")
 
 def compare_optimal(df_path, astar_path):
     df = pd.read_csv(df_path)
@@ -1073,22 +1151,29 @@ def compare_optimal(df_path, astar_path):
 
 
 if __name__ == "__main__":
-    log_path = "/home/ming/PycharmProjects/goose/logs/server_logs/ranker_test_logs"
-    log_ff_path = "/home/ming/PycharmProjects/goose/logs/server_logs/icaps-24-kernels-logs-main/hff"
-    log_hgn_path = "/home/ming/PycharmProjects/goose/logs/server_logs/hgn_test_logs"
+    # log_path = "/home/ming/PycharmProjects/goose/logs/server_logs/ranker_test_logs"
+    log_path = "/home/ming/PycharmProjects/goose/logs/test_logs_ilg"
+    # log_path = "/home/ming/PycharmProjects/goose/logs/test_ilg_logs"
+    log_ff_path = "/home/ming/PycharmProjects/goose/logs/icaps-24-kernels-logs-main/hff"
+    log_hgn_path = "/home/ming/PycharmProjects/goose/logs/logs/hgn_test_logs"
+    df_ilg_path = "../results-ilg.csv"
     df_path = "../results.csv"
     df_ff_path = "../results_ff.csv"
     df_hgn_path = "../results_hgn.csv"
-    log_t_path = "/home/ming/PycharmProjects/goose/logs/server_logs/ranker_train_logs"
-    log_hgn_t_path = "/home/ming/PycharmProjects/goose/logs/server_logs/hgn_train_logs"
-    df_conv_path = "../convergence.csv"
+    log_t_path = "/home/ming/PycharmProjects/goose/logs/logs/ranker_train_logs"
+    log_hgn_t_path = "/home/ming/PycharmProjects/goose/logs/logs/hgn_train_logs"
+    log_ilg_t_path = "/home/ming/PycharmProjects/goose/logs/logs/train_logs_ilg"
+    df_conv_path = "../convergence_all.csv"
 
     # gen_astar_dataset("/home/ming/PycharmProjects/goose/logs/astar_test_logs")
-    compare_optimal(df_path, "../results_astar.csv")
+    # compare_optimal(df_path, "../results_astar.csv")
     # df_ff = gen_ff_dataset(log_ff_path)
     # df = gen_dataset(log_path)
     # df = gen_hgn_dataset(log_hgn_path)
-    # coverage_table(df_path)
+    # coverage_table_vertical(df_ilg_path)
+    # coverage_table_vertical(df_path)
+    # coverage_table_vertical(df_hgn_path)
+    # coverage_table_vertical(df_ff_path)
     # coverage_table(df_hgn_path)
     # quality_score(df_path)
     # agile_score(df_path)
@@ -1096,9 +1181,13 @@ if __name__ == "__main__":
     # both_scores_all(df_path, df_hgn_path)
     # plot_stats(df_path)
     # plot_stats_with_ff(df_path, df_ff_path)
-    # plot_stats_with_loss(df_path, df_ff_path)
+    plot_stats_with_loss(df_ilg_path, df_ff_path, 2)
     # plot_hgn_stats_with_ff(df_hgn_path, df_ff_path)
-    # get_convergence(log_t_path, log_hgn_t_path)
+    # get_convergence([log_t_path, log_hgn_t_path, log_ilg_t_path])
+    # df1 = pd.read_csv("../convergence.csv")
+    # df2 = pd.read_csv("../convergence_ilg.csv")
+    # df3 = pd.concat([df1, df2], axis=0)
+    # df3.to_csv("../convergence_all.csv")
     # play_with_convergence(df_conv_path)
     # try_box_plot(df_conv_path)
     # pieces = [f"{domain} & " for domain in IPC2023_FAIL_LIMIT.keys()]

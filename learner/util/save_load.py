@@ -25,6 +25,7 @@ def arg_to_params(args, in_feat=4, out_feat=1):
         "aggr": aggr,
         "pool": pool,
         "rep": rep,
+        "model": args.model,
     }
     return model_params
 

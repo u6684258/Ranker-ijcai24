@@ -1,6 +1,9 @@
 import os
 import sys
 import itertools
+from pathlib import Path
+
+import torch
 
 sys.path.append(os.path.join(os.path.dirname(__file__), ".."))
 
@@ -15,6 +18,8 @@ from representation import REPRESENTATIONS
 _DOWNWARD = "./../planners/downward/fast-downward.py"
 _POWERLIFTED = "./../planners/powerlifted/powerlifted.py"
 
+DATA_DIR = "./../data/ipc23/gnn"
+Path(DATA_DIR).mkdir(parents=True, exist_ok=True)
 
 def get_plan_info(domain_pddl, problem_pddl, plan_file, args):
     planner = args.planner
@@ -119,8 +124,14 @@ def get_tensor_graphs_from_plans(args):
 def get_loaders_from_args_gnn(args):
     batch_size = args.batch_size
     small_train = args.small_train
+    data_dir = Path(f"{DATA_DIR}/{args.domain_pddl.split('/')[-2]}-{args.rep}.data")
+    if data_dir.is_file():
+        print(f"Loading graphs from {data_dir}...")
+        dataset = torch.load(data_dir)
+    else:
+        dataset = get_tensor_graphs_from_plans(args)
+        torch.save(dataset, data_dir)
 
-    dataset = get_tensor_graphs_from_plans(args)
     if small_train:
         random.seed(123)
         dataset = random.sample(dataset, k=10)
@@ -138,6 +149,7 @@ def get_loaders_from_args_gnn(args):
         trainset,
         batch_size=batch_size,
         shuffle=True,
+        drop_last=True,
     )
     val_loader = DataLoader(
         valset,

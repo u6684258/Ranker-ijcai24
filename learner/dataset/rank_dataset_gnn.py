@@ -191,7 +191,7 @@ def get_loaders_from_args_rank(args):
         dataset = torch.load(data_dir)
     else:
         dataset = get_tensor_graphs_from_plans_by_prob(args)
-    torch.save(dataset, data_dir)
+        torch.save(dataset, data_dir)
 
     if small_train:
         random.seed(123)

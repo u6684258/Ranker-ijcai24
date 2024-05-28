@@ -66,7 +66,7 @@ def fd_cmd(df, pf, m, model_type, search, timeout=1800):  # 1800s + overhead for
     description = f"fd_{pf.replace('.pddl','').replace('/','-')}_{search}_{os.path.basename(m).replace('.dt', '')}"
     sas_file = f"{_AUX_DIR}/{description}.sas_file"
     plan_file = f"{_PLAN_DIR}/{description}.plan"
-    if model_type in ["gnn", "gnn-rank", "gnn-loss"]:
+    if model_type in ["gnn", "gnn-new", "gnn-rank", "gnn-loss"]:
         cmd = (
             f"{DOWNWARD_GPU_CMD} --search-time-limit {timeout} --sas-file {sas_file} --plan-file {plan_file} "
             + f'{df} {pf} --search \'{search}([goose(model_path="{m}", domain_file="{df}", instance_file="{pf}")])\''
@@ -192,9 +192,9 @@ def main():
     parser.add_argument("-r", "--rep", default="llg", choices=["ilg", "llg"], help="representation")
     parser.add_argument("-a", "--aggregation", default="mean", choices=["mean", "max"], help="aggregation")
     parser.add_argument("-l", "--layers", type=int, default=4, choices=[4, 8])
-    parser.add_argument("-m", "--model", default="gnn", choices=["gnn", "gnn-rank", "gnn-loss", "hgn", "hgn-rank", "hgn-loss"])
+    parser.add_argument("-m", "--model", default="gnn", choices=["gnn", "gnn-new", "gnn-rank", "gnn-loss", "hgn", "hgn-rank", "hgn-loss"])
     parser.add_argument("--train-only", action="store_true")
-    parser.add_argument("--p_num", type=int, default=2, help="process number")
+    parser.add_argument("--p_num", type=int, default=1, help="process number")
     parser.add_argument("--timeout", type=int, default=1800, help="timeout seconds")
     args = parser.parse_args()
 

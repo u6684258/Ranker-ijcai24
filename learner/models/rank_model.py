@@ -74,7 +74,7 @@ class RankModel(Model):
                 hs = self.model.forward(data.x, data.edge_index, data.batch)
                 hs = self.model.ranker(hs).detach().cpu().numpy()  # annoying error with jit
                 hs_all.append(hs)
-            hs_all = np.concatenate(hs_all).astype(float).reshape([-1, ])
+            hs_all = np.concatenate(hs_all).reshape([-1, ])
             hs_all = self.shift_heu(hs_all).tolist()
             return hs_all
 

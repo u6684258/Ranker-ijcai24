@@ -1,12 +1,12 @@
 """ Main training pipeline script. """
-
+import math
 import time
 import torch
 import argparse
 import representation
 from models.loss import BCELoss, MSELoss
 from models.gnn import Model
-from gnn.train_eval import train, evaluate
+from gnn.train_eval import train, evaluate, gnn_train
 from dataset.dataset_hgn import get_loaders_from_args_hgn
 from hgn.hgn_loss_train_eval import hgn_loss_train, hgn_loss_evaluate
 from util.hypergraph_nets.features.global_features import EmptyGlobalFeatureMapper
@@ -28,13 +28,23 @@ from dataset.dataset_gnn import get_loaders_from_args_gnn
 from dataset.ipc2023_learning_domain_info import IPC2023_LEARNING_DOMAINS
 
 
+class RMSELoss:
+    def __init__(self):
+        pass
+
+    def forward(self, h_input, h_target):
+        h_loss = torch.sqrt(torch.square(h_input - h_target))
+        h_loss = torch.mean(h_loss)
+
+        return h_loss
+
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument("domain", choices=IPC2023_LEARNING_DOMAINS)
 
     # model params
     parser.add_argument("-m", "--model",
-                        choices=["gnn", "gnn-rank", "hgn", "hgn-rank", "gnn-loss", "hgn-loss"],
+                        choices=["gnn", "gnn-new", "gnn-rank", "hgn", "hgn-rank", "gnn-loss", "hgn-loss"],
                         default="gnn"
                         )
     parser.add_argument("-L", "--nlayers", type=int, default=4)
@@ -56,11 +66,12 @@ def parse_args():
     )
 
     # optimisation params
-    parser.add_argument("--lr", type=float, default=0.001)
+    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument('--weight_decay', type=float, default=1e-5)
     parser.add_argument("--patience", type=int, default=10)
     parser.add_argument("--reduction", type=float, default=0.1)
-    parser.add_argument("--batch-size", type=int, default=16)
-    parser.add_argument("--epochs", type=int, default=500)
+    parser.add_argument("--batch-size", type=int, default=11)
+    parser.add_argument("--epochs", type=int, default=50)
 
     # data arguments
     parser.add_argument(
@@ -119,6 +130,8 @@ if __name__ == "__main__":
     # init model
     if args.model == "gnn":
         train_loader, val_loader = get_loaders_from_args_gnn(args)
+    elif args.model == "gnn-new":
+        train_loader, val_loader = get_loaders_from_args_gnn(args)
     elif args.model == "gnn-rank":
         train_loader, val_loader = get_loaders_from_args_rank(args)
     elif args.model == "hgn":
@@ -133,7 +146,7 @@ if __name__ == "__main__":
     else:
         assert False, f"Invalid model type: {args.model}"
 
-    if args.model == "gnn":
+    if args.model == "gnn" or args.model == "gnn-new":
         args.n_edge_labels = len(train_loader.dataset[0].edge_index)
         args.in_feat = train_loader.dataset[0].x.shape[1]
         model_params = arg_to_params(args)
@@ -213,6 +226,8 @@ if __name__ == "__main__":
     # init optimiser
     if args.model == "gnn":
         criterion = MSELoss()
+    elif args.model == "gnn-new":
+        criterion = RMSELoss()
     elif args.model == "gnn-rank":
         criterion = MSELoss()
     elif args.model == "hgn":
@@ -224,6 +239,8 @@ if __name__ == "__main__":
     elif args.model == "hgn-loss":
         criterion = HGNRankLoss()
     optimiser = torch.optim.Adam(model.parameters(), lr=lr)
+    # optimiser = torch.optim.SGD(model.parameters(), lr=lr, momentum=0.9, weight_decay=args.weight_decay)
+    # scheduler = None
     scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
         optimiser, mode="min", verbose=True, factor=reduction, patience=patience
     )
@@ -235,11 +252,15 @@ if __name__ == "__main__":
         best_dict = None
         best_metric = float("inf")
         best_epoch = 0
-        for e in range(epochs):
+        for e in range(0, epochs):
             t = time.time()
             if args.model == "gnn":
                 train_stats = train(
                     model, device, train_loader, criterion, optimiser
+                )
+            elif args.model == "gnn-new":
+                train_stats = gnn_train(
+                    model, device, train_loader, criterion, optimiser, e, lr, epochs
                 )
             elif args.model == "gnn-rank":
                 train_stats = rank_train(
@@ -265,7 +286,7 @@ if __name__ == "__main__":
             else:
                 assert False, f"Invalid model type: {args.model}"
             train_loss = train_stats["loss"]
-            if args.model == "gnn":
+            if args.model == "gnn" or args.model == "gnn-new":
                 val_stats = evaluate(model, device, val_loader, criterion)
             elif args.model == "gnn-rank":
                 val_stats = rank_evaluate(model, device, val_loader, criterion)
@@ -307,7 +328,7 @@ if __name__ == "__main__":
             print(desc)
 
             lr = optimiser.param_groups[0]["lr"]
-            if lr < 1e-5:
+            if lr < 1e-6:
                 print(f"Early stopping due to small lr: {lr}")
                 break
     except KeyboardInterrupt:
@@ -321,3 +342,5 @@ if __name__ == "__main__":
             save_hgn_model(best_dict, args)
         else:
             save_gnn_model_from_dict(best_dict, args)
+
+

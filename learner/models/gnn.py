@@ -67,6 +67,55 @@ class LinearConv(MessagePassing):
         return x
 
 
+class GLN(nn.Module):
+    def __init__(self, params):
+        super().__init__()
+        self.in_feat = params["in_feat"]
+        self.out_feat = params["out_feat"]
+        self.nhid = params["nhid"]
+        self.aggr = params["aggr"]
+        self.n_edge_labels = params["n_edge_labels"]
+        self.nlayers = params["nlayers"]
+        self.rep_type = params["rep"]
+
+        if params["pool"] == "max":
+            self.pool = global_max_pool
+        elif params["pool"] == "mean":
+            self.pool = global_mean_pool
+        elif params["pool"] == "sum":
+            self.pool = global_add_pool
+        else:
+            raise ValueError
+        self.emb = torch.nn.Linear(self.in_feat, self.nhid)
+        # self.convs = torch.Sequen
+        print(f"in feat: {self.in_feat}, nhid: {self.nhid}")
+        self.conv1 = RGNNLayer(self.nhid, self.nhid, n_edge_labels=self.n_edge_labels, aggr=self.aggr)
+        self.conv2 = RGNNLayer(self.nhid, self.nhid, n_edge_labels=self.n_edge_labels, aggr=self.aggr)
+        self.conv3 = RGNNLayer(self.nhid, self.nhid, n_edge_labels=self.n_edge_labels, aggr=self.aggr)
+        self.conv4 = RGNNLayer(self.nhid, self.nhid, n_edge_labels=self.n_edge_labels, aggr=self.aggr)
+        self.leaky_relu = LeakyReLU(negative_slope=0.01)
+        self.relu = ReLU()
+        # self.conv4 = RGNNLayer(self.nhid, self.nhid, n_edge_labels=self.n_edge_labels, aggr=self.aggr)
+        # self.mlp_h = construct_mlp(in_features=self.nhid, n_hid=self.nhid, out_features=self.out_feat)
+        self.mlp_h = nn.Sequential(
+            Linear(self.nhid, self.nhid),
+            ReLU(),
+            Linear(self.nhid, 1),
+        )
+
+    def forward(self, x: Tensor, edge_index, batch: Optional[Tensor]):
+        x = self.emb(x)
+        x = self.conv1(x, edge_index)
+        x = self.relu(x)
+        x = self.conv2(x, edge_index)
+        x = self.relu(x)
+        x = self.conv3(x, edge_index)
+        x = self.relu(x)
+        x = self.conv4(x, edge_index)
+        x = self.pool(x, batch)
+        h = self.mlp_h(x)
+        return h.squeeze(1)
+
 class RGNN(nn.Module):
     """
     The class can be compiled with jit or the new pytorch-2. However, pytorch-geometric
@@ -262,7 +311,12 @@ class Model(nn.Module):
             param.grad = None
 
     def create_model(self, params):
-        self.model = RGNN(params)
+        if params["model"] == "gnn-new":
+            self.model = GLN(params)
+        else:
+            self.model = RGNN(params)
+
+
 
     def h(self, state: State) -> float:
         with torch.no_grad():
