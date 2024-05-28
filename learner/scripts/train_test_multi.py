@@ -187,7 +187,7 @@ def run_eval(df, pf, domain, difficulty, problem_name, model_file, test_log_file
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--seed", type=int, default=1)
+    parser.add_argument("--seed", type=int, default=5)
     parser.add_argument("-d", "--domain", required=True, choices=IPC2023_LEARNING_DOMAINS)
     parser.add_argument("-r", "--rep", default="llg", choices=["ilg", "llg"], help="representation")
     parser.add_argument("-a", "--aggregation", default="mean", choices=["mean", "max"], help="aggregation")

@@ -63,11 +63,11 @@ class LossModel(Model):
             return hs_all
 
 
-    def shift_heu(self, h, scale=1e3, shift=1):
+    def shift_heu(self, h, scale=1, shift=1):
         result = h + shift
         # print(f"result: {result}")
         # # and (result > 0).all(),
         # assert (2147483647 > result).all(), f"shift {shift} is not large enough to make {h} a positive heuristic values"
-        result = np.round(result * scale).astype("int32")
+        result = np.rint(result * scale).astype(int)
         assert (2147483647 > result).all(), f"Invalid heuristic value: {result}; Origin: {h}"
         return result
