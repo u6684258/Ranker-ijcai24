@@ -950,6 +950,141 @@ def plot_stats_with_loss(df_path, df_ff_path, r):
 
     return df
 
+def plot_stats_without_perfrank(df_path, df_ff_path):
+    colors = list(matplotlib.colors.TABLEAU_COLORS)
+    size = 100
+    textsize = 25
+    markers = ["X" for _ in range(len(IPC2023_FAIL_LIMIT))]
+    ax1_limit = 1e5
+    ax2_limit = 400
+    ax3_limit = 1.8e3
+    matplotlib.rcParams.update({'font.size': 20})
+
+    df = pd.read_csv(df_path)
+    dfff = pd.read_csv(df_ff_path)
+    df = pd.concat([df, dfff])
+    nodes_expands = []
+    plan_lengths = []
+    search_times = []
+    for domain in IPC2023_FAIL_LIMIT.keys():
+        ff_data = df[((df["domain"] == domain) &
+                       (df["model"] == "hff") &
+                       (df["model_num"] == "r0"))]
+        gnn_data = df[((df["domain"] == domain) &
+                      (df["model"] == "gnn") &
+                      (df["model_num"] == f"r0"))]
+        rank_data = df[((df["domain"] == domain) &
+                        (df["model"] == "gnn-rank") &
+                        (df["model_num"] == f"r0"))]
+        # loss_data = df[((df["domain"] == domain) &
+        #                 (df["model"] == "gnn-loss") &
+        #                 (df["model_num"] == f"r0"))]
+        combine_diffs = [[],[],[]]
+        for diff in ["easy", "medium", "hard"]:
+            diff_ff_data = ff_data[(ff_data["difficulty"] == diff)].sort_values('num')
+            diff_rank_data = rank_data[(rank_data["difficulty"] == diff)].sort_values('num')
+            # diff_loss_data = loss_data[(loss_data["difficulty"] == diff)].sort_values('num')
+            diff_gnn_data = gnn_data[(gnn_data["difficulty"] == diff)].sort_values('num')
+            combine_diffs[1].append(diff_ff_data)
+            combine_diffs[0].append(diff_rank_data)
+            # combine_diffs[2].append(diff_loss_data)
+            combine_diffs[2].append(diff_gnn_data)
+
+        for m in combine_diffs:
+            constant = 0
+            es = [d["expand"].to_numpy() for d in m]
+            ls = [d["length"].to_numpy() for d in m]
+            ts = [d["time"].to_numpy() for d in m]
+            es = [np.pad(e, (0, 30-e.shape[0]), constant_values=(constant,)) for e in es]
+            ls = [np.pad(e, (0, 30-e.shape[0]), constant_values=(constant,)) for e in ls]
+            ts = [np.pad(e, (0, 30-e.shape[0]), constant_values=(constant,)) for e in ts]
+            npes = np.concatenate(es, axis=0)
+            npls = np.concatenate(ls, axis=0)
+            npts = np.concatenate(ts, axis=0)
+            npes[npes == constant] = ax1_limit
+            npls[npls == constant] = ax2_limit
+            npts[npts == constant] = ax3_limit
+            nodes_expands.append(npes)
+            plan_lengths.append(npls)
+            search_times.append(npts)
+
+    fig = plt.figure(figsize=(15, 9))
+    gs = fig.add_gridspec(2, 3, wspace=0.3, hspace=0.2)
+
+    ax = gs.subplots()
+
+
+    def plot_subplots(i, j, x, y, domain):
+        ax[j, 0].scatter(nodes_expands[x],
+                        nodes_expands[y],
+                         color=colors[i], s=size, marker=markers[i])
+        ax[j, 1].scatter(plan_lengths[x],
+                         plan_lengths[y],
+                         color=colors[i], s=size, marker=markers[i])
+        ax[j, 2].scatter(search_times[x],
+                         search_times[y],
+                         color=colors[i], s=size, marker=markers[i],
+                         label=domain)
+        ax[j, 0].axline((0, 0), slope=1, c="red", linestyle='--')
+        ax[j, 1].axline((0, 0), slope=1, c="red", linestyle='--')
+        ax[j, 2].axline((0, 0), slope=1, c="red", linestyle='--')
+
+    for i, domain in enumerate(IPC2023_FAIL_LIMIT.keys()):
+        plot_subplots(i, 0, 3*i, 3*i+1, domain)
+        plot_subplots(i, 1, 3*i, 3*i+2, domain)
+
+    for i in range(2):
+        ax[i,0].set_xlim([3, ax1_limit])
+        ax[i,0].set_ylim([3, ax1_limit])
+        ax[i,1].set_xlim([0, ax2_limit])
+        ax[i,1].set_ylim([0, ax2_limit])
+        ax[i,2].set_xlim([0.001, ax3_limit])
+        ax[i,2].set_ylim([0.001, ax3_limit])
+        ax[i,0].set_yscale('log')
+        ax[i,0].set_xscale('log')
+        ax[i, 2].set_yscale('log')
+        ax[i, 2].set_xscale('log')
+        ax[i,0].xaxis.set_ticks([1e1, 1e2, 1e3, 1e4])
+        ax[i,1].xaxis.set_ticks([100, 200, 300])
+        ax[i,2].xaxis.set_ticks([1e-2, 1, 1e2])
+        ax[1, 0].set_xlabel("OptRank(ILG)", size=textsize)
+        ax[1, 1].set_xlabel("OptRank(ILG)", size=textsize)
+        ax[1, 2].set_xlabel("OptRank(ILG)", size=textsize)
+    ax[0,0].set_ylabel("h-FF", size=textsize)
+    ax[1,0].set_ylabel("ILG", size=textsize)
+    handles, labels = ax[1,2].get_legend_handles_labels()
+    # legend = fig.legend(handles, labels, ncol=5,
+    #                     bbox_to_anchor=(0.85, 0.06),
+    #                     # loc='upper center',
+    #                     prop={'size': 24},
+    #                     columnspacing=0.1,
+    #                     labelspacing=0.1,
+    #                     handletextpad=0.05,
+    #                     borderpad=0.00001)
+
+    ax[0,0].set_title("Nodes Expanded", size=textsize)
+    ax[0,1].set_title("Plan Cost",size=textsize)
+    ax[0,2].set_title("Search Time", size=textsize)
+
+    # ax[2, 2].set_xlim([1e-3, ax3_limit])
+    # ax[2, 2].set_ylim([1e-3, ax3_limit])
+    # box = gs.get_position()
+    # ax.set_position([box.x0, box.y0, box.width * 0.8, box.height])
+    # plt.legend(bbox_to_anchor=(2, 1),loc='center right',prop={'size': 18})
+    # fig.tight_layout()
+    # plt.savefig("plot.svg")
+    plt.show()
+
+    # def export_legend(legend, filename="legend.png"):
+    #     fig = legend.figure
+    #     fig.canvas.draw()
+    #     bbox = legend.get_window_extent().transformed(fig.dpi_scale_trans.inverted())
+    #     fig.savefig(filename, dpi="figure", bbox_inches=bbox)
+
+    # export_legend(legend)
+
+    return df
+
 
 def get_convergence(log_t_paths):
     df = pd.DataFrame(columns=["domain", "model", "model_num", "epoch",
@@ -1181,7 +1316,8 @@ if __name__ == "__main__":
     # both_scores_all(df_path, df_hgn_path)
     # plot_stats(df_path)
     # plot_stats_with_ff(df_path, df_ff_path)
-    plot_stats_with_loss(df_ilg_path, df_ff_path, 2)
+    # plot_stats_with_loss(df_ilg_path, df_ff_path, 2)
+    plot_stats_without_perfrank(df_ilg_path, df_ff_path)
     # plot_hgn_stats_with_ff(df_hgn_path, df_ff_path)
     # get_convergence([log_t_path, log_hgn_t_path, log_ilg_t_path])
     # df1 = pd.read_csv("../convergence.csv")
